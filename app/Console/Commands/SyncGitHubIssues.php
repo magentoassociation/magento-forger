@@ -42,7 +42,7 @@ class SyncGitHubIssues extends Command implements Isolatable
                 $this->error("Invalid date format for --since option: $since");
                 return 1;
             }
-            $this->info("Filtering issues updated since: " . $cutoff->toDateTimeString());
+            $this->info('Filtering issues updated since: ' . $cutoff->toDateTimeString());
         } else {
             $this->info('No date filter applied');
         }
@@ -56,7 +56,7 @@ class SyncGitHubIssues extends Command implements Isolatable
             $totalCount = $totalCounts->total;
             $this->info("Syncing issues for $repo. ($summary)");
         } catch (Throwable $e) {
-            $this->warn("Could not retrieve issue count");
+            $this->warn('Could not retrieve issue count');
             Log::warning('GitHub issue count failed', ['exception' => $e]);
         }
         $totalPages = $totalCount ? ceil($totalCount / 100) : null;
@@ -93,7 +93,6 @@ class SyncGitHubIssues extends Command implements Isolatable
                 $this->info("Page $page" . ($totalPages ? " of $totalPages" : '') . " done. Cursor: $cursor");
                 $page++;
             } catch (Throwable $e) {
-                print_r($e->getMessage());
                 $this->warn("Could not fetch issues for page $page");
                 Log::warning('GitHub issue fetch failed', ['exception' => $e]);
             }

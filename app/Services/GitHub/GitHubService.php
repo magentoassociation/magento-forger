@@ -50,103 +50,15 @@ class GitHubService
     }
 
     /**
-     * Determine if a request should be retried based on response or exception.
-     */
-    private function getRetryDecider(): callable
-    {
-        return function ($retries, $request, $response, $reason) {
-            if ($retries >= $this->maxRetries) {
-                return false;
-            }
-
-            // Retry on server errors (502, 503, 504)
-            if ($response && in_array($response->getStatusCode(), [502, 503, 504], true)) {
-                Log::warning("GitHub API returned {$response->getStatusCode()}. Retrying...");
-                return true;
-            }
-
-            // Retry on connection errors
-            if ($reason instanceof ConnectException) {
-                Log::warning("Network error: {$reason->getMessage()}. Retrying...");
-                return true;
-            }
-
-            // Retry on request errors (partial transfers, etc.)
-            if ($reason instanceof RequestException) {
-                Log::warning("Request error: {$reason->getMessage()}. Retrying...");
-                return true;
-            }
-
-            return false;
-        };
-    }
-
-    /**
-     * Calculate delay in milliseconds for exponential backoff.
-     */
-    private function getRetryDelay(): callable
-    {
-        return static function ($retries) {
-            $delayMs = (2 ** $retries) * 2000; // 2s, 4s, 8s in milliseconds
-            Log::info("Waiting {$delayMs}ms before retry...");
-            return $delayMs;
-        };
-    }
-
-    /**
+     * Used when syncing issues to get the total count of issues in a repository.
+     *
+     * @param string $owner
+     * @param string $repo
+     * @return IssueCounts
      * @throws GitHubGraphQLException
      * @throws GuzzleException
      * @throws JsonException
      */
-    private function executeGraphQLQuery(string $query, array $variables = [], array $options = []): ?array
-    {
-        $response = $this->client->post('', [
-            'json' => [
-                'query' => $query,
-                'variables' => $variables,
-            ],
-            'timeout' => $options['timeout'] ?? 60,
-            'connect_timeout' => $options['connect_timeout'] ?? 10,
-        ]);
-
-        $json = json_decode($response->getBody()->getContents(), true, 512, JSON_THROW_ON_ERROR);
-
-        $rate = $json['data']['rateLimit'] ?? null;
-        if ($rate && isset($rate['remaining'])) {
-            // Proactive throttling based on remaining calls
-            if ($rate['remaining'] === 0 && isset($rate['resetAt'])) {
-                try {
-                    $resetAt = new DateTime($rate['resetAt']);
-                    $waitSeconds = max($resetAt->getTimestamp() - time(), 1);
-                    Log::info("GitHub rate limit exceeded. Waiting for $waitSeconds seconds.");
-                    sleep($waitSeconds);
-                } catch (Exception $e) {
-                    throw new RuntimeException("Invalid rateLimit.resetAt value: " . $rate['resetAt'] . ' ' . $e->getMessage());
-                }
-            } elseif ($rate['remaining'] < 100) {
-                Log::info("GitHub rate limit very low ({$rate['remaining']} remaining). Adding 10s delay.");
-                sleep(10);
-            } elseif ($rate['remaining'] < 500) {
-                Log::info("GitHub rate limit getting low ({$rate['remaining']} remaining). Adding 3s delay.");
-                sleep(3);
-            }
-        }
-
-        if (isset($json['errors'])) {
-            throw new GitHubGraphQLException(
-                'GitHub GraphQL API error',
-                [
-                    'status' => $response->getStatusCode(),
-                    'errors' => $json['errors'],
-                    'query' => $query,
-                    'variables' => $variables,
-                ]
-            );
-        }
-
-        return $json['data'] ?? null;
-    }
-
     public function fetchIssueCount(string $owner, string $repo): IssueCounts
     {
         $query = file_get_contents(resource_path('graphql/github/github_issue_count.graphql'));
@@ -159,6 +71,17 @@ class GitHubService
         return IssueCounts::fromGraphQL($data);
     }
 
+    /**
+     * Used when syncing issues to get the issues in a repository.
+     *
+     * @param string $owner
+     * @param string $repo
+     * @param string|null $cursor
+     * @return array
+     * @throws GitHubGraphQLException
+     * @throws GuzzleException
+     * @throws JsonException
+     */
     public function fetchIssues(string $owner, string $repo, ?string $cursor = null): array
     {
         $query = file_get_contents(resource_path('graphql/github/github_issues.graphql'));
@@ -175,6 +98,16 @@ class GitHubService
         return $issues;
     }
 
+    /**
+     * Used when syncing pull requests to get the total count of pull requests in a repository.
+     *
+     * @param string $owner
+     * @param string $repo
+     * @return PullRequestCounts
+     * @throws GitHubGraphQLException
+     * @throws GuzzleException
+     * @throws JsonException
+     */
     public function fetchPullRequestCount(string $owner, string $repo): PullRequestCounts
     {
         $query = file_get_contents(resource_path('graphql/github/github_pull_request_count.graphql'));
@@ -187,6 +120,17 @@ class GitHubService
         return PullRequestCounts::fromGraphQL($data);
     }
 
+    /**
+     * Used when syncing pull requests to get the pull requests in a repository.
+     *
+     * @param string $owner
+     * @param string $repo
+     * @param string|null $cursor
+     * @return array
+     * @throws GitHubGraphQLException
+     * @throws GuzzleException
+     * @throws JsonException
+     */
     public function fetchPullRequests(string $owner, string $repo, ?string $cursor = null): array
     {
         $query = file_get_contents(resource_path('graphql/github/github_pull_requests.graphql'));
@@ -203,9 +147,20 @@ class GitHubService
         return $pullRequests;
     }
 
+    /**
+     * Unused?
+     *
+     * @param string $owner
+     * @param string $repo
+     * @param int $issueNumber
+     * @return array
+     * @throws GitHubGraphQLException
+     * @throws GuzzleException
+     * @throws JsonException
+     */
     public function fetchInteractionsForIssue(string $owner, string $repo, int $issueNumber): array
     {
-        $query = file_get_contents(resource_path('graphql/github/github_issue_interactions.graphql'));
+        $query = file_get_contents(resource_path('graphql/github/github_single_issue_or_pr_interactions.graphql'));
 
         $variables = [
             'owner' => $owner,
@@ -279,34 +234,12 @@ class GitHubService
         return $interactions;
     }
 
-    public function fetchIssuesPaged(string $owner, string $repo, ?string $cursor = null): array
-    {
-        $query = file_get_contents(resource_path('graphql/github/github_issues_paged.graphql'));
-
-        $variables = [
-            'owner' => $owner,
-            'name' => $repo,
-            'cursor' => $cursor,
-        ];
-
-        $data = $this->executeGraphQLQuery($query, $variables);
-
-        $issues = $data['repository']['issues']['nodes'] ?? [];
-        $pageInfo = $data['repository']['issues']['pageInfo'] ?? [];
-
-        return [
-            'issues' => $issues,
-            'endCursor' => $pageInfo['endCursor'] ?? null,
-            'hasNextPage' => $pageInfo['hasNextPage'] ?? false,
-        ];
-    }
-
     /**
      * Fetch issues with their interactions (comments, timeline events) in a single query.
      * This eliminates N+1 API calls when syncing interactions.
      *
      * @throws GitHubGraphQLException
-     * @throws JsonException
+     * @throws JsonException|GuzzleException
      */
     public function fetchIssuesWithInteractions(string $owner, string $repo, ?string $cursor = null): array
     {
@@ -331,6 +264,9 @@ class GitHubService
 
     /**
      * Extract interactions from an issue node that includes inline comments and timeline items.
+     *
+     * @param array $issue
+     * @return array
      */
     public function extractInteractionsFromIssue(array $issue): array
     {
@@ -376,8 +312,15 @@ class GitHubService
     }
 
     /**
-     * Fetch issues with their timeline events in a single query.
-     * This eliminates N+1 API calls when syncing events.
+     * Fetch issues with their timeline events in a single query. This eliminates N+1 API calls when syncing events.
+     *
+     * @param string $owner
+     * @param string $repo
+     * @param string|null $cursor
+     * @return array
+     * @throws GitHubGraphQLException
+     * @throws GuzzleException
+     * @throws JsonException
      */
     public function fetchIssuesWithEvents(string $owner, string $repo, ?string $cursor = null): array
     {
@@ -408,6 +351,9 @@ class GitHubService
 
     /**
      * Extract events from an issue node that includes inline timeline items.
+     *
+     * @param array $issue
+     * @return array
      */
     public function extractEventsFromIssue(array $issue): array
     {
@@ -428,49 +374,6 @@ class GitHubService
         return $events;
     }
 
-    public function fetchEventsForIssue(string $owner, string $repo, int $number): array
-    {
-        $restClient = $this->getRestClient();
-
-        $events = [];
-        $url = "repos/$owner/$repo/issues/$number/timeline";
-
-        try {
-            $response = $restClient->get($url);
-            $raw = json_decode($response->getBody()->getContents(), true, 512, JSON_THROW_ON_ERROR);
-
-            foreach ($raw as $event) {
-                if (!isset($event['event'], $event['created_at'])) {
-                    continue;
-                }
-
-                $events[] = [
-                    'type' => $event['event'],
-                    'actor' => $event['actor']['login'] ?? 'unknown',
-                    'created_at' => $event['created_at'],
-                ];
-            }
-        } catch (\Throwable $e) {
-            \Log::error("Failed to fetch events for issue #$number", ['exception' => $e]);
-        }
-
-        return $events;
-    }
-
-    public function getRateLimit(): array
-    {
-        $restClient = $this->getRestClient();
-
-        try {
-            $response = $restClient->get('rate_limit');
-            $json = json_decode($response->getBody()->getContents(), true, 512, JSON_THROW_ON_ERROR);
-            return $json['rate'] ?? [];
-        } catch (Exception $e) {
-            Log::warning('Failed to fetch GitHub rate limit', ['exception' => $e]);
-            return ['remaining' => 0];
-        }
-    }
-
     private function getRestClient(): Client
     {
         return new Client([
@@ -481,5 +384,107 @@ class GitHubService
                 'User-Agent' => 'Laravel-GitHubSync/1.0',
             ],
         ]);
+    }
+
+    /**
+     * Determine if a request should be retried based on response or exception.
+     *
+     * @return callable
+     */
+    private function getRetryDecider(): callable
+    {
+        return function ($retries, $request, $response, $reason) {
+            if ($retries >= $this->maxRetries) {
+                return false;
+            }
+
+            // Retry on server errors (502, 503, 504)
+            if ($response && \in_array($response->getStatusCode(), [502, 503, 504], true)) {
+                Log::warning("GitHub API returned {$response->getStatusCode()}. Retrying...");
+                return true;
+            }
+
+            // Retry on connection errors
+            if ($reason instanceof ConnectException) {
+                Log::warning("Network error: {$reason->getMessage()}. Retrying...");
+                return true;
+            }
+
+            // Retry on request errors (partial transfers, etc.)
+            if ($reason instanceof RequestException) {
+                Log::warning("Request error: {$reason->getMessage()}. Retrying...");
+                return true;
+            }
+
+            return false;
+        };
+    }
+
+    /**
+     * Calculate delay in milliseconds for exponential backoff.
+     *
+     * @return callable
+     */
+    private function getRetryDelay(): callable
+    {
+        return static function ($retries) {
+            $delayMs = (2 ** $retries) * 2000; // 2s, 4s, 8s in milliseconds
+            Log::info("Waiting {$delayMs}ms before retry...");
+            return $delayMs;
+        };
+    }
+
+    /**
+     * @throws GitHubGraphQLException
+     * @throws GuzzleException
+     * @throws JsonException
+     */
+    private function executeGraphQLQuery(string $query, array $variables = [], array $options = []): ?array
+    {
+        $response = $this->client->post('', [
+            'json' => [
+                'query' => $query,
+                'variables' => $variables,
+            ],
+            'timeout' => $options['timeout'] ?? 60,
+            'connect_timeout' => $options['connect_timeout'] ?? 10,
+        ]);
+
+        $json = json_decode($response->getBody()->getContents(), true, 512, JSON_THROW_ON_ERROR);
+
+        $rate = $json['data']['rateLimit'] ?? null;
+        if ($rate && isset($rate['remaining'])) {
+            // Proactive throttling based on remaining calls
+            if ($rate['remaining'] === 0 && isset($rate['resetAt'])) {
+                try {
+                    $resetAt = new DateTime($rate['resetAt']);
+                    $waitSeconds = max($resetAt->getTimestamp() - time(), 1);
+                    Log::info("GitHub rate limit exceeded. Waiting for $waitSeconds seconds.");
+                    sleep($waitSeconds);
+                } catch (Exception $e) {
+                    throw new RuntimeException("Invalid rateLimit.resetAt value: " . $rate['resetAt'] . ' ' . $e->getMessage());
+                }
+            } elseif ($rate['remaining'] < 100) {
+                Log::info("GitHub rate limit very low ({$rate['remaining']} remaining). Adding 10s delay.");
+                sleep(10);
+            } elseif ($rate['remaining'] < 500) {
+                Log::info("GitHub rate limit getting low ({$rate['remaining']} remaining). Adding 3s delay.");
+                sleep(3);
+            }
+        }
+
+        if (isset($json['errors'])) {
+            throw new GitHubGraphQLException(
+                'GitHub GraphQL API error',
+                [
+                    'status' => $response->getStatusCode(),
+                    'errors' => $json['errors'],
+                    'query' => $query,
+                    'variables' => $variables,
+                ]
+            );
+        }
+
+        return $json['data'] ?? null;
     }
 }
