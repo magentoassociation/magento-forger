@@ -17,6 +17,8 @@ class MainMenu
 
         $routes = collect(Route::getRoutes())
             ->filter(fn($route) => self::hasNoRequiredParameters($route))
+            ->filter(fn($route) => in_array('GET', $route->methods()))
+            // TODO: Add a new filter to restrict these routes to admin access only
             ->map(fn($route) => $route->getName())
             ->filter(fn($name) => preg_match(self::MENU_ROUTE_PATTERN, $name));
 

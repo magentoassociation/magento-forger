@@ -2,11 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\GitHub\GitHubService;
 use App\Services\Search\OpenSearchService;
 use DateTime;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 use OpenSearch\Client;
+use PhpOffice\PhpSpreadsheet\IOFactory;
+use Illuminate\Support\Facades\Log;
 
 class LabelController extends Controller
 {
@@ -145,5 +149,150 @@ class LabelController extends Controller
             }
         }
         return view('labels/prsWithoutComponentLabel', ['prs' => $dataToDisplay]);
+    }
+
+    public function processLabels(): view
+    {
+        return view('labels/processLabels');
+    }
+
+    public function uploadLabels(Request $request, GitHubService $github): RedirectResponse
+    {
+        $request->validate([
+            'label_sheet' => 'required|mimes:xlsx,xls,ods'
+        ]);
+
+        $file = $request->file('label_sheet');
+        $spreadsheet = IOFactory::load($file->getRealPath());
+
+        $newLabels = [];
+        $renames = [];
+        $remaps = [];
+
+        foreach (['area', 'component'] as $tabName) {
+            $sheet = $spreadsheet->getSheetByName($tabName);
+            if (!$sheet) {
+                continue;
+            }
+
+            $highestRow = $sheet->getHighestRow();
+            $data = $sheet->toArray(null, true, true, true);
+
+            $dataEndRow = 1;
+            for ($row = 2; $row <= $highestRow; $row++) {
+                $label = trim($data[$row]['A'] ?? '');
+                if (empty($label)) {
+                    $nextRowsEmpty = true;
+                    for ($i = $row + 1; $i <= min($row + 3, $highestRow); $i++) {
+                        if (!empty(trim($data[$i]['A'] ?? ''))) {
+                            $nextRowsEmpty = false;
+                            break;
+                        }
+                    }
+                    if ($nextRowsEmpty) {
+                        $dataEndRow = $row - 1;
+                        break;
+                    }
+                }
+            }
+
+            if ($dataEndRow < 2) {
+                $dataEndRow = $highestRow;
+            }
+
+            for ($row = 2; $row <= $dataEndRow; $row++) {
+                $label = trim($data[$row]['A'] ?? '');
+                // For Future use
+                //$description = trim($data[$row]['C'] ?? '');
+                $keep = strtolower(trim($data[$row]['D'] ?? ''));
+                $rename = trim($data[$row]['E'] ?? '');
+                $replaceWith = trim($data[$row]['F'] ?? '');
+
+                if (empty($label)) {
+                    continue;
+                }
+
+                if ($keep === 'no' && !empty($replaceWith)) {
+                    $remaps[$label] = $replaceWith;
+                } elseif (empty($keep) && !empty($rename)) {
+                    $renames[$label] = $rename;
+                } elseif (empty($keep) && empty($rename) && empty($replaceWith)) {
+                    if ($label !== 'New Labels') {
+                        $newLabels[] = $label;
+                    }
+                }
+            }
+        }
+
+        $results = [
+            'created' => 0,
+            'renamed' => 0,
+            'errors' => []
+        ];
+
+        foreach ($newLabels as $label) {
+            try {
+                $created = $this->createGitHubLabel($github, $label);
+                $results['created'] = $results['created'] + $created;
+            } catch (\Exception $e) {
+                $results['errors'][] = "Failed to create label '$label': " . $e->getMessage();
+                Log::error("Error creating label $label: " . $e->getMessage());
+            }
+        }
+
+        foreach ($renames as $oldName => $newName) {
+            try {
+                $renamed = $this->renameGitHubLabel($github, $oldName, $newName);
+                $results['renamed'] = $results['renamed'] + $renamed;
+            } catch (\Exception $e) {
+                $results['errors'][] = "Failed to rename '$oldName' to '$newName': " . $e->getMessage();
+                Log::error("Error renaming label $oldName to $newName: " . $e->getMessage());
+            }
+        }
+
+        $errorMessages = implode('<br>', $results['errors'] ?? []);
+
+        $message =
+            'Labels were processed successfully.<br>' .
+            'Created Labels: ' . $results['created'] . '<br>' .
+            'Renamed Labels: ' . $results['renamed'];
+
+        if (count($results['errors'])) {
+            $message .= '<br>Errors:<br>' . implode('<br>', $errorMessages);
+        }
+
+        return redirect()->back()->with('success', $message);
+    }
+
+    protected function createGitHubLabel(GitHubService $github, string $label): int
+    {
+        [$owner, $repo] = $this->getRepo();
+        $result = $github->createLabel($owner, $repo, $label);
+
+        if ($result) {
+            Log::info("GitHub label created: {$label}");
+        }
+        return $result;
+    }
+
+    protected function renameGitHubLabel(GitHubService $github, string $oldLabel, string $newLabel): int
+    {
+        [$owner, $repo] = $this->getRepo();
+        $result = $github->renameLabel($owner, $repo, $oldLabel, $newLabel);
+
+        if ($result) {
+            Log::info("Renaming GitHub label: $oldLabel to $newLabel");
+        }
+        return $result;
+    }
+
+    protected function getRepo(): array
+    {
+        $repo = config('github.repo', 'magento/magento2');
+        if (!str_contains($repo, '/')) {
+            throw new \RuntimeException('Invalid GitHub repository format');
+        }
+
+        return explode('/', $repo);
     }
 }

@@ -433,4 +433,86 @@ class GitHubService
             return ['remaining' => 0];
         }
     }
+
+    public function createLabel(string $owner, string $repo, string $label): int
+    {
+        $restClient = new Client([
+            'base_uri' => 'https://api.github.com/',
+            'headers' => [
+                'Authorization' => "Bearer {$this->token}",
+                'Accept' => 'application/vnd.github+json',
+                'User-Agent' => 'Laravel-GitHubSync/1.0',
+            ],
+        ]);
+
+        $isAlreadyExists = $this->checkIsAlreadyExists($owner, $repo, $label);
+        if ($isAlreadyExists) {
+            return 0;
+        }
+        $url = "repos/$owner/$repo/labels";
+
+        try {
+            $response = $restClient->request('POST', $url, [
+                'json' => [
+                    'name' => $label
+                ]
+            ]);
+            json_decode($response->getBody()->getContents(), true, 512, JSON_THROW_ON_ERROR);
+            return 1;
+        } catch (Exception $e) {
+            Log::error('Failed to create label', ['exception' => $e]);
+            return 0;
+        }
+    }
+
+    public function renameLabel(string $owner, string $repo, string $oldName, string $newName): int
+    {
+        $restClient = new Client([
+            'base_uri' => 'https://api.github.com/',
+            'headers' => [
+                'Authorization' => "Bearer {$this->token}",
+                'Accept' => 'application/vnd.github+json',
+                'User-Agent' => 'Laravel-GitHubSync/1.0',
+            ],
+        ]);
+
+        $url = "repos/$owner/$repo/labels/$oldName";
+
+        try {
+            $restClient->request('PATCH', $url, [
+                'json' => [
+                    'new_name' => $newName
+                ]
+            ]);
+            return 1;
+        } catch (Exception $e) {
+            Log::error('Failed to rename label', ['exception' => $e]);
+            return 0;
+        }
+    }
+
+    private function checkIsAlreadyExists(string $owner, string $repo, string $label): bool
+    {
+        $restClient = new Client([
+            'base_uri' => 'https://api.github.com/',
+            'headers' => [
+                'Authorization' => "Bearer {$this->token}",
+                'Accept' => 'application/vnd.github+json',
+                'User-Agent' => 'Laravel-GitHubSync/1.0',
+            ],
+        ]);
+
+        $url = "repos/$owner/$repo/labels/$label";
+        try {
+            $response = $restClient->get($url);
+            $json = json_decode($response->getBody()->getContents(), true, 512, JSON_THROW_ON_ERROR);
+            if ($json['name'] == $label) {
+                return true;
+            }
+            return false;
+        } catch (Exception $e) {
+            Log::error('Failed to check is label already exists', ['exception' => $e]);
+            return false;
+        }
+    }
 }
