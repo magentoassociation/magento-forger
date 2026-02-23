@@ -53,6 +53,12 @@
                             </a>
                         @endif
 
+                        @if(Auth::user()->companies()->exists())
+                            <a href="{{ route('company-owner.index') }}" class="btn btn-sm btn-outline-light">
+                                <i class="fas fa-building"></i> My Companies
+                            </a>
+                        @endif
+
                         <form action="{{ route('logout') }}" method="POST" class="d-inline">
                             @csrf
                             <button type="submit" class="btn btn-sm btn-outline-light">

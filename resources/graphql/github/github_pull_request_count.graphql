@@ -1,5 +1,5 @@
-query($owner: String!, $repo: String!) {
-    repository(owner: $owner, name: $repo) {
+query($owner: String!, $name: String!) {
+    repository(owner: $owner, name: $name) {
         pullRequests {
             totalCount
         }

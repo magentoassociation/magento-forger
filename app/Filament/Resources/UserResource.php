@@ -4,6 +4,8 @@ declare(strict_types=1);
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\UserResource\Pages;
+use App\Filament\Resources\UserResource\RelationManagers\AffiliationsRelationManager;
+use App\Filament\Resources\UserResource\RelationManagers\CompaniesRelationManager;
 use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -67,7 +69,10 @@ class UserResource extends Resource
 
     public static function getRelations(): array
     {
-        return [];
+        return [
+            AffiliationsRelationManager::class,
+            CompaniesRelationManager::class,
+        ];
     }
 
     public static function getPages(): array
@@ -75,6 +80,8 @@ class UserResource extends Resource
         return [
             'index' => Pages\ListUsers::route('/'),
             'edit' => Pages\EditUser::route('/{record}/edit'),
+            // Users are created via GitHub OAuth only, not through admin panel
+            // 'create' => Pages\CreateUser::route('/create'),
         ];
     }
 

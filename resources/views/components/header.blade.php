@@ -1,6 +1,11 @@
 @php
     use App\Helpers\RouteLabelHelper;
     $formattedLabel = RouteLabelHelper::formatLabel(Route::currentRouteName());
+
+    // For year-specific leaderboard routes, show "Leaderboard - Year"
+    if (isset($year) && Route::currentRouteName() === 'leaderboard-year') {
+        $formattedLabel = 'Leaderboard - ' . $year;
+    }
 @endphp
 
 <header class="bg-white shadow py-3 mb-4">
