@@ -8,6 +8,7 @@ use App\Exceptions\GitHubGraphQLException;
 use DateTime;
 use Exception;
 use GuzzleHttp\Client;
+use GuzzleHttp\Exception\RequestException;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
 
@@ -452,12 +453,11 @@ class GitHubService
         $url = "repos/$owner/$repo/labels";
 
         try {
-            $response = $restClient->request('POST', $url, [
+            $restClient->request('POST', $url, [
                 'json' => [
                     'name' => $label
                 ]
             ]);
-            json_decode($response->getBody()->getContents(), true, 512, JSON_THROW_ON_ERROR);
             return 1;
         } catch (Exception $e) {
             Log::error('Failed to create label', ['exception' => $e]);
@@ -476,7 +476,7 @@ class GitHubService
             ],
         ]);
 
-        $url = "repos/$owner/$repo/labels/$oldName";
+        $url = "repos/$owner/$repo/labels/" . rawurlencode($oldName);
 
         try {
             $restClient->request('PATCH', $url, [
@@ -506,11 +506,11 @@ class GitHubService
         try {
             $response = $restClient->get($url);
             $json = json_decode($response->getBody()->getContents(), true, 512, JSON_THROW_ON_ERROR);
-            if ($json['name'] == $label) {
+            if ($json['name'] === $label) {
                 return true;
             }
             return false;
-        } catch (Exception $e) {
+        } catch (RequestException | Exception $e) {
             Log::error('Failed to check is label already exists', ['exception' => $e]);
             return false;
         }

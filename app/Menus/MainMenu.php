@@ -14,11 +14,20 @@ class MainMenu
     public static function build(): Menu
     {
         $currentRoute = Route::currentRouteName();
+        $adminOnlyRoutes = [
+            'labels-processLabels'
+        ];
 
         $routes = collect(Route::getRoutes())
             ->filter(fn($route) => self::hasNoRequiredParameters($route))
             ->filter(fn($route) => in_array('GET', $route->methods()))
-            // TODO: Add a new filter to restrict these routes to admin access only
+            ->filter(function ($route) use ($adminOnlyRoutes) {
+                $name = $route->getName();
+                if (in_array($name, $adminOnlyRoutes)) {
+                    return auth()->check() && auth()->user()->is_admin == 0;
+                }
+                return true;
+            })
             ->map(fn($route) => $route->getName())
             ->filter(fn($name) => preg_match(self::MENU_ROUTE_PATTERN, $name));
 

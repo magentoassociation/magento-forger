@@ -249,16 +249,14 @@ class LabelController extends Controller
                 Log::error("Error renaming label $oldName to $newName: " . $e->getMessage());
             }
         }
-
-        $errorMessages = implode('<br>', $results['errors'] ?? []);
-
+        
         $message =
             'Labels were processed successfully.<br>' .
             'Created Labels: ' . $results['created'] . '<br>' .
             'Renamed Labels: ' . $results['renamed'];
 
         if (count($results['errors'])) {
-            $message .= '<br>Errors:<br>' . implode('<br>', $errorMessages);
+            $message .= '<br>Errors:<br>' . implode('<br>', $results['errors']);
         }
 
         return redirect()->back()->with('success', $message);
@@ -288,7 +286,7 @@ class LabelController extends Controller
 
     protected function getRepo(): array
     {
-        $repo = config('github.repo', 'magento/magento2');
+        $repo = "pandiselvamtm/testing-label";
         if (!str_contains($repo, '/')) {
             throw new \RuntimeException('Invalid GitHub repository format');
         }
