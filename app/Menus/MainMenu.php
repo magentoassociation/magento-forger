@@ -24,7 +24,7 @@ class MainMenu
             ->filter(function ($route) use ($adminOnlyRoutes) {
                 $name = $route->getName();
                 if (in_array($name, $adminOnlyRoutes)) {
-                    return auth()->check() && auth()->user()->is_admin == 0;
+                    return auth()->check() && auth()->user()->is_admin == 1;
                 }
                 return true;
             })

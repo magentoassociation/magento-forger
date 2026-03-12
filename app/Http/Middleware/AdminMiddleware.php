@@ -19,7 +19,7 @@ class AdminMiddleware
             return redirect()->route('home');
         }
 
-        if (auth()->user()->is_admin != 0) {
+        if (auth()->user()->is_admin != 1) {
             abort(403, 'Unauthorized access.');
         }
 
