@@ -1,9 +1,9 @@
-query($owner: String!, $repo: String!, $cursor: String) {
+query($owner: String!, $name: String!, $cursor: String) {
   rateLimit {
     remaining
     resetAt
   }
-  repository(owner: $owner, name: $repo) {
+  repository(owner: $owner, name: $name) {
     issues(first: 100, after: $cursor, orderBy: {field: UPDATED_AT, direction: DESC}) {
       pageInfo {
         hasNextPage
