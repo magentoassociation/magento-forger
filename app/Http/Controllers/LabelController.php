@@ -147,6 +147,16 @@ class LabelController extends Controller
             foreach ($yearBucket['by_month']['buckets'] as $monthBucket) {
                 $dataToDisplay[$yearBucket['key_as_string']]['months'][$monthBucket['key_as_string']]['total'] = $monthBucket['doc_count'];
                 $monthDate = Datetime::createFromFormat('Y-m-d', $yearBucket['key_as_string'].'-'.$monthBucket['key_as_string'].'-01');
+
+                if (! $monthDate instanceof DateTime) {
+                    Log::warning('Skipping PR month date range because the bucket date could not be parsed.', [
+                        'year' => $yearBucket['key_as_string'],
+                        'month' => $monthBucket['key_as_string'],
+                    ]);
+
+                    continue;
+                }
+
                 $firstOfMonth = (clone $monthDate)->modify('first day of this month')->setTime(0, 0, 0);
                 $lastOfMonth = (clone $monthDate)->modify('last day of this month')->setTime(23, 59, 59);
                 $dataToDisplay[$yearBucket['key_as_string']]['months'][$monthBucket['key_as_string']]['start'] = $firstOfMonth->format('Y-m-d\TH:i:s\Z');
@@ -188,7 +198,6 @@ class LabelController extends Controller
 
         $newLabels = [];
         $renames = [];
-        // todo: handle remaps separately
         $remaps = [];
 
         foreach (['area', 'component'] as $tabName) {
@@ -258,6 +267,7 @@ class LabelController extends Controller
             'created' => 0,
             'renamed' => 0,
             'errors' => [],
+            'skipped' => [],
         ];
 
         foreach ($newLabels as $label) {
@@ -310,22 +320,41 @@ class LabelController extends Controller
             }
         }
 
+        foreach ($remaps as $oldName => $newName) {
+            $results['skipped'][] = "Skipped remapping label '$oldName' to '$newName': remap not implemented.";
+
+            Log::warning('GitHub label remap skipped because remap handling is not implemented.', [
+                'old_name' => $oldName,
+                'new_name' => $newName,
+                'reason' => 'remap not implemented',
+            ]);
+        }
+
         $hasErrors = count($results['errors']) > 0;
+        $hasSkipped = count($results['skipped']) > 0;
         $hasSuccessfulChanges = $results['created'] > 0 || $results['renamed'] > 0;
         $flashKey = 'success';
         $header = 'Labels were processed successfully.';
 
         if ($hasErrors) {
-            $flashKey = $hasSuccessfulChanges ? 'warning' : 'error';
-            $header = $hasSuccessfulChanges
+            $flashKey = $hasSuccessfulChanges || $hasSkipped ? 'warning' : 'error';
+            $header = $hasSuccessfulChanges || $hasSkipped
                 ? 'Labels were processed with some errors.'
                 : 'Label processing failed.';
+        } elseif ($hasSkipped) {
+            $flashKey = 'warning';
+            $header = 'Labels were processed with skipped remaps.';
         }
 
         $message =
             $header.'<br>'.
             'Created Labels: '.number_format($results['created']).'<br>'.
-            'Renamed Labels: '.number_format($results['renamed']);
+            'Renamed Labels: '.number_format($results['renamed']).'<br>'.
+            'Skipped Remaps: '.number_format(count($results['skipped']));
+
+        if ($hasSkipped) {
+            $message .= '<br>Skipped:<br>'.implode('<br>', $results['skipped']);
+        }
 
         if ($hasErrors) {
             $message .= '<br>Errors:<br>'.implode('<br>', $results['errors']);

@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Tests\Feature\Http\Controllers;
 
 use App\Http\Controllers\LabelController;
+use App\Models\User;
 use App\Services\GitHub\GitHubService;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Log;
 use Mockery;
@@ -18,6 +20,8 @@ use Tests\TestCase;
 
 class LabelControllerTest extends TestCase
 {
+    use RefreshDatabase;
+
     private const REPO_OWNER = 'configured-owner';
 
     private const REPO_NAME = 'configured-repo';
@@ -27,10 +31,13 @@ class LabelControllerTest extends TestCase
      */
     private array $temporaryFiles = [];
 
+    private int $userSequence = 0;
+
     protected function setUp(): void
     {
         parent::setUp();
 
+        $this->withoutVite();
         config(['github.repo' => self::REPO_OWNER.'/'.self::REPO_NAME]);
     }
 
@@ -123,11 +130,62 @@ class LabelControllerTest extends TestCase
         })($view->getData()['prs']));
     }
 
+    public function test_list_prs_without_component_label_skips_invalid_month_dates(): void
+    {
+        Log::spy();
+
+        $client = Mockery::mock(Client::class);
+        $client->shouldReceive('search')->once()->andReturn([
+            'aggregations' => [
+                'by_year' => [
+                    'buckets' => [
+                        [
+                            'key_as_string' => 'invalid-year',
+                            'doc_count' => 1,
+                            'by_month' => [
+                                'buckets' => [
+                                    ['key_as_string' => '02', 'doc_count' => 1],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ]);
+
+        $view = $this->createController()->listPrWithoutComponentLabel($client);
+
+        $this->assertSame('labels.prsWithoutComponentLabel', $view->name());
+        $this->assertSame(1, $view->getData()['prs']['invalid-year']['months']['02']['total']);
+        $this->assertNull($view->getData()['prs']['invalid-year']['months']['02']['start']);
+        $this->assertNull($view->getData()['prs']['invalid-year']['months']['02']['end']);
+
+        Log::shouldHaveReceived('warning')->once()->with(
+            'Skipping PR month date range because the bucket date could not be parsed.',
+            Mockery::on(static function (array $context): bool {
+                return $context['year'] === 'invalid-year'
+                    && $context['month'] === '02';
+            })
+        );
+    }
+
     public function test_process_labels_page_is_available_to_admins(): void
     {
-        $view = $this->createController()->processLabels();
+        $adminUser = $this->createUser(true);
 
-        $this->assertSame('labels.processLabels', $view->name());
+        $response = $this->actingAs($adminUser)->get(route('labels-processLabels'));
+
+        $response->assertOk();
+        $response->assertViewIs('labels.processLabels');
+    }
+
+    public function test_process_labels_page_is_forbidden_to_non_admins(): void
+    {
+        $user = $this->createUser(false);
+
+        $this->actingAs($user)
+            ->get(route('labels-processLabels'))
+            ->assertForbidden();
     }
 
     public function test_upload_labels_records_an_error_when_create_returns_zero(): void
@@ -296,6 +354,56 @@ class LabelControllerTest extends TestCase
         $response->assertSessionMissing('error');
     }
 
+    public function test_upload_labels_records_a_warning_when_remaps_are_skipped(): void
+    {
+        Log::spy();
+
+        $github = Mockery::mock(GitHubService::class);
+
+        $this->app->instance(GitHubService::class, $github);
+
+        $response = $this->post(route('labels-uploadLabels'), [
+            'label_sheet' => $this->createLabelSpreadsheet(
+                [
+                    ['A' => 'Area: Old', 'D' => 'no', 'F' => 'Area: New'],
+                ],
+                [
+                    ['A' => 'Component: Old', 'D' => 'no', 'F' => 'Component: New'],
+                ]
+            ),
+        ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('warning', static function (string $message): bool {
+            return str_contains($message, 'Labels were processed with skipped remaps.')
+                && str_contains($message, 'Created Labels: 0')
+                && str_contains($message, 'Renamed Labels: 0')
+                && str_contains($message, 'Skipped Remaps: 2')
+                && str_contains($message, "Skipped remapping label 'Area: Old' to 'Area: New': remap not implemented.")
+                && str_contains($message, "Skipped remapping label 'Component: Old' to 'Component: New': remap not implemented.");
+        });
+        $response->assertSessionMissing('success');
+        $response->assertSessionMissing('error');
+
+        Log::shouldHaveReceived('warning')->twice();
+        Log::shouldHaveReceived('warning')->with(
+            'GitHub label remap skipped because remap handling is not implemented.',
+            Mockery::on(static function (array $context): bool {
+                return $context['old_name'] === 'Area: Old'
+                    && $context['new_name'] === 'Area: New'
+                    && $context['reason'] === 'remap not implemented';
+            })
+        );
+        Log::shouldHaveReceived('warning')->with(
+            'GitHub label remap skipped because remap handling is not implemented.',
+            Mockery::on(static function (array $context): bool {
+                return $context['old_name'] === 'Component: Old'
+                    && $context['new_name'] === 'Component: New'
+                    && $context['reason'] === 'remap not implemented';
+            })
+        );
+    }
+
     public function test_upload_labels_throws_when_repo_configuration_is_missing(): void
     {
         config(['github.repo' => '']);
@@ -363,5 +471,25 @@ class LabelControllerTest extends TestCase
                 return $this->getRepo();
             }
         };
+    }
+
+    private function createUser(bool $isAdmin): User
+    {
+        $sequence = ++$this->userSequence;
+        $user = new User;
+        $user->timestamps = false;
+        $user->forceFill([
+            'name' => "Test User {$sequence}",
+            'email' => "test{$sequence}@example.com",
+            'password' => null,
+            'github_id' => "github-user-{$sequence}",
+            'github_username' => "test-user-{$sequence}",
+            'is_admin' => $isAdmin,
+            'created_at' => now()->toDateString(),
+            'updated_at' => now()->toDateString(),
+        ]);
+        $user->save();
+
+        return $user;
     }
 }
