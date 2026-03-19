@@ -1,5 +1,8 @@
 <?php
-
+/*
+ * @copyright Copyright (c) 2026 The Magento Association
+ * @license https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
+ */
 namespace App\Services\GitHub;
 
 use App\DataTransferObjects\GitHub\IssueCounts;
@@ -13,7 +16,6 @@ use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Middleware;
-use GuzzleHttp\Exception\RequestException;
 use Illuminate\Support\Facades\Log;
 use JsonException;
 use RuntimeException;
@@ -21,15 +23,19 @@ use RuntimeException;
 class GitHubService
 {
     protected Client $client;
+
     protected string $token;
+
     private int $maxRetries;
+
+    private ?array $lastLabelOperationError = null;
 
     public function __construct()
     {
         $this->maxRetries = 3;
         $this->token = config('github.token');
 
-        if (!$this->token) {
+        if (! $this->token) {
             throw new RuntimeException('Missing GitHub token in config.');
         }
 
@@ -63,18 +69,21 @@ class GitHubService
             // Retry on server errors (502, 503, 504)
             if ($response && in_array($response->getStatusCode(), [502, 503, 504], true)) {
                 Log::warning("GitHub API returned {$response->getStatusCode()}. Retrying...");
+
                 return true;
             }
 
             // Retry on connection errors
             if ($reason instanceof ConnectException) {
                 Log::warning("Network error: {$reason->getMessage()}. Retrying...");
+
                 return true;
             }
 
             // Retry on request errors (partial transfers, etc.)
             if ($reason instanceof RequestException) {
                 Log::warning("Request error: {$reason->getMessage()}. Retrying...");
+
                 return true;
             }
 
@@ -90,6 +99,7 @@ class GitHubService
         return static function ($retries) {
             $delayMs = (2 ** $retries) * 2000; // 2s, 4s, 8s in milliseconds
             Log::info("Waiting {$delayMs}ms before retry...");
+
             return $delayMs;
         };
     }
@@ -122,7 +132,7 @@ class GitHubService
                     Log::info("GitHub rate limit exceeded. Waiting for $waitSeconds seconds.");
                     sleep($waitSeconds);
                 } catch (Exception $e) {
-                    throw new RuntimeException("Invalid rateLimit.resetAt value: " . $rate['resetAt'] . ' ' . $e->getMessage());
+                    throw new RuntimeException('Invalid rateLimit.resetAt value: '.$rate['resetAt'].' '.$e->getMessage());
                 }
             } elseif ($rate['remaining'] < 100) {
                 Log::info("GitHub rate limit very low ({$rate['remaining']} remaining). Adding 10s delay.");
@@ -218,7 +228,7 @@ class GitHubService
         $node = $data['repository']['issueOrPullRequest'] ?? null;
         $interactions = [];
 
-        if (!$node) {
+        if (! $node) {
             return [];
         }
 
@@ -253,31 +263,7 @@ class GitHubService
         }
 
         // Comments
-        foreach ($node['comments']['nodes'] ?? [] as $comment) {
-            if (!isset($comment['createdAt'])) {
-                continue;
-            }
-            $interactions[] = [
-                'author' => $comment['author']['login'] ?? 'unknown',
-                'type' => 'comment',
-                'date' => $comment['createdAt'],
-            ];
-        }
-
-        // Timeline events
-        foreach ($node['timelineItems']['nodes'] ?? [] as $event) {
-            if (!isset($event['createdAt'])) {
-                continue;
-            }
-
-            $interactions[] = [
-                'author' => $event['actor']['login'] ?? 'unknown',
-                'type' => strtolower(str_replace('Event', '', $event['__typename'])),
-                'date' => $event['createdAt'],
-            ];
-        }
-
-        return $interactions;
+        return $this->processComments($node, $interactions);
     }
 
     public function fetchIssuesPaged(string $owner, string $repo, ?string $cursor = null): array
@@ -337,7 +323,6 @@ class GitHubService
     {
         $interactions = [];
         $author = $issue['author']['login'] ?? 'unknown';
-        $issueNumber = $issue['number'];
 
         // Created issue
         if (isset($issue['createdAt'])) {
@@ -349,31 +334,7 @@ class GitHubService
         }
 
         // Comments
-        foreach ($issue['comments']['nodes'] ?? [] as $comment) {
-            if (!isset($comment['createdAt'])) {
-                continue;
-            }
-            $interactions[] = [
-                'author' => $comment['author']['login'] ?? 'unknown',
-                'type' => 'comment',
-                'date' => $comment['createdAt'],
-            ];
-        }
-
-        // Timeline events
-        foreach ($issue['timelineItems']['nodes'] ?? [] as $event) {
-            if (!isset($event['createdAt'])) {
-                continue;
-            }
-
-            $interactions[] = [
-                'author' => $event['actor']['login'] ?? 'unknown',
-                'type' => strtolower(str_replace('Event', '', $event['__typename'])),
-                'date' => $event['createdAt'],
-            ];
-        }
-
-        return $interactions;
+        return $this->processComments($issue, $interactions);
     }
 
     /**
@@ -415,7 +376,7 @@ class GitHubService
         $events = [];
 
         foreach ($issue['timelineItems']['nodes'] ?? [] as $event) {
-            if (!isset($event['createdAt'])) {
+            if (! isset($event['createdAt'])) {
                 continue;
             }
 
@@ -441,7 +402,7 @@ class GitHubService
             $raw = json_decode($response->getBody()->getContents(), true, 512, JSON_THROW_ON_ERROR);
 
             foreach ($raw as $event) {
-                if (!isset($event['event'], $event['created_at'])) {
+                if (! isset($event['event'], $event['created_at'])) {
                     continue;
                 }
 
@@ -476,22 +437,38 @@ class GitHubService
     {
         $restClient = $this->getRestClient();
 
+        $this->lastLabelOperationError = null;
 
-        $isAlreadyExists = $this->checkIsAlreadyExists($owner, $repo, $label);
+        $isAlreadyExists = $this->checkIfLabelExists($owner, $repo, $label);
         if ($isAlreadyExists) {
+            $this->lastLabelOperationError = [
+                'operation' => 'create',
+                'status' => 'skipped',
+                'message' => "Label '{$label}' already exists.",
+            ];
+
             return 0;
         }
+
         $url = "repos/$owner/$repo/labels";
 
         try {
             $restClient->request('POST', $url, [
                 'json' => [
-                    'name' => $label
-                ]
+                    'name' => $label,
+                ],
             ]);
+
             return 1;
         } catch (Exception $e) {
+            $this->lastLabelOperationError = [
+                'operation' => 'create',
+                'status' => 'failed',
+                'message' => $e->getMessage(),
+                'exception' => $e::class,
+            ];
             Log::error('Failed to create label', ['exception' => $e]);
+
             return 0;
         }
     }
@@ -499,38 +476,59 @@ class GitHubService
     public function renameLabel(string $owner, string $repo, string $oldName, string $newName): int
     {
         $restClient = $this->getRestClient();
+        $this->lastLabelOperationError = null;
 
-        $url = "repos/$owner/$repo/labels/" . rawurlencode($oldName);
+        $url = $this->buildLabelUrl($owner, $repo, $oldName);
 
         try {
             $restClient->request('PATCH', $url, [
                 'json' => [
-                    'new_name' => $newName
-                ]
+                    'new_name' => $newName,
+                ],
             ]);
+
             return 1;
         } catch (Exception $e) {
+            $this->lastLabelOperationError = [
+                'operation' => 'rename',
+                'status' => 'failed',
+                'message' => $e->getMessage(),
+                'exception' => $e::class,
+                'old_name' => $oldName,
+                'new_name' => $newName,
+            ];
             Log::error('Failed to rename label', ['exception' => $e]);
+
             return 0;
         }
     }
 
-    private function checkIsAlreadyExists(string $owner, string $repo, string $label): bool
+    public function getLastLabelOperationError(): ?array
+    {
+        return $this->lastLabelOperationError;
+    }
+
+    private function checkIfLabelExists(string $owner, string $repo, string $label): bool
     {
         $restClient = $this->getRestClient();
 
-        $url = "repos/$owner/$repo/labels/$label";
+        $url = $this->buildLabelUrl($owner, $repo, $label);
+
         try {
             $response = $restClient->get($url);
             $json = json_decode($response->getBody()->getContents(), true, 512, JSON_THROW_ON_ERROR);
-            if ($json['name'] === $label) {
-                return true;
-            }
-            return false;
-        } catch (RequestException | Exception $e) {
+
+            return $json['name'] === $label;
+        } catch (RequestException|Exception $e) {
             Log::error('Failed to check is label already exists', ['exception' => $e]);
+
             return false;
         }
+    }
+
+    private function buildLabelUrl(string $owner, string $repo, string $label): string
+    {
+        return "repos/$owner/$repo/labels/".rawurlencode($label);
     }
 
     private function getRestClient(): Client
@@ -543,5 +541,39 @@ class GitHubService
                 'User-Agent' => 'Laravel-GitHubSync/1.0',
             ],
         ]);
+    }
+
+    /**
+     * @param array $issue
+     * @param array $interactions
+     * @return array
+     */
+    private function processComments(array $issue, array $interactions): array
+    {
+        foreach ($issue['comments']['nodes'] ?? [] as $comment) {
+            if (!isset($comment['createdAt'])) {
+                continue;
+            }
+            $interactions[] = [
+                'author' => $comment['author']['login'] ?? 'unknown',
+                'type' => 'comment',
+                'date' => $comment['createdAt'],
+            ];
+        }
+
+        // Timeline events
+        foreach ($issue['timelineItems']['nodes'] ?? [] as $event) {
+            if (!isset($event['createdAt'])) {
+                continue;
+            }
+
+            $interactions[] = [
+                'author' => $event['actor']['login'] ?? 'unknown',
+                'type' => strtolower(str_replace('Event', '', $event['__typename'])),
+                'date' => $event['createdAt'],
+            ];
+        }
+
+        return $interactions;
     }
 }

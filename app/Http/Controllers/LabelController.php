@@ -1,5 +1,8 @@
 <?php
-
+/*
+ * @copyright Copyright (c) 2026 The Magento Association
+ * @license https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
+ */
 namespace App\Http\Controllers;
 
 use App\Services\GitHub\GitHubService;
@@ -7,10 +10,11 @@ use App\Services\Search\OpenSearchService;
 use DateTime;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 use OpenSearch\Client;
 use PhpOffice\PhpSpreadsheet\IOFactory;
-use Illuminate\Support\Facades\Log;
+use RuntimeException;
 
 class LabelController extends Controller
 {
@@ -18,31 +22,31 @@ class LabelController extends Controller
     {
         $params = [
             'index' => OpenSearchService::getIndexWithPrefix('github-issues'),
-            'body'  => [
+            'body' => [
                 'size' => 0,
                 'query' => [
                     'term' => [
-                        'is_open' => true
-                    ]
+                        'is_open' => true,
+                    ],
                 ],
                 'aggs' => [
                     'by_label' => [
                         'terms' => [
                             'field' => 'labels.keyword',
                             'order' => [
-                                '_key' => 'asc'  // sort alphabetically
+                                '_key' => 'asc',  // sort alphabetically
                             ],
-                            'size' => 1000  // adjust based on number of unique labels
-                        ]
-                    ]
-                ]
-            ]
+                            'size' => 1000,  // adjust based on number of unique labels
+                        ],
+                    ],
+                ],
+            ],
         ];
 
         try {
             $result = $client->search($params);
         } catch (\Exception $e) {
-            abort(500, 'Error fetching label data: ' . $e->getMessage());
+            abort(500, 'Error fetching label data: '.$e->getMessage());
         }
         $nestedLabels = [];
         $buckets = $result['aggregations']['by_label']['buckets'];
@@ -56,17 +60,18 @@ class LabelController extends Controller
             $prefix = count($parts) > 1 ? trim($parts[0]) : 'no_prefix';
 
             // Initialize the prefix group if it doesn't exist
-            if (!isset($nestedLabels[$prefix])) {
+            if (! isset($nestedLabels[$prefix])) {
                 $nestedLabels[$prefix] = [];
             }
 
             // Append the label and count under the prefix
             $nestedLabels[$prefix][] = [
                 'label' => $label,
-                'count' => $count
+                'count' => $count,
             ];
         }
         ksort($nestedLabels);
+
         return view('labels/allLabels', ['labels' => $nestedLabels]);
     }
 
@@ -74,21 +79,21 @@ class LabelController extends Controller
     {
         $params = [
             'index' => OpenSearchService::getIndexWithPrefix('github-pull-requests'),
-            'body'  => [
+            'body' => [
                 'size' => 0,
                 'query' => [
                     'bool' => [
                         'must' => [
-                            [ 'term' => [ 'is_open' => true ] ]
+                            ['term' => ['is_open' => true]],
                         ],
                         'must_not' => [
                             [
                                 'regexp' => [
-                                    'labels.keyword' => 'Component:.*'
-                                ]
-                            ]
-                        ]
-                    ]
+                                    'labels.keyword' => 'Component:.*',
+                                ],
+                            ],
+                        ],
+                    ],
                 ],
                 'aggs' => [
                     'by_year' => [
@@ -96,8 +101,8 @@ class LabelController extends Controller
                             'field' => 'created_at',
                             'calendar_interval' => 'year',
                             'format' => 'yyyy',
-                            'order' => [ '_key' => 'asc' ],
-                            'min_doc_count' => 1
+                            'order' => ['_key' => 'asc'],
+                            'min_doc_count' => 1,
                         ],
                         'aggs' => [
                             'by_month' => [
@@ -105,19 +110,19 @@ class LabelController extends Controller
                                     'field' => 'created_at',
                                     'calendar_interval' => 'month',
                                     'format' => 'MM',
-                                    'order' => [ '_key' => 'asc' ],
-                                    'min_doc_count' => 1
-                                ]
-                            ]
-                        ]
-                    ]
-                ]
-            ]
+                                    'order' => ['_key' => 'asc'],
+                                    'min_doc_count' => 1,
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
         ];
         try {
             $result = $client->search($params);
         } catch (\Exception $e) {
-            abort(500, 'Error fetching PR data: ' . $e->getMessage());
+            abort(500, 'Error fetching PR data: '.$e->getMessage());
         }
         $dataToDisplay = [];
         foreach ($result['aggregations']['by_year']['buckets'] as $yearBucket) {
@@ -137,17 +142,18 @@ class LabelController extends Controller
                     '10' => ['month_number' => '10', 'total' => 0, 'start' => null, 'end' => null],
                     '11' => ['month_number' => '11', 'total' => 0, 'start' => null, 'end' => null],
                     '12' => ['month_number' => '12', 'total' => 0, 'start' => null, 'end' => null],
-                ]
+                ],
             ];
             foreach ($yearBucket['by_month']['buckets'] as $monthBucket) {
                 $dataToDisplay[$yearBucket['key_as_string']]['months'][$monthBucket['key_as_string']]['total'] = $monthBucket['doc_count'];
-                $monthDate = Datetime::createFromFormat('Y-m-d', $yearBucket['key_as_string'] . '-' . $monthBucket['key_as_string'] . '-01');
+                $monthDate = Datetime::createFromFormat('Y-m-d', $yearBucket['key_as_string'].'-'.$monthBucket['key_as_string'].'-01');
                 $firstOfMonth = (clone $monthDate)->modify('first day of this month')->setTime(0, 0, 0);
                 $lastOfMonth = (clone $monthDate)->modify('last day of this month')->setTime(23, 59, 59);
                 $dataToDisplay[$yearBucket['key_as_string']]['months'][$monthBucket['key_as_string']]['start'] = $firstOfMonth->format('Y-m-d\TH:i:s\Z');
                 $dataToDisplay[$yearBucket['key_as_string']]['months'][$monthBucket['key_as_string']]['end'] = $lastOfMonth->format('Y-m-d\TH:i:s\Z');
             }
         }
+
         return view('labels/prsWithoutComponentLabel', ['prs' => $dataToDisplay]);
     }
 
@@ -156,10 +162,25 @@ class LabelController extends Controller
         return view('labels/processLabels');
     }
 
+    /**
+     * Process an uploaded label spreadsheet and apply label creates and renames in GitHub.
+     *
+     * The spreadsheet may contain `area` and `component` sheets. Rows without keep, rename,
+     * or replace values are treated as new labels. Rows with a rename value are treated as
+     * label renames. Remap rows are collected from the sheet but are not applied yet.
+     *
+     * @param  Request  $request  The request containing the uploaded `label_sheet` spreadsheet.
+     * @param  GitHubService  $github  Service used to create and rename labels in GitHub.
+     * @return RedirectResponse Redirects back with a success, warning, or error flash message.
+     *
+     * @throws \Illuminate\Validation\ValidationException When the uploaded file is missing or has an invalid mime type.
+     * @throws \PhpOffice\PhpSpreadsheet\Reader\Exception When the spreadsheet cannot be loaded.
+     * @throws RuntimeException When the configured GitHub repository value is missing or invalid.
+     */
     public function uploadLabels(Request $request, GitHubService $github): RedirectResponse
     {
         $request->validate([
-            'label_sheet' => 'required|mimes:xlsx,xls,ods'
+            'label_sheet' => 'required|mimes:xlsx,xls,ods',
         ]);
 
         $file = $request->file('label_sheet');
@@ -167,28 +188,36 @@ class LabelController extends Controller
 
         $newLabels = [];
         $renames = [];
+        // todo: handle remaps separately
         $remaps = [];
 
         foreach (['area', 'component'] as $tabName) {
             $sheet = $spreadsheet->getSheetByName($tabName);
-            if (!$sheet) {
+            if (! $sheet) {
                 continue;
             }
 
             $highestRow = $sheet->getHighestRow();
             $data = $sheet->toArray(null, true, true, true);
 
+            // Find the last meaningful row in column A so trailing blank rows are ignored.
+            // todo: validate that there are no empty rows, the CSV should be clean
             $dataEndRow = 1;
             for ($row = 2; $row <= $highestRow; $row++) {
                 $label = trim($data[$row]['A'] ?? '');
                 if (empty($label)) {
+                    // A single empty row does not end the dataset because there may be spacing
+                    // between entries. Only stop when this row and the next few rows are blank.
                     $nextRowsEmpty = true;
                     for ($i = $row + 1; $i <= min($row + 3, $highestRow); $i++) {
-                        if (!empty(trim($data[$i]['A'] ?? ''))) {
+                        if (! empty(trim($data[$i]['A'] ?? ''))) {
                             $nextRowsEmpty = false;
                             break;
                         }
                     }
+
+                    // Once we hit a run of empty rows, treat the previous row as the end of the
+                    // actual data and stop scanning the sheet.
                     if ($nextRowsEmpty) {
                         $dataEndRow = $row - 1;
                         break;
@@ -200,10 +229,11 @@ class LabelController extends Controller
                 $dataEndRow = $highestRow;
             }
 
+            // todo: use labels for headers instead of letters?
             for ($row = 2; $row <= $dataEndRow; $row++) {
                 $label = trim($data[$row]['A'] ?? '');
                 // For Future use
-                //$description = trim($data[$row]['C'] ?? '');
+                // $description = trim($data[$row]['C'] ?? '');
                 $keep = strtolower(trim($data[$row]['D'] ?? ''));
                 $rename = trim($data[$row]['E'] ?? '');
                 $replaceWith = trim($data[$row]['F'] ?? '');
@@ -212,9 +242,9 @@ class LabelController extends Controller
                     continue;
                 }
 
-                if ($keep === 'no' && !empty($replaceWith)) {
+                if ($keep === 'no' && ! empty($replaceWith)) {
                     $remaps[$label] = $replaceWith;
-                } elseif (empty($keep) && !empty($rename)) {
+                } elseif (empty($keep) && ! empty($rename)) {
                     $renames[$label] = $rename;
                 } elseif (empty($keep) && empty($rename) && empty($replaceWith)) {
                     if ($label !== 'New Labels') {
@@ -227,39 +257,81 @@ class LabelController extends Controller
         $results = [
             'created' => 0,
             'renamed' => 0,
-            'errors' => []
+            'errors' => [],
         ];
 
         foreach ($newLabels as $label) {
             try {
                 $created = $this->createGitHubLabel($github, $label);
-                $results['created'] = $results['created'] + $created;
+
+                if ($created === 0) {
+                    $serviceError = $github->getLastLabelOperationError();
+                    $message = ($serviceError['status'] ?? null) === 'skipped'
+                        ? "Skipped creating label '$label': ".($serviceError['message'] ?? 'GitHub skipped the label creation.')
+                        : "Failed to create label '$label': ".($serviceError['message'] ?? 'GitHub returned 0.');
+
+                    $results['errors'][] = $message;
+                    Log::error('GitHub label creation returned 0.', [
+                        'label' => $label,
+                        'service_error' => $serviceError,
+                    ]);
+
+                    continue;
+                }
+
+                $results['created'] += $created;
             } catch (\Exception $e) {
-                $results['errors'][] = "Failed to create label '$label': " . $e->getMessage();
-                Log::error("Error creating label $label: " . $e->getMessage());
+                $results['errors'][] = "Failed to create label '$label': ".$e->getMessage();
+                Log::error("Error creating label $label: ".$e->getMessage());
             }
         }
 
         foreach ($renames as $oldName => $newName) {
             try {
                 $renamed = $this->renameGitHubLabel($github, $oldName, $newName);
-                $results['renamed'] = $results['renamed'] + $renamed;
+
+                if ($renamed === 0) {
+                    $serviceError = $github->getLastLabelOperationError();
+                    $results['errors'][] = "Failed to rename '$oldName' to '$newName': "
+                        .($serviceError['message'] ?? 'GitHub returned 0.');
+                    Log::error('GitHub label rename returned 0.', [
+                        'old_name' => $oldName,
+                        'new_name' => $newName,
+                        'service_error' => $serviceError,
+                    ]);
+
+                    continue;
+                }
+
+                $results['renamed'] += $renamed;
             } catch (\Exception $e) {
-                $results['errors'][] = "Failed to rename '$oldName' to '$newName': " . $e->getMessage();
-                Log::error("Error renaming label $oldName to $newName: " . $e->getMessage());
+                $results['errors'][] = "Failed to rename '$oldName' to '$newName': ".$e->getMessage();
+                Log::error("Error renaming label $oldName to $newName: ".$e->getMessage());
             }
         }
-        
-        $message =
-            'Labels were processed successfully.<br>' .
-            'Created Labels: ' . $results['created'] . '<br>' .
-            'Renamed Labels: ' . $results['renamed'];
 
-        if (count($results['errors'])) {
-            $message .= '<br>Errors:<br>' . implode('<br>', $results['errors']);
+        $hasErrors = count($results['errors']) > 0;
+        $hasSuccessfulChanges = $results['created'] > 0 || $results['renamed'] > 0;
+        $flashKey = 'success';
+        $header = 'Labels were processed successfully.';
+
+        if ($hasErrors) {
+            $flashKey = $hasSuccessfulChanges ? 'warning' : 'error';
+            $header = $hasSuccessfulChanges
+                ? 'Labels were processed with some errors.'
+                : 'Label processing failed.';
         }
 
-        return redirect()->back()->with('success', $message);
+        $message =
+            $header.'<br>'.
+            'Created Labels: '.number_format($results['created']).'<br>'.
+            'Renamed Labels: '.number_format($results['renamed']);
+
+        if ($hasErrors) {
+            $message .= '<br>Errors:<br>'.implode('<br>', $results['errors']);
+        }
+
+        return redirect()->back()->with($flashKey, $message);
     }
 
     protected function createGitHubLabel(GitHubService $github, string $label): int
@@ -270,6 +342,7 @@ class LabelController extends Controller
         if ($result) {
             Log::info("GitHub label created: {$label}");
         }
+
         return $result;
     }
 
@@ -281,16 +354,27 @@ class LabelController extends Controller
         if ($result) {
             Log::info("Renaming GitHub label: $oldLabel to $newLabel");
         }
+
         return $result;
     }
 
     protected function getRepo(): array
     {
-        $repo = "pandiselvamtm/testing-label";
-        if (!str_contains($repo, '/')) {
-            throw new \RuntimeException('Invalid GitHub repository format');
+        $repo = trim((string) config('github.repo'));
+
+        if ($repo === '') {
+            throw new RuntimeException('GitHub repository is not configured');
         }
 
-        return explode('/', $repo);
+        if (substr_count($repo, '/') !== 1) {
+            throw new RuntimeException('Invalid GitHub repository format');
+        }
+
+        [$owner, $repository] = explode('/', $repo);
+        if ($owner === '' || $repository === '') {
+            throw new RuntimeException('Invalid GitHub repository format');
+        }
+
+        return [$owner, $repository];
     }
 }
