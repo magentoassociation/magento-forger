@@ -192,6 +192,8 @@ class LabelControllerTest extends TestCase
     {
         Log::spy();
 
+        $adminUser = $this->createUser(true);
+
         $github = Mockery::mock(GitHubService::class);
         $github->shouldReceive('createLabel')->once()->with(
             self::REPO_OWNER,
@@ -206,7 +208,7 @@ class LabelControllerTest extends TestCase
 
         $this->app->instance(GitHubService::class, $github);
 
-        $response = $this->post(route('labels-uploadLabels'), [
+        $response = $this->actingAs($adminUser)->post(route('labels-uploadLabels'), [
             'label_sheet' => $this->createLabelSpreadsheet([
                 ['A' => 'Area: Foo'],
             ]),
@@ -234,6 +236,8 @@ class LabelControllerTest extends TestCase
     {
         Log::spy();
 
+        $adminUser = $this->createUser(true);
+
         $github = Mockery::mock(GitHubService::class);
         $github->shouldReceive('renameLabel')->once()->with(
             self::REPO_OWNER,
@@ -249,7 +253,7 @@ class LabelControllerTest extends TestCase
 
         $this->app->instance(GitHubService::class, $github);
 
-        $response = $this->post(route('labels-uploadLabels'), [
+        $response = $this->actingAs($adminUser)->post(route('labels-uploadLabels'), [
             'label_sheet' => $this->createLabelSpreadsheet([
                 ['A' => 'Area: Old', 'E' => 'Area: New'],
             ]),
@@ -278,6 +282,8 @@ class LabelControllerTest extends TestCase
     {
         Log::spy();
 
+        $adminUser = $this->createUser(true);
+
         $github = Mockery::mock(GitHubService::class);
         $github->shouldReceive('createLabel')->once()->with(
             self::REPO_OWNER,
@@ -297,7 +303,7 @@ class LabelControllerTest extends TestCase
 
         $this->app->instance(GitHubService::class, $github);
 
-        $response = $this->post(route('labels-uploadLabels'), [
+        $response = $this->actingAs($adminUser)->post(route('labels-uploadLabels'), [
             'label_sheet' => $this->createLabelSpreadsheet([
                 ['A' => 'Area: Good'],
                 ['A' => 'Area: Bad'],
@@ -317,6 +323,8 @@ class LabelControllerTest extends TestCase
 
     public function test_upload_labels_records_success_when_creates_and_renames_succeed_across_tabs(): void
     {
+        $adminUser = $this->createUser(true);
+
         $github = Mockery::mock(GitHubService::class);
         $github->shouldReceive('createLabel')->once()->with(
             self::REPO_OWNER,
@@ -332,7 +340,7 @@ class LabelControllerTest extends TestCase
 
         $this->app->instance(GitHubService::class, $github);
 
-        $response = $this->post(route('labels-uploadLabels'), [
+        $response = $this->actingAs($adminUser)->post(route('labels-uploadLabels'), [
             'label_sheet' => $this->createLabelSpreadsheet(
                 [
                     ['A' => 'Area: New'],
@@ -358,11 +366,13 @@ class LabelControllerTest extends TestCase
     {
         Log::spy();
 
+        $adminUser = $this->createUser(true);
+
         $github = Mockery::mock(GitHubService::class);
 
         $this->app->instance(GitHubService::class, $github);
 
-        $response = $this->post(route('labels-uploadLabels'), [
+        $response = $this->actingAs($adminUser)->post(route('labels-uploadLabels'), [
             'label_sheet' => $this->createLabelSpreadsheet(
                 [
                     ['A' => 'Area: Old', 'D' => 'no', 'F' => 'Area: New'],
@@ -402,6 +412,19 @@ class LabelControllerTest extends TestCase
                     && $context['reason'] === 'remap not implemented';
             })
         );
+    }
+
+    public function test_upload_labels_is_forbidden_to_non_admins(): void
+    {
+        $user = $this->createUser(false);
+
+        $this->actingAs($user)
+            ->post(route('labels-uploadLabels'), [
+                'label_sheet' => $this->createLabelSpreadsheet([
+                    ['A' => 'Area: Foo'],
+                ]),
+            ])
+            ->assertForbidden();
     }
 
     public function test_upload_labels_throws_when_repo_configuration_is_missing(): void

@@ -11,8 +11,8 @@ Route::get('prsByMonth', [Controllers\PrsByMonthController::class, 'index'])->na
 Route::middleware(['is_admin'])->group(function () {
     Route::get('labels/allLabels', [Controllers\LabelController::class, 'listAllLabels'])->name('labels-listAllLabels');
     Route::get('labels/process-labels', [Controllers\LabelController::class, 'processLabels'])->name('labels-processLabels');
+    Route::post('labels/process-labels', [Controllers\LabelController::class, 'uploadLabels'])->name('labels-uploadLabels');
 });
-Route::post('labels/process-labels', [Controllers\LabelController::class, 'uploadLabels'])->name('labels-uploadLabels');
 Route::get('labels/prsMissingComponent', [Controllers\LabelController::class, 'listPrWithoutComponentLabel'])->name('labels-PRsWithoutComponentLabel');
 Route::get('leaderboard', [Controllers\LeaderboardController::class, 'index'])->name('leaderboard');
 Route::get('leaderboard/{year}', [Controllers\LeaderboardController::class, 'showYear'])->where('year', '[0-9]+')->name('leaderboard-year');
