@@ -31,8 +31,6 @@ class LabelControllerTest extends TestCase
      */
     private array $temporaryFiles = [];
 
-    private int $userSequence = 0;
-
     protected function setUp(): void
     {
         parent::setUp();
@@ -72,16 +70,23 @@ class LabelControllerTest extends TestCase
                 ],
             ],
         ]);
+        $this->app->instance(Client::class, $client);
 
-        $view = $this->createController()->listAllLabels($client);
+        $adminUser = $this->createUser(true);
 
-        $this->assertSame('labels.allLabels', $view->name());
+        $response = $this->actingAs($adminUser)->get(route('labels-listAllLabels'));
+
+        $response->assertOk();
+        $response->assertViewIs('labels.allLabels');
+
+        $labels = $response->viewData('labels');
+
         $this->assertTrue((static function (array $labels): bool {
             return array_keys($labels) === ['Area', 'Component', 'no_prefix']
                 && $labels['Area'][0] === ['label' => 'Area: Frontend', 'count' => 3]
                 && $labels['Component'][0] === ['label' => 'Component: Checkout', 'count' => 5]
                 && $labels['no_prefix'][0] === ['label' => 'Standalone', 'count' => 1];
-        })($view->getData()['labels']));
+        })($labels));
     }
 
     public function test_list_prs_without_component_label_builds_monthly_ranges(): void
@@ -109,10 +114,15 @@ class LabelControllerTest extends TestCase
                 ],
             ],
         ]);
+        $this->app->instance(Client::class, $client);
 
-        $view = $this->createController()->listPrWithoutComponentLabel($client);
+        $response = $this->get(route('labels-PRsWithoutComponentLabel'));
 
-        $this->assertSame('labels.prsWithoutComponentLabel', $view->name());
+        $response->assertOk();
+        $response->assertViewIs('labels.prsWithoutComponentLabel');
+
+        $prs = $response->viewData('prs');
+
         $this->assertTrue((static function (array $prs): bool {
             return $prs['2024']['total'] === 4
                 && $prs['2024']['months']['01'] === [
@@ -127,7 +137,7 @@ class LabelControllerTest extends TestCase
                 && $prs['2024']['months']['11']['total'] === 3
                 && $prs['2024']['months']['11']['start'] === '2024-11-01T00:00:00Z'
                 && $prs['2024']['months']['11']['end'] === '2024-11-30T23:59:59Z';
-        })($view->getData()['prs']));
+        })($prs));
     }
 
     public function test_list_prs_without_component_label_skips_invalid_month_dates(): void
@@ -152,13 +162,18 @@ class LabelControllerTest extends TestCase
                 ],
             ],
         ]);
+        $this->app->instance(Client::class, $client);
 
-        $view = $this->createController()->listPrWithoutComponentLabel($client);
+        $response = $this->get(route('labels-PRsWithoutComponentLabel'));
 
-        $this->assertSame('labels.prsWithoutComponentLabel', $view->name());
-        $this->assertSame(1, $view->getData()['prs']['invalid-year']['months']['02']['total']);
-        $this->assertNull($view->getData()['prs']['invalid-year']['months']['02']['start']);
-        $this->assertNull($view->getData()['prs']['invalid-year']['months']['02']['end']);
+        $response->assertOk();
+        $response->assertViewIs('labels.prsWithoutComponentLabel');
+
+        $prs = $response->viewData('prs');
+
+        $this->assertSame(1, $prs['invalid-year']['months']['02']['total']);
+        $this->assertNull($prs['invalid-year']['months']['02']['start']);
+        $this->assertNull($prs['invalid-year']['months']['02']['end']);
 
         Log::shouldHaveReceived('warning')->once()->with(
             'Skipping PR month date range because the bucket date could not be parsed.',
@@ -498,21 +513,6 @@ class LabelControllerTest extends TestCase
 
     private function createUser(bool $isAdmin): User
     {
-        $sequence = ++$this->userSequence;
-        $user = new User;
-        $user->timestamps = false;
-        $user->forceFill([
-            'name' => "Test User {$sequence}",
-            'email' => "test{$sequence}@example.com",
-            'password' => null,
-            'github_id' => "github-user-{$sequence}",
-            'github_username' => "test-user-{$sequence}",
-            'is_admin' => $isAdmin,
-            'created_at' => now()->toDateString(),
-            'updated_at' => now()->toDateString(),
-        ]);
-        $user->save();
-
-        return $user;
+        return User::factory()->create(['is_admin' => $isAdmin]);
     }
 }
