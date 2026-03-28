@@ -6,7 +6,7 @@ import:
   - contrib/npm.php
 
 config:
-  repository: 'git@github.com:TheMagentoAssociation/magento-forger.git'
+  repository: 'git@github.com:magentoassociation/magento-forger.git'
   application: 'forger.magento-opensource.com'
   php_fpm_version: '8.3'
   shared_dirs:
