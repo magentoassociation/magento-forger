@@ -148,7 +148,7 @@ class GitHubService
     }
 
     /**
-     * Unused?
+     * Fetch interactions for a single issue or pull request.
      *
      * @param string $owner
      * @param string $repo
@@ -450,7 +450,9 @@ class GitHubService
                     Log::info("GitHub rate limit exceeded. Waiting for $waitSeconds seconds.");
                     sleep($waitSeconds);
                 } catch (Exception $e) {
-                    throw new RuntimeException("Invalid rateLimit.resetAt value: " . $rate['resetAt'] . ' ' . $e->getMessage());
+                    throw new RuntimeException(
+                        "Invalid rateLimit.resetAt value: " . $rate['resetAt'] . ' ' . $e->getMessage()
+                    );
                 }
             } elseif ($rate['remaining'] < 100) {
                 Log::info("GitHub rate limit very low ({$rate['remaining']} remaining). Adding 10s delay.");
