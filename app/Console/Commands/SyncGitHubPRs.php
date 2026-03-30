@@ -64,6 +64,7 @@ class SyncGitHubPRs extends Command implements Isolatable
         if ($cursor) {
             $this->info("Resuming from cursor: $cursor");
         }
+        $fetchFailed = false;
         $page = 1;
         do {
             $hasNextPage = false;
@@ -94,11 +95,12 @@ class SyncGitHubPRs extends Command implements Isolatable
             } catch (Throwable $e) {
                 $this->warn('Could not retrieve pull requests');
                 Log::warning('GitHub PR sync failed', ['exception' => $e]);
+                $fetchFailed = true;
             }
 
         } while ($hasNextPage);
 
         $this->info('Done syncing PRs.');
-        return 0;
+        return $fetchFailed ? 1 : 0;
     }
 }

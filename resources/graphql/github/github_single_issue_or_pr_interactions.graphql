@@ -11,7 +11,7 @@ query($owner: String!, $name: String!, $number: Int!) {
                         createdAt
                     }
                 }
-                timelineItems(first: 100) {
+                timelineItems(first: 100, itemTypes: [ASSIGNED_EVENT, CLOSED_EVENT, LABELED_EVENT, UNLABELED_EVENT]) {
                     nodes {
                         __typename
                         ... on AssignedEvent {
