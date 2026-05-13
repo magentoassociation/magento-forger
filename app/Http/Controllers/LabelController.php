@@ -356,21 +356,15 @@ class LabelController extends Controller
             $header = 'Labels were processed with skipped remaps.';
         }
 
-        $message =
-            $header.'<br>'.
-            'Created Labels: '.number_format($results['created']).'<br>'.
-            'Renamed Labels: '.number_format($results['renamed']).'<br>'.
-            'Skipped Remaps: '.number_format(count($results['skipped']));
+        $flash = [
+            'header' => $header,
+            'created' => $results['created'],
+            'renamed' => $results['renamed'],
+            'skipped' => $results['skipped'],
+            'errors' => $results['errors'],
+        ];
 
-        if ($hasSkipped) {
-            $message .= '<br>Skipped:<br>'.implode('<br>', $results['skipped']);
-        }
-
-        if ($hasErrors) {
-            $message .= '<br>Errors:<br>'.implode('<br>', $results['errors']);
-        }
-
-        return redirect()->back()->with($flashKey, $message);
+        return redirect()->back()->with($flashKey, $flash);
     }
 
     protected function createGitHubLabel(GitHubService $github, string $label): int

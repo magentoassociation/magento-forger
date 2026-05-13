@@ -7,17 +7,23 @@
             <div class="card">
 
                 <div class="card-body">
-                    @if (session('success'))
-                        <div class="alert alert-success" role="alert">
-                            {!! session('success') !!}
-                        </div>
-                    @endif
-
-                    @if (session('error'))
-                        <div class="alert alert-danger" role="alert">
-                            {{ session('error') }}
-                        </div>
-                    @endif
+                    @foreach (['success' => 'alert-success', 'warning' => 'alert-warning', 'error' => 'alert-danger'] as $flashKey => $alertClass)
+                        @if (session($flashKey))
+                            @php $flash = session($flashKey); @endphp
+                            <div class="alert {{ $alertClass }}" role="alert">
+                                {{ $flash['header'] }}<br>
+                                Created Labels: {{ number_format($flash['created']) }}<br>
+                                Renamed Labels: {{ number_format($flash['renamed']) }}<br>
+                                Skipped Remaps: {{ number_format(count($flash['skipped'])) }}
+                                @foreach ($flash['skipped'] as $skipped)
+                                    <br>{{ $skipped }}
+                                @endforeach
+                                @foreach ($flash['errors'] as $error)
+                                    <br>{{ $error }}
+                                @endforeach
+                            </div>
+                        @endif
+                    @endforeach
 
                     @if ($errors->any())
                         <div class="alert alert-danger">

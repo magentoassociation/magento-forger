@@ -233,10 +233,10 @@ class LabelControllerTest extends TestCase
         ]);
 
         $response->assertRedirect();
-        $response->assertSessionHas('error', function (string $message): bool {
-            return str_contains($message, 'Label processing failed.')
-                && str_contains($message, 'Created Labels: 0')
-                && str_contains($message, "Skipped creating label 'Area: Foo': Label 'Area: Foo' already exists.");
+        $response->assertSessionHas('error', function (array $flash): bool {
+            return $flash['header'] === 'Label processing failed.'
+                && $flash['created'] === 0
+                && in_array("Skipped creating label 'Area: Foo': Label 'Area: Foo' already exists.", $flash['errors'], true);
         });
         $response->assertSessionMissing('success');
         $response->assertSessionMissing('warning');
@@ -278,10 +278,10 @@ class LabelControllerTest extends TestCase
         ]);
 
         $response->assertRedirect();
-        $response->assertSessionHas('error', function (string $message): bool {
-            return str_contains($message, 'Label processing failed.')
-                && str_contains($message, 'Renamed Labels: 0')
-                && str_contains($message, "Failed to rename 'Area: Old' to 'Area: New': GitHub rejected the rename request.");
+        $response->assertSessionHas('error', function (array $flash): bool {
+            return $flash['header'] === 'Label processing failed.'
+                && $flash['renamed'] === 0
+                && in_array("Failed to rename 'Area: Old' to 'Area: New': GitHub rejected the rename request.", $flash['errors'], true);
         });
         $response->assertSessionMissing('success');
         $response->assertSessionMissing('warning');
@@ -329,11 +329,11 @@ class LabelControllerTest extends TestCase
         ]);
 
         $response->assertRedirect();
-        $response->assertSessionHas('warning', function (string $message): bool {
-            return str_contains($message, 'Labels were processed with some errors.')
-                && str_contains($message, 'Created Labels: 1')
-                && str_contains($message, 'Renamed Labels: 0')
-                && str_contains($message, "Failed to create label 'Area: Bad': GitHub rejected the create request.");
+        $response->assertSessionHas('warning', function (array $flash): bool {
+            return $flash['header'] === 'Labels were processed with some errors.'
+                && $flash['created'] === 1
+                && $flash['renamed'] === 0
+                && in_array("Failed to create label 'Area: Bad': GitHub rejected the create request.", $flash['errors'], true);
         });
         $response->assertSessionMissing('success');
         $response->assertSessionMissing('error');
@@ -370,11 +370,11 @@ class LabelControllerTest extends TestCase
         ]);
 
         $response->assertRedirect();
-        $response->assertSessionHas('success', static function (string $message): bool {
-            return str_contains($message, 'Labels were processed successfully.')
-                && str_contains($message, 'Created Labels: 1')
-                && str_contains($message, 'Renamed Labels: 1')
-                && ! str_contains($message, 'Errors:');
+        $response->assertSessionHas('success', static function (array $flash): bool {
+            return $flash['header'] === 'Labels were processed successfully.'
+                && $flash['created'] === 1
+                && $flash['renamed'] === 1
+                && empty($flash['errors']);
         });
         $response->assertSessionMissing('warning');
         $response->assertSessionMissing('error');
@@ -402,13 +402,13 @@ class LabelControllerTest extends TestCase
         ]);
 
         $response->assertRedirect();
-        $response->assertSessionHas('warning', static function (string $message): bool {
-            return str_contains($message, 'Labels were processed with skipped remaps.')
-                && str_contains($message, 'Created Labels: 0')
-                && str_contains($message, 'Renamed Labels: 0')
-                && str_contains($message, 'Skipped Remaps: 2')
-                && str_contains($message, "Skipped remapping label 'Area: Old' to 'Area: New': remap not implemented.")
-                && str_contains($message, "Skipped remapping label 'Component: Old' to 'Component: New': remap not implemented.");
+        $response->assertSessionHas('warning', static function (array $flash): bool {
+            return $flash['header'] === 'Labels were processed with skipped remaps.'
+                && $flash['created'] === 0
+                && $flash['renamed'] === 0
+                && count($flash['skipped']) === 2
+                && in_array("Skipped remapping label 'Area: Old' to 'Area: New': remap not implemented.", $flash['skipped'], true)
+                && in_array("Skipped remapping label 'Component: Old' to 'Component: New': remap not implemented.", $flash['skipped'], true);
         });
         $response->assertSessionMissing('success');
         $response->assertSessionMissing('error');
