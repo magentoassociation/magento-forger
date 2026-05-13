@@ -1,8 +1,10 @@
 <?php
-/*
+/**
  * @copyright Copyright (c) 2026 The Magento Association
  * @license https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
  */
+declare(strict_types=1);
+
 namespace App\Http\Controllers;
 
 use App\Services\GitHub\GitHubService;
@@ -145,8 +147,12 @@ class LabelController extends Controller
                 ],
             ];
             foreach ($yearBucket['by_month']['buckets'] as $monthBucket) {
-                $dataToDisplay[$yearBucket['key_as_string']]['months'][$monthBucket['key_as_string']]['total'] = $monthBucket['doc_count'];
-                $monthDate = Datetime::createFromFormat('Y-m-d', $yearBucket['key_as_string'].'-'.$monthBucket['key_as_string'].'-01');
+                $dataToDisplay[$yearBucket['key_as_string']]['months'][$monthBucket['key_as_string']]['total'] =
+                    $monthBucket['doc_count'];
+                $monthDate = Datetime::createFromFormat(
+                    'Y-m-d',
+                    $yearBucket['key_as_string'].'-'.$monthBucket['key_as_string'].'-01'
+                );
 
                 if (! $monthDate instanceof DateTime) {
                     Log::warning('Skipping PR month date range because the bucket date could not be parsed.', [
@@ -157,10 +163,14 @@ class LabelController extends Controller
                     continue;
                 }
 
-                $firstOfMonth = (clone $monthDate)->modify('first day of this month')->setTime(0, 0, 0);
-                $lastOfMonth = (clone $monthDate)->modify('last day of this month')->setTime(23, 59, 59);
-                $dataToDisplay[$yearBucket['key_as_string']]['months'][$monthBucket['key_as_string']]['start'] = $firstOfMonth->format('Y-m-d\TH:i:s\Z');
-                $dataToDisplay[$yearBucket['key_as_string']]['months'][$monthBucket['key_as_string']]['end'] = $lastOfMonth->format('Y-m-d\TH:i:s\Z');
+                $firstOfMonth = (clone $monthDate)
+                    ->modify('first day of this month')->setTime(0, 0, 0);
+                $lastOfMonth = (clone $monthDate)
+                    ->modify('last day of this month')->setTime(23, 59, 59);
+                $dataToDisplay[$yearBucket['key_as_string']]['months'][$monthBucket['key_as_string']]['start'] =
+                    $firstOfMonth->format('Y-m-d\TH:i:s\Z');
+                $dataToDisplay[$yearBucket['key_as_string']]['months'][$monthBucket['key_as_string']]['end'] =
+                    $lastOfMonth->format('Y-m-d\TH:i:s\Z');
             }
         }
 
@@ -190,7 +200,7 @@ class LabelController extends Controller
     public function uploadLabels(Request $request, GitHubService $github): RedirectResponse
     {
         $request->validate([
-            'label_sheet' => 'required|mimes:xlsx,xls,ods',
+            'label_sheet' => 'required|mimes:xlsx,xls,ods,csv',
         ]);
 
         $file = $request->file('label_sheet');
