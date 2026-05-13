@@ -7,13 +7,16 @@ declare(strict_types=1);
 
 namespace App\Services\GitHub;
 
+use App\Exceptions\GitHubGraphQLException;
 use Illuminate\Support\Facades\Log;
 use JsonException;
 use Throwable;
 
 class GitHubInteractionService
 {
-    public function __construct(private readonly GitHubConnection $connection) {}
+    public function __construct(private readonly GitHubConnection $connection)
+    {
+    }
 
     public function fetchInteractionsForIssue(string $owner, string $repo, int $issueNumber): array
     {
@@ -26,7 +29,7 @@ class GitHubInteractionService
         $node = $data['repository']['issueOrPullRequest'] ?? null;
         $interactions = [];
 
-        if (! $node) {
+        if (!$node) {
             return [];
         }
 
@@ -81,7 +84,7 @@ class GitHubInteractionService
         $events = [];
 
         foreach ($issue['timelineItems']['nodes'] ?? [] as $event) {
-            if (! isset($event['createdAt'])) {
+            if (!isset($event['createdAt'])) {
                 continue;
             }
 
@@ -105,7 +108,7 @@ class GitHubInteractionService
             $raw = json_decode($response->getBody()->getContents(), true, 512, JSON_THROW_ON_ERROR);
 
             foreach ($raw as $event) {
-                if (! isset($event['event'], $event['created_at'])) {
+                if (!isset($event['event'], $event['created_at'])) {
                     continue;
                 }
 
@@ -122,9 +125,17 @@ class GitHubInteractionService
         return $events;
     }
 
+    /**
+     * @throws GitHubGraphQLException
+     * @throws JsonException
+     */
     private function executeQuery(string $queryFile, array $variables): ?array
     {
-        $query = file_get_contents(resource_path('graphql/github/'.$queryFile));
+        $query = file_get_contents(resource_path('graphql/github/' . $queryFile));
+
+        if ($query === false) {
+            throw new \RuntimeException("Failed to load GraphQL query file: {$queryFile}");
+        }
 
         return $this->connection->executeGraphQL($query, $variables);
     }
@@ -137,7 +148,7 @@ class GitHubInteractionService
     private function processComments(array $issue, array $interactions): array
     {
         foreach ($issue['comments']['nodes'] ?? [] as $comment) {
-            if (! isset($comment['createdAt'])) {
+            if (!isset($comment['createdAt'])) {
                 continue;
             }
 
@@ -149,7 +160,7 @@ class GitHubInteractionService
         }
 
         foreach ($issue['timelineItems']['nodes'] ?? [] as $event) {
-            if (! isset($event['createdAt'])) {
+            if (!isset($event['createdAt'])) {
                 continue;
             }
 

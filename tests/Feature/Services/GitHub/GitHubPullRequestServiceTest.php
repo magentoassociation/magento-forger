@@ -172,7 +172,8 @@ class GitHubPullRequestServiceTest extends TestCase
 
         $result = $this->createService($mock)->fetchPullRequests('owner', 'repo');
 
-        // Service does `$pullRequests = [] ?? []` then appends rateLimit, so result contains only rateLimit.
+        // Service does `$pullRequests = $data['repository']['pullRequests'] ?? []` then appends rateLimit, so result
+        // contains only rateLimit when pullRequests key is absent.
         $this->assertSame(['rateLimit' => null], $result);
     }
 

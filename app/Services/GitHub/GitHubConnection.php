@@ -204,7 +204,9 @@ class GitHubConnection
                 Log::info("GitHub rate limit exceeded. Waiting for $waitSeconds seconds.");
                 sleep($waitSeconds);
             } catch (Exception $exception) {
-                throw new RuntimeException('Invalid rateLimit.resetAt value: '.$rate['resetAt'].' '.$exception->getMessage());
+                throw new RuntimeException(
+                    "Invalid rateLimit.resetAt value: {$rate['resetAt']}. Parse error: {$exception->getMessage()}"
+                );
             }
 
             return;

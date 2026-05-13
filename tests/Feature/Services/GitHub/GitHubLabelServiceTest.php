@@ -86,29 +86,20 @@ class GitHubLabelServiceTest extends TestCase
 
     public function test_create_label_clears_previous_error_on_each_call(): void
     {
-        // First call: label exists → skipped
         $mock = new MockHandler([
             new Response(200, [], json_encode(['name' => 'OldLabel'], JSON_THROW_ON_ERROR)),
-        ]);
-
-        $service = $this->createService($mock);
-        $service->createLabel('owner', 'repo', 'OldLabel');
-        $this->assertNotNull($service->getLastOperationError());
-
-        // Second service instance (fresh mock) — but we can test clearing by calling again
-        // on the same instance with a new mock via a fresh service.
-        config()->set('github.token', 'test-token');
-        $mock2 = new MockHandler([
             new Response(404),
             new Response(201, [], json_encode(['name' => 'NewLabel'], JSON_THROW_ON_ERROR)),
         ]);
-        $restClient2 = new Client(['handler' => HandlerStack::create($mock2)]);
-        $service2 = new GitHubLabelService(new GitHubConnection(restClient: $restClient2));
 
-        $result = $service2->createLabel('owner', 'repo', 'NewLabel');
+        $service = $this->createService($mock);
 
+        $service->createLabel('owner', 'repo', 'OldLabel');
+        $this->assertNotNull($service->getLastOperationError());
+
+        $result = $service->createLabel('owner', 'repo', 'NewLabel');
         $this->assertSame(1, $result);
-        $this->assertNull($service2->getLastOperationError());
+        $this->assertNull($service->getLastOperationError());
     }
 
     public function test_create_label_encodes_label_name_with_special_characters(): void

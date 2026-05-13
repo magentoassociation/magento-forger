@@ -8,13 +8,16 @@ declare(strict_types=1);
 namespace App\Services\GitHub;
 
 use Exception;
+use GuzzleHttp\Exception\RequestException;
 use Illuminate\Support\Facades\Log;
 
 class GitHubLabelService
 {
     private ?array $lastOperationError = null;
 
-    public function __construct(private readonly GitHubConnection $connection) {}
+    public function __construct(private readonly GitHubConnection $connection)
+    {
+    }
 
     public function createLabel(string $owner, string $repo, string $label): int
     {
@@ -90,8 +93,15 @@ class GitHubLabelService
             $json = json_decode($response->getBody()->getContents(), true, 512, JSON_THROW_ON_ERROR);
 
             return $json['name'] === $label;
+        } catch (RequestException $exception) {
+            if ($exception->hasResponse() && $exception->getResponse()->getStatusCode() === 404) {
+                return false;
+            }
+            Log::error('Failed to check if label already exists', ['exception' => $exception]);
+
+            return false;
         } catch (Exception $exception) {
-            Log::error('Failed to check is label already exists', ['exception' => $exception]);
+            Log::error('Failed to check if label already exists', ['exception' => $exception]);
 
             return false;
         }
@@ -99,6 +109,6 @@ class GitHubLabelService
 
     private function buildLabelUrl(string $owner, string $repo, string $label): string
     {
-        return "repos/$owner/$repo/labels/".rawurlencode($label);
+        return "repos/$owner/$repo/labels/" . rawurlencode($label);
     }
 }

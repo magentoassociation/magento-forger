@@ -101,6 +101,9 @@ class GitHubIssueService
     private function executeQuery(string $queryFile, array $variables, array $options = []): ?array
     {
         $query = file_get_contents(resource_path('graphql/github/'.$queryFile));
+        if ($query === false) {
+            throw new \RuntimeException("Failed to load GraphQL query file: {$queryFile}");
+        }
 
         return $this->connection->executeGraphQL($query, $variables, $options);
     }
