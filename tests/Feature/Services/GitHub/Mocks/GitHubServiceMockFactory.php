@@ -7,6 +7,8 @@ declare(strict_types=1);
 namespace Tests\Feature\Services\GitHub\Mocks;
 
 use App\Services\GitHub\GitHubService;
+use GuzzleHttp\Exception\ConnectException;
+use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Middleware;
@@ -18,6 +20,7 @@ class GitHubServiceMockFactory
      */
     public static function create(MockHandler $mock): GitHubService
     {
+        config(['github.token' => 'test-token']);
         $handler = HandlerStack::create($mock);
         $handler->push(Middleware::retry(
             function ($retries, $request, $response, $reason) {
@@ -25,6 +28,12 @@ class GitHubServiceMockFactory
                     return false;
                 }
                 if ($response && in_array($response->getStatusCode(), [502, 503, 504], true)) {
+                    return true;
+                }
+                if ($reason instanceof ConnectException) {
+                    return true;
+                }
+                if ($reason instanceof RequestException && !$reason->hasResponse()) {
                     return true;
                 }
                 return false;

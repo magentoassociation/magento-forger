@@ -193,6 +193,38 @@ class GitHubServiceTest extends TestCase
         $this->assertEquals('assigned', $result[2]['type']);
     }
 
+    public function testFetchInteractionsForPullRequest(): void
+    {
+        $mock = new MockHandler([
+            new Response(200, [], $this->createMockResponse([
+                'repository' => [
+                    'issueOrPullRequest' => [
+                        '__typename' => 'PullRequest',
+                        'author' => ['login' => 'user1'],
+                        'createdAt' => '2024-01-01T00:00:00Z',
+                        'updatedAt' => '2024-01-02T00:00:00Z',
+                        'mergedAt' => '2024-01-03T00:00:00Z',
+                    ],
+                ],
+            ])),
+        ]);
+
+        $service = GitHubServiceMockFactory::create($mock);
+        $result = $service->fetchInteractionsForIssue('laravel', 'framework', 1);
+
+        $this->assertIsArray($result);
+        $this->assertCount(3, $result);
+        $this->assertEquals('created_pr', $result[0]['type']);
+        $this->assertEquals('user1', $result[0]['author']);
+        $this->assertEquals('2024-01-01T00:00:00Z', $result[0]['date']);
+        $this->assertEquals('updated_pr', $result[1]['type']);
+        $this->assertEquals('user1', $result[1]['author']);
+        $this->assertEquals('2024-01-02T00:00:00Z', $result[1]['date']);
+        $this->assertEquals('merged_pr', $result[2]['type']);
+        $this->assertEquals('user1', $result[2]['author']);
+        $this->assertEquals('2024-01-03T00:00:00Z', $result[2]['date']);
+    }
+
     public function testFetchIssuesWithInteractions(): void
     {
         $mock = new MockHandler([

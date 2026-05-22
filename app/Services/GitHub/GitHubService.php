@@ -148,7 +148,7 @@ class GitHubService
     }
 
     /**
-     * Unused?
+     * Fetch interactions for a single issue or pull request.
      *
      * @param string $owner
      * @param string $repo
@@ -374,18 +374,6 @@ class GitHubService
         return $events;
     }
 
-    private function getRestClient(): Client
-    {
-        return new Client([
-            'base_uri' => 'https://api.github.com/',
-            'headers' => [
-                'Authorization' => "Bearer {$this->token}",
-                'Accept' => 'application/vnd.github+json',
-                'User-Agent' => 'Laravel-GitHubSync/1.0',
-            ],
-        ]);
-    }
-
     /**
      * Determine if a request should be retried based on response or exception.
      *
@@ -411,7 +399,7 @@ class GitHubService
             }
 
             // Retry on request errors (partial transfers, etc.)
-            if ($reason instanceof RequestException) {
+            if ($reason instanceof RequestException && !$reason->hasResponse()) {
                 Log::warning("Request error: {$reason->getMessage()}. Retrying...");
                 return true;
             }
@@ -462,7 +450,9 @@ class GitHubService
                     Log::info("GitHub rate limit exceeded. Waiting for $waitSeconds seconds.");
                     sleep($waitSeconds);
                 } catch (Exception $e) {
-                    throw new RuntimeException("Invalid rateLimit.resetAt value: " . $rate['resetAt'] . ' ' . $e->getMessage());
+                    throw new RuntimeException(
+                        "Invalid rateLimit.resetAt value: " . $rate['resetAt'] . ' ' . $e->getMessage()
+                    );
                 }
             } elseif ($rate['remaining'] < 100) {
                 Log::info("GitHub rate limit very low ({$rate['remaining']} remaining). Adding 10s delay.");
