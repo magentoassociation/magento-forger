@@ -1,51 +1,52 @@
 <?php
+/*
+ * @copyright Copyright (c) 2026 The Magento Association
+ * @license https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
+ */
 declare(strict_types=1);
 
 namespace Tests\Feature\Services\GitHub;
 
-use App\Exceptions\GitHubGraphQLException;
-use GuzzleHttp\Exception\GuzzleException;
+use App\Services\GitHub\GitHubConnection;
+use App\Services\GitHub\GitHubIssueService;
 use GuzzleHttp\Exception\ServerException;
 use GuzzleHttp\Handler\MockHandler;
+use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Psr7\Response;
-use Tests\Feature\Services\GitHub\Mocks\GitHubServiceMockFactory;
 use Tests\TestCase;
 
 class GitHubServiceRetryTest extends TestCase
 {
-    /**
-     * Test that the service retries on 503 Server Unavailable errors.
-     *
-     * @throws GitHubGraphQLException
-     * @throws GuzzleException
-     * @throws \JsonException
-     */
-    public function testRetriesOn503ServerUnavailable(): void
+    private function createServiceWithMockHandler(MockHandler $mock): GitHubIssueService
+    {
+        config()->set('github.token', 'test-token');
+
+        return new GitHubIssueService(
+            new GitHubConnection(graphQlHandler: HandlerStack::create($mock))
+        );
+    }
+
+    public function test_retries_on_503_server_error(): void
     {
         $mock = new MockHandler([
-            new Response(503),  // First request fails with 503
-            new Response(503),  // Second request fails with 503
+            new Response(503),
+            new Response(503),
             new Response(200, [], json_encode([
                 'data' => [
                     'rateLimit' => ['remaining' => 5000, 'resetAt' => date('c', time() + 3600)],
                     'repository' => ['issues' => ['nodes' => [], 'pageInfo' => []]],
                 ],
-            ], JSON_THROW_ON_ERROR)), // Third succeeds
+            ], JSON_THROW_ON_ERROR)),
         ]);
 
-        $service = GitHubServiceMockFactory::create($mock);
-        $result = $service->fetchIssues('laravel', 'framework');
+        $service = $this->createServiceWithMockHandler($mock);
+        $result = $service->fetchIssuesPaged('laravel', 'framework');
 
         $this->assertIsArray($result);
-        $this->assertArrayHasKey('nodes', $result);
-        $this->assertArrayHasKey('pageInfo', $result);
-        $this->assertArrayHasKey('rateLimit', $result);
+        $this->assertArrayHasKey('issues', $result);
     }
 
-    /**
-     * Test that the service retries on 502 Bad Gateway errors.
-     */
-    public function testRetriesOn502BadGateway(): void
+    public function test_retries_on_502_bad_gateway(): void
     {
         $mock = new MockHandler([
             new Response(502),
@@ -57,18 +58,13 @@ class GitHubServiceRetryTest extends TestCase
             ], JSON_THROW_ON_ERROR)),
         ]);
 
-        $service = GitHubServiceMockFactory::create($mock);
-        $result = $service->fetchIssues('laravel', 'framework');
+        $service = $this->createServiceWithMockHandler($mock);
+        $result = $service->fetchIssuesPaged('laravel', 'framework');
 
         $this->assertIsArray($result);
     }
 
-    /**
-     * Test that the service retries on 504 Gateway Timeout errors.
-     *
-     * @throws \JsonException
-     */
-    public function testRetriesOn504GatewayTimeout(): void
+    public function test_retries_on_504_gateway_timeout(): void
     {
         $mock = new MockHandler([
             new Response(504),
@@ -80,16 +76,13 @@ class GitHubServiceRetryTest extends TestCase
             ], JSON_THROW_ON_ERROR)),
         ]);
 
-        $service = GitHubServiceMockFactory::create($mock);
-        $result = $service->fetchIssues('laravel', 'framework');
+        $service = $this->createServiceWithMockHandler($mock);
+        $result = $service->fetchIssuesPaged('laravel', 'framework');
 
         $this->assertIsArray($result);
     }
 
-    /**
-     * Test that the service eventually fails after max retries.
-     */
-    public function testFailsAfterMaxRetries(): void
+    public function test_fails_after_max_retries(): void
     {
         $this->expectException(ServerException::class);
 
@@ -97,17 +90,14 @@ class GitHubServiceRetryTest extends TestCase
             new Response(503),
             new Response(503),
             new Response(503),
-            new Response(503), // Will fail after 3 retries
+            new Response(503),
         ]);
 
-        $service = GitHubServiceMockFactory::create($mock);
-        $service->fetchIssues('laravel', 'framework');
+        $service = $this->createServiceWithMockHandler($mock);
+        $service->fetchIssuesPaged('laravel', 'framework');
     }
 
-    /**
-     * Test successful request without retries.
-     */
-    public function testSuccessfulRequestWithoutRetries(): void
+    public function test_successful_request_without_retries(): void
     {
         $mock = new MockHandler([
             new Response(200, [], json_encode([
@@ -115,16 +105,13 @@ class GitHubServiceRetryTest extends TestCase
                     'rateLimit' => ['remaining' => 5000, 'resetAt' => date('c', time() + 3600)],
                     'repository' => ['issues' => ['nodes' => [], 'pageInfo' => []]],
                 ],
-            ], JSON_THROW_ON_ERROR)),
+            ])),
         ]);
 
-        $service = GitHubServiceMockFactory::create($mock);
-        $result = $service->fetchIssues('laravel', 'framework');
+        $service = $this->createServiceWithMockHandler($mock);
+        $result = $service->fetchIssuesPaged('laravel', 'framework');
 
         $this->assertIsArray($result);
-        $this->assertArrayHasKey('nodes', $result);
-        $this->assertArrayHasKey('pageInfo', $result);
-        $this->assertArrayHasKey('rateLimit', $result);
+        $this->assertArrayHasKey('issues', $result);
     }
 }
-
