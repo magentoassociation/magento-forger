@@ -1,4 +1,8 @@
 <?php
+/**
+ * @copyright Copyright (c) 2026 The Magento Association
+ * @license https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
+ */
 declare(strict_types=1);
 
 namespace App\Console\Commands;
@@ -33,6 +37,7 @@ class SyncGitHubIssues extends Command implements Isolatable
 
         if (!$repo || !str_contains($repo, '/')) {
             $this->error('Missing or invalid repository. Set it in config/github.php');
+
             return 1;
         }
 
@@ -40,9 +45,10 @@ class SyncGitHubIssues extends Command implements Isolatable
             $cutoff = Carbon::parse($since);
             if (!$cutoff->isValid()) {
                 $this->error("Invalid date format for --since option: $since");
+
                 return 1;
             }
-            $this->info("Filtering issues updated since: " . $cutoff->toDateTimeString());
+            $this->info('Filtering issues updated since: ' . $cutoff->toDateTimeString());
         } else {
             $this->info('No date filter applied');
         }
@@ -56,7 +62,7 @@ class SyncGitHubIssues extends Command implements Isolatable
             $totalCount = $totalCounts->total;
             $this->info("Syncing issues for $repo. ($summary)");
         } catch (Throwable $e) {
-            $this->warn("Could not retrieve issue count");
+            $this->warn('Could not retrieve issue count');
             Log::warning('GitHub issue count failed', ['exception' => $e]);
         }
         $totalPages = $totalCount ? ceil($totalCount / 100) : null;
@@ -65,6 +71,7 @@ class SyncGitHubIssues extends Command implements Isolatable
             $this->info("Resuming from cursor: $cursor");
         }
 
+        $fetchFailed = false;
         $page = 1;
         do {
             $hasNextPage = false;
@@ -85,7 +92,9 @@ class SyncGitHubIssues extends Command implements Isolatable
                 if ($last && $cutoff) {
                     $lastUpdatedAt = Carbon::parse($last['updatedAt']);
                     if ($lastUpdatedAt->lessThan($cutoff)) {
-                        $this->info("Last issue is older than given cutoff ({$cutoff->toDateTimeString()}), stopping sync.");
+                        $this->info(
+                            "Last issue is older than given cutoff ({$cutoff->toDateTimeString()}), stopping sync."
+                        );
                         break;
                     }
                 }
@@ -93,12 +102,13 @@ class SyncGitHubIssues extends Command implements Isolatable
                 $this->info("Page $page" . ($totalPages ? " of $totalPages" : '') . " done. Cursor: $cursor");
                 $page++;
             } catch (Throwable $e) {
-                print_r($e->getMessage());
                 $this->warn("Could not fetch issues for page $page");
                 Log::warning('GitHub issue fetch failed', ['exception' => $e]);
+                $fetchFailed = true;
             }
         } while ($hasNextPage);
         $this->info('Done syncing issues.');
-        return 0;
+
+        return $fetchFailed ? 1 : 0;
     }
 }
