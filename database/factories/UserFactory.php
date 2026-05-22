@@ -18,7 +18,10 @@ class UserFactory extends Factory
     public function definition(): array
     {
         return [
-            //
+            'name' => fake()->unique()->name(),
+            'email' => fake()->unique()->safeEmail(),
+            'github_id' => (string) fake()->unique()->randomNumber(8, true),
+            'github_username' => fake()->unique()->userName(),
         ];
     }
 }
