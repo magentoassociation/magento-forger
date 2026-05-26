@@ -1,4 +1,8 @@
 <?php
+/*
+ * @copyright Copyright (c) 2026 The Magento Association
+ * @license https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
+ */
 declare(strict_types=1);
 
 namespace App\Console\Commands;
@@ -27,6 +31,7 @@ class SyncGitHubInteractions extends Command
 
         if (!str_contains($repo, '/')) {
             $this->error('Missing or invalid repository. Set it in config/github.php');
+
             return 1;
         }
 
@@ -40,6 +45,7 @@ class SyncGitHubInteractions extends Command
                 $this->info("Only syncing interactions updated since: " . $cutoff->toDateTimeString());
             } catch (\Exception $e) {
                 $this->error("Invalid date format for --since: $sinceOption");
+
                 return 1;
             }
         } else {

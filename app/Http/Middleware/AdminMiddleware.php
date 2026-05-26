@@ -3,6 +3,8 @@
  * @copyright Copyright (c) 2026 The Magento Association
  * @license https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
  */
+declare(strict_types=1);
+
 namespace App\Http\Middleware;
 
 use Closure;
@@ -14,7 +16,7 @@ class AdminMiddleware
     /**
      * Handle an incoming request.
      *
-     * @param  \Closure(Request): (Response)  $next
+     * @param \Closure(Request): (Response) $next
      */
     public function handle(Request $request, Closure $next): Response
     {

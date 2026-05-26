@@ -1,4 +1,9 @@
 <?php
+/*
+ * @copyright Copyright (c) 2026 The Magento Association
+ * @license https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
+ */
+declare(strict_types=1);
 
 namespace App\Services\Search;
 
@@ -8,9 +13,11 @@ use Illuminate\Support\Facades\Log;
 class OpenSearchService
 {
     public const OPENSEARCH_GITHUB_PULL_REQUESTS_INDEX = 'github-pull-requests';
+
     public const OPENSEARCH_GITHUB_ISSUES_INDEX = 'github-issues';
 
     protected Client $client;
+
     protected string $indexPrefix;
 
     public function __construct()
@@ -30,6 +37,7 @@ class OpenSearchService
     public function searchPRs(QueryBuilder $builder): array
     {
         $prIndex = self::getIndexWithPrefix(self::OPENSEARCH_GITHUB_PULL_REQUESTS_INDEX);
+
         return $this->searchIndex($prIndex, $builder);
     }
 

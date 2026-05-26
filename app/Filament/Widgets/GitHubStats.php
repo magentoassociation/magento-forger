@@ -1,4 +1,9 @@
 <?php
+/*
+ * @copyright Copyright (c) 2026 The Magento Association
+ * @license https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
+ */
+declare(strict_types=1);
 
 namespace App\Filament\Widgets;
 
@@ -44,7 +49,8 @@ class GitHubStats extends BaseWidget
                 Stat::make('Percent claimed', number_format($openSearchStats['percentClaimed'], 5) . '%'),
                 Stat::make('Companies', (new Company)->count())->description('Companies registered on Forger'),
                 Stat::make('Users', (new User)->count())->description('Users registered on Forger'),
-                Stat::make('Total GitHub Users', number_format($openSearchStats['claimed_users'] + $openSearchStats['unclaimed_users']))
+                Stat::make('Total GitHub Users',
+                    number_format($openSearchStats['claimed_users'] + $openSearchStats['unclaimed_users']))
                     ->description('Total unique contributors'),
             ];
         } catch (\Throwable $e) {
@@ -134,7 +140,7 @@ class GitHubStats extends BaseWidget
         $claimed = $data['aggregations']['claimed_users']['unique_real_names']['value'];
         $unclaimed = $data['aggregations']['unclaimed_users']['unique_github_accounts']['value'];
         $total = $claimed + $unclaimed;
-        
+
         return [
             'unclaimed_users' => $unclaimed,
             'claimed_users' => $claimed,

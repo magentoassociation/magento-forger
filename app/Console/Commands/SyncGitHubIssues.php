@@ -1,4 +1,8 @@
 <?php
+/*
+ * @copyright Copyright (c) 2026 The Magento Association
+ * @license https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
+ */
 declare(strict_types=1);
 
 namespace App\Console\Commands;
@@ -33,6 +37,7 @@ class SyncGitHubIssues extends Command implements Isolatable
 
         if (!$repo || !str_contains($repo, '/')) {
             $this->error('Missing or invalid repository. Set it in config/github.php');
+
             return 1;
         }
 
@@ -40,6 +45,7 @@ class SyncGitHubIssues extends Command implements Isolatable
             $cutoff = Carbon::parse($since);
             if (!$cutoff->isValid()) {
                 $this->error("Invalid date format for --since option: $since");
+
                 return 1;
             }
             $this->info("Filtering issues updated since: " . $cutoff->toDateTimeString());
@@ -99,6 +105,7 @@ class SyncGitHubIssues extends Command implements Isolatable
             }
         } while ($hasNextPage);
         $this->info('Done syncing issues.');
+
         return 0;
     }
 }

@@ -1,4 +1,9 @@
 <?php
+/*
+ * @copyright Copyright (c) 2026 The Magento Association
+ * @license https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
+ */
+declare(strict_types=1);
 
 namespace App\Http\Controllers\Api;
 
@@ -92,60 +97,60 @@ class CompanyProposalController extends Controller
         $commonWebsitePlaceholders = ['https://example.com', 'http://example.com', 'https://www.example.com'];
 
         // Email: Use unique placeholder if empty, common placeholder, or already exists
-        $email = $uniqueId.'@pending.example.com';
+        $email = $uniqueId . '@pending.example.com';
         $providedEmail = trim($request->input('email', ''));
-        if (! empty($providedEmail)) {
+        if (!empty($providedEmail)) {
             $sanitizedEmail = filter_var($providedEmail, FILTER_SANITIZE_EMAIL);
             // Only use provided email if it's not empty, not a common placeholder, and doesn't already exist
-            if (! empty($sanitizedEmail) &&
-                ! in_array(strtolower($sanitizedEmail), $commonEmailPlaceholders) &&
-                ! Company::where('email', $sanitizedEmail)->exists()) {
+            if (!empty($sanitizedEmail) &&
+                !in_array(strtolower($sanitizedEmail), $commonEmailPlaceholders) &&
+                !Company::where('email', $sanitizedEmail)->exists()) {
                 $email = $sanitizedEmail;
             }
         }
 
         // Website: Use unique placeholder if empty, common placeholder, or already exists
-        $website = 'https://pending.example.com/'.$uniqueId;
+        $website = 'https://pending.example.com/' . $uniqueId;
         $providedWebsite = trim($request->input('website', ''));
-        if (! empty($providedWebsite)) {
+        if (!empty($providedWebsite)) {
             $sanitizedWebsite = filter_var($providedWebsite, FILTER_SANITIZE_URL);
             // Only use provided website if it's not empty, not a common placeholder, and doesn't already exist
-            if (! empty($sanitizedWebsite) &&
-                ! in_array(strtolower($sanitizedWebsite), $commonWebsitePlaceholders) &&
-                ! Company::where('website', $sanitizedWebsite)->exists()) {
+            if (!empty($sanitizedWebsite) &&
+                !in_array(strtolower($sanitizedWebsite), $commonWebsitePlaceholders) &&
+                !Company::where('website', $sanitizedWebsite)->exists()) {
                 $website = $sanitizedWebsite;
             }
         }
 
         // Phone: Generate unique placeholder or check if provided phone exists
-        $phone = '000-000-'.substr($uniqueId, -4); // Use last 4 chars of uniqueId
+        $phone = '000-000-' . substr($uniqueId, -4); // Use last 4 chars of uniqueId
         $providedPhone = trim($request->input('phone', ''));
-        if (! empty($providedPhone)) {
+        if (!empty($providedPhone)) {
             $sanitizedPhone = strip_tags($providedPhone);
             // Check if phone already exists
-            if (! Company::where('phone', $sanitizedPhone)->exists()) {
+            if (!Company::where('phone', $sanitizedPhone)->exists()) {
                 $phone = $sanitizedPhone;
             }
             // Otherwise use unique placeholder
         }
 
         $providedLinkedin = trim($request->input('linkedin_url', ''));
-        $linkedinUrl = ! empty($providedLinkedin) ? filter_var($providedLinkedin, FILTER_SANITIZE_URL) : null;
+        $linkedinUrl = !empty($providedLinkedin) ? filter_var($providedLinkedin, FILTER_SANITIZE_URL) : null;
 
         $providedAddress = trim($request->input('address', ''));
-        $address = ! empty($providedAddress) ? strip_tags($providedAddress) : 'Pending Review';
+        $address = !empty($providedAddress) ? strip_tags($providedAddress) : 'Pending Review';
 
         $providedCity = trim($request->input('city', ''));
-        $city = ! empty($providedCity) ? strip_tags($providedCity) : 'Pending';
+        $city = !empty($providedCity) ? strip_tags($providedCity) : 'Pending';
 
         $providedState = trim($request->input('state', ''));
-        $state = ! empty($providedState) ? strip_tags($providedState) : null;
+        $state = !empty($providedState) ? strip_tags($providedState) : null;
 
         $providedZip = trim($request->input('zip', ''));
-        $zip = ! empty($providedZip) ? strip_tags($providedZip) : '00000';
+        $zip = !empty($providedZip) ? strip_tags($providedZip) : '00000';
 
         $providedCountryCode = trim($request->input('country_code', ''));
-        $countryCode = ! empty($providedCountryCode) ? strip_tags($providedCountryCode) : null;
+        $countryCode = !empty($providedCountryCode) ? strip_tags($providedCountryCode) : null;
 
         // Create pending company
         try {

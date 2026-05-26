@@ -1,4 +1,8 @@
 <?php
+/*
+ * @copyright Copyright (c) 2026 The Magento Association
+ * @license https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
+ */
 declare(strict_types=1);
 
 namespace App\Console\Commands;
@@ -12,6 +16,7 @@ use Carbon\Carbon;
 class ProcessGitHubInteractions extends Command
 {
     protected $signature = 'opensearch:process-interactions';
+
     protected $description = 'Assign points to GitHub interactions and store results in a new OpenSearch index.';
 
     /**
@@ -20,6 +25,7 @@ class ProcessGitHubInteractions extends Command
     protected Client $client;
 
     protected string $index = 'interactions';
+
     protected string $newIndex = 'points';
 
     public function __construct()

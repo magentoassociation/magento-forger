@@ -1,4 +1,8 @@
 <?php
+/*
+ * @copyright Copyright (c) 2026 The Magento Association
+ * @license https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
+ */
 declare(strict_types=1);
 
 namespace App\Http\Controllers\Auth;
@@ -61,6 +65,7 @@ class LoginController
 
         } catch (\Laravel\Socialite\Two\InvalidStateException $e) {
             Log::warning('Invalid OAuth state', ['error' => $e->getMessage()]);
+
             return redirect()->route('home')
                 ->withErrors(['error' => 'Authentication failed. Please try again.']);
 
@@ -69,6 +74,7 @@ class LoginController
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
+
             return redirect()->route('home')
                 ->withErrors(['error' => 'Authentication failed. Please try again.']);
         } catch (\Throwable $e) {

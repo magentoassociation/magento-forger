@@ -1,4 +1,9 @@
 <?php
+/*
+ * @copyright Copyright (c) 2026 The Magento Association
+ * @license https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
+ */
+declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
@@ -15,7 +20,7 @@ class PrsByMonthController extends Controller
         $dataToDisplay = [];
         $params = [
             'index' => OpenSearchService::getIndexWithPrefix(OpenSearchService::OPENSEARCH_GITHUB_PULL_REQUESTS_INDEX),
-            'body'  => [
+            'body' => [
                 'size' => 0,
                 'query' => [
                     'term' => [
@@ -28,7 +33,7 @@ class PrsByMonthController extends Controller
                             'field' => 'updated_at',
                             'calendar_interval' => 'year',
                             'format' => 'yyyy',
-                            'order' => [ '_key' => 'desc' ],
+                            'order' => ['_key' => 'desc'],
                             'min_doc_count' => 1
                         ],
                         'aggs' => [
@@ -37,7 +42,7 @@ class PrsByMonthController extends Controller
                                     'field' => 'updated_at',
                                     'calendar_interval' => 'month',
                                     'format' => 'MM',
-                                    'order' => [ '_key' => 'asc' ],
+                                    'order' => ['_key' => 'asc'],
                                     'min_doc_count' => 1
                                 ]
                             ]
@@ -54,7 +59,7 @@ class PrsByMonthController extends Controller
         }
         foreach ($result['aggregations']['by_year']['buckets'] as $yearBucket) {
             $dataToDisplay[$yearBucket['key_as_string']] = [
-                'year' =>  $yearBucket['key_as_string'],
+                'year' => $yearBucket['key_as_string'],
                 'total' => $yearBucket['doc_count'],
                 'months' => [
                     '01' => ['month_number' => '01', 'total' => 0, 'start' => null, 'end' => null],
@@ -72,15 +77,21 @@ class PrsByMonthController extends Controller
                 ]
             ];
             foreach ($yearBucket['by_month']['buckets'] as $monthBucket) {
-                $dataToDisplay[$yearBucket['key_as_string']]['months'][$monthBucket['key_as_string']]['total'] = $monthBucket['doc_count'];
-                $monthDate = Datetime::createFromFormat('Y-m-d', $yearBucket['key_as_string'] . '-' . $monthBucket['key_as_string'] . '-01');
+                $dataToDisplay[$yearBucket['key_as_string']]['months'][$monthBucket['key_as_string']]['total'] =
+                    $monthBucket['doc_count'];
+                $monthDate =
+                    Datetime::createFromFormat('Y-m-d',
+                        $yearBucket['key_as_string'] . '-' . $monthBucket['key_as_string'] . '-01');
                 $firstOfMonth = (clone $monthDate)->modify('first day of this month')->setTime(0, 0, 0);
                 $lastOfMonth = (clone $monthDate)->modify('last day of this month')->setTime(23, 59, 59);
-                $dataToDisplay[$yearBucket['key_as_string']]['months'][$monthBucket['key_as_string']]['start'] = $firstOfMonth->format('Y-m-d\TH:i:s\Z');
-                $dataToDisplay[$yearBucket['key_as_string']]['months'][$monthBucket['key_as_string']]['end'] = $lastOfMonth->format('Y-m-d\TH:i:s\Z');
+                $dataToDisplay[$yearBucket['key_as_string']]['months'][$monthBucket['key_as_string']]['start'] =
+                    $firstOfMonth->format('Y-m-d\TH:i:s\Z');
+                $dataToDisplay[$yearBucket['key_as_string']]['months'][$monthBucket['key_as_string']]['end'] =
+                    $lastOfMonth->format('Y-m-d\TH:i:s\Z');
             }
         }
-        return  view('prsByMonth/index', [
+
+        return view('prsByMonth/index', [
             'infoText' => $this->getInfoText(),
             'prs' => $dataToDisplay
         ]);

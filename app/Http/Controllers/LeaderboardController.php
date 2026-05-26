@@ -1,4 +1,9 @@
 <?php
+/*
+ * @copyright Copyright (c) 2026 The Magento Association
+ * @license https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
+ */
+declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
@@ -12,16 +17,16 @@ class LeaderboardController extends Controller
     {
         $params = [
             'index' => OpenSearchService::getIndexWithPrefix('points'),
-            'body'  => [
+            'body' => [
                 'size' => 0,
                 'aggs' => [
                     'by_year' => [
                         'terms' => [
                             'script' => [
                                 'source' => "doc['interaction_date'].value.getYear()",
-                                'lang'   => 'painless'
+                                'lang' => 'painless'
                             ],
-                            'size'  => 100,
+                            'size' => 100,
                             'order' => [
                                 '_key' => 'asc'
                             ]
@@ -30,7 +35,7 @@ class LeaderboardController extends Controller
                             'by_company' => [
                                 'terms' => [
                                     'field' => 'company_name.keyword',
-                                    'size'  => 1000,
+                                    'size' => 1000,
                                     'order' => [
                                         'total_points' => 'desc'
                                     ]
@@ -63,6 +68,7 @@ class LeaderboardController extends Controller
             $dataToDisplay[$bucket['key']] = $yearlyData;
         }
         krsort($dataToDisplay);
+
         return view('leaderboard/leaderboard', ['data' => $dataToDisplay]);
     }
 
@@ -70,7 +76,7 @@ class LeaderboardController extends Controller
     {
         $params = [
             'index' => OpenSearchService::getIndexWithPrefix('points'),
-            'body'  => [
+            'body' => [
                 'size' => 0,
                 'query' => [
                     'bool' => [
@@ -78,7 +84,7 @@ class LeaderboardController extends Controller
                             'script' => [
                                 'script' => [
                                     'source' => "doc['interaction_date'].value.getYear() == params.year",
-                                    'lang'   => 'painless',
+                                    'lang' => 'painless',
                                     'params' => [
                                         'year' => $year
                                     ]
@@ -92,9 +98,9 @@ class LeaderboardController extends Controller
                         'terms' => [
                             'script' => [
                                 'source' => "doc['interaction_date'].value.getMonthValue()",
-                                'lang'   => 'painless'
+                                'lang' => 'painless'
                             ],
-                            'size'  => 12,
+                            'size' => 12,
                             'order' => [
                                 '_key' => 'asc'
                             ]
@@ -103,7 +109,7 @@ class LeaderboardController extends Controller
                             'by_company' => [
                                 'terms' => [
                                     'field' => 'company_name.keyword',
-                                    'size'  => 1000,
+                                    'size' => 1000,
                                     'order' => [
                                         'total_points' => 'desc'
                                     ]
@@ -136,6 +142,7 @@ class LeaderboardController extends Controller
             $dataToDisplay[$bucket['key']] = $monthlyData;
         }
         ksort($dataToDisplay);
+
         return view('leaderboard/monthly', ['data' => $dataToDisplay, 'year' => $year]);
     }
 }

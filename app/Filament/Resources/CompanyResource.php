@@ -1,4 +1,9 @@
 <?php
+/*
+ * @copyright Copyright (c) 2026 The Magento Association
+ * @license https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
+ */
+declare(strict_types=1);
 
 namespace App\Filament\Resources;
 
@@ -79,7 +84,7 @@ class CompanyResource extends Resource
 
                 Tables\Columns\TextColumn::make('status')
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
+                    ->color(fn(string $state): string => match ($state) {
                         'pending' => 'warning',
                         'approved' => 'success',
                         'rejected' => 'danger',
@@ -141,8 +146,7 @@ class CompanyResource extends Resource
                     ->form([
                         Forms\Components\Select::make('target_company_id')
                             ->label('Merge into Company')
-                            ->options(fn(Company $record) =>
-                            Company::where('status', 'approved')
+                            ->options(fn(Company $record) => Company::where('status', 'approved')
                                 ->whereNot('id', $record->id)
                                 ->pluck('name', 'id')
                             )

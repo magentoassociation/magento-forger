@@ -1,4 +1,9 @@
 <?php
+/*
+ * @copyright Copyright (c) 2026 The Magento Association
+ * @license https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
+ */
+declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
@@ -78,10 +83,10 @@ class WelcomeController extends Controller
             abort(500, 'Error fetching Issue data: ' . $e->getMessage());
         }
 
-        $prsOpened     = $prResponse['aggregations']['prs_opened_per_month']['buckets'] ?? [];
-        $prsClosed     = $prResponse['aggregations']['prs_closed_per_month']['buckets'] ?? [];
-        $issuesOpened  = $issueResponse['aggregations']['issues_opened_per_month']['buckets'] ?? [];
-        $issuesClosed  = $issueResponse['aggregations']['issues_closed_per_month']['buckets'] ?? [];
+        $prsOpened = $prResponse['aggregations']['prs_opened_per_month']['buckets'] ?? [];
+        $prsClosed = $prResponse['aggregations']['prs_closed_per_month']['buckets'] ?? [];
+        $issuesOpened = $issueResponse['aggregations']['issues_opened_per_month']['buckets'] ?? [];
+        $issuesClosed = $issueResponse['aggregations']['issues_closed_per_month']['buckets'] ?? [];
 
         $allMonths = collect(array_merge(
             array_column($prsOpened, 'key_as_string'),

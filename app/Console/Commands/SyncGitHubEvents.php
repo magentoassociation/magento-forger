@@ -1,4 +1,8 @@
 <?php
+/*
+ * @copyright Copyright (c) 2026 The Magento Association
+ * @license https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
+ */
 declare(strict_types=1);
 
 namespace App\Console\Commands;
@@ -24,12 +28,13 @@ class SyncGitHubEvents extends Command
 
         if (!str_contains($repo, '/')) {
             $this->error('Invalid repository. Expected format: owner/repo');
+
             return 1;
         }
 
         [$owner, $name] = explode('/', $repo);
         $sinceOption = $this->option('since');
-        $maxPages = $this->option('max-pages') ? (int) $this->option('max-pages') : null;
+        $maxPages = $this->option('max-pages') ? (int)$this->option('max-pages') : null;
         $cutoff = null;
 
         if ($sinceOption) {
@@ -38,6 +43,7 @@ class SyncGitHubEvents extends Command
                 $this->info("Only syncing events for issues updated since: " . $cutoff->toDateTimeString());
             } catch (\Exception $e) {
                 $this->error("Invalid date format for --since: $sinceOption");
+
                 return 1;
             }
         }

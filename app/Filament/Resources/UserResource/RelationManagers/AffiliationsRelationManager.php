@@ -1,4 +1,9 @@
 <?php
+/*
+ * @copyright Copyright (c) 2026 The Magento Association
+ * @license https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
+ */
+declare(strict_types=1);
 
 namespace App\Filament\Resources\UserResource\RelationManagers;
 
@@ -17,7 +22,9 @@ class AffiliationsRelationManager extends RelationManager
         return $form
             ->schema([
                 Forms\Components\Select::make('company_id')
-                    ->relationship('company', 'name', fn($query) => $query->where('status', 'approved')->orderBy('name'))
+                    ->relationship('company',
+                        'name',
+                        fn($query) => $query->where('status', 'approved')->orderBy('name'))
                     ->searchable()
                     ->required()
                     ->label('Company'),

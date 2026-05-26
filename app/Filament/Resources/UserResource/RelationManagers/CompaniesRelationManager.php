@@ -1,4 +1,9 @@
 <?php
+/*
+ * @copyright Copyright (c) 2026 The Magento Association
+ * @license https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
+ */
+declare(strict_types=1);
 
 namespace App\Filament\Resources\UserResource\RelationManagers;
 
@@ -39,7 +44,7 @@ class CompaniesRelationManager extends RelationManager
                     ->color('primary'),
                 Tables\Columns\TextColumn::make('status')
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
+                    ->color(fn(string $state): string => match ($state) {
                         'pending' => 'warning',
                         'approved' => 'success',
                         'rejected' => 'danger',
@@ -49,7 +54,7 @@ class CompaniesRelationManager extends RelationManager
                     ->url(function ($record) {
                         $url = $record->website ?? null;
 
-                        if (! is_string($url) || $url === '') {
+                        if (!is_string($url) || $url === '') {
                             return null;
                         }
 
@@ -59,7 +64,7 @@ class CompaniesRelationManager extends RelationManager
                         }
 
                         $scheme = parse_url($validatedUrl, PHP_URL_SCHEME);
-                        if (! in_array(strtolower((string) $scheme), ['http', 'https'], true)) {
+                        if (!in_array(strtolower((string)$scheme), ['http', 'https'], true)) {
                             return null;
                         }
 
