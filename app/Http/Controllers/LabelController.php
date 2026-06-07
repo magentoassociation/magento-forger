@@ -22,24 +22,36 @@ class LabelController extends Controller
 {
     public function listAllLabels(OpenLabelsByIssueQuery $query): view
     {
+        $dataMissing = false;
+
         try {
             $nestedLabels = $query->execute();
         } catch (\Exception $e) {
-            abort(500, 'Error fetching label data: '.$e->getMessage());
+            if (! $this->isMissingIndex($e)) {
+                abort(500, 'Error fetching label data: '.$e->getMessage());
+            }
+            $nestedLabels = [];
+            $dataMissing = true;
         }
 
-        return view('labels/allLabels', ['labels' => $nestedLabels]);
+        return view('labels/allLabels', ['labels' => $nestedLabels, 'dataMissing' => $dataMissing]);
     }
 
     public function listPrWithoutComponentLabel(PrsWithoutComponentLabelQuery $query): view
     {
+        $dataMissing = false;
+
         try {
             $prs = $query->execute();
         } catch (\Exception $e) {
-            abort(500, 'Error fetching PR data: '.$e->getMessage());
+            if (! $this->isMissingIndex($e)) {
+                abort(500, 'Error fetching PR data: '.$e->getMessage());
+            }
+            $prs = [];
+            $dataMissing = true;
         }
 
-        return view('labels/prsWithoutComponentLabel', ['prs' => $prs]);
+        return view('labels/prsWithoutComponentLabel', ['prs' => $prs, 'dataMissing' => $dataMissing]);
     }
 
     public function processLabels(): view

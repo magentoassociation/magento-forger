@@ -1,6 +1,14 @@
 @extends('layouts.app')
 
 @section('content')
+    @if ($dataMissing)
+        <x-data-missing>
+            The OpenSearch indices are empty or missing. Run
+            <code>ddev artisan sync:github:prs</code> and
+            <code>ddev artisan sync:github:issues</code> to populate them.
+        </x-data-missing>
+    @endif
+
     <section class="mb-12">
         <div class="container">
             <div class="row">

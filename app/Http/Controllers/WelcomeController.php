@@ -1,4 +1,5 @@
 <?php
+
 /*
  * @copyright Copyright (c) 2026 The Magento Association
  * @license https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
@@ -7,18 +8,18 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\DataTransferObjects\Search\Aggregation;
+use App\Services\Search\OpenSearchService;
+use App\Services\Search\QueryBuilder;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
-use App\Services\Search\QueryBuilder;
-use App\Services\Search\OpenSearchService;
-use App\DataTransferObjects\Search\Aggregation;
 
 class WelcomeController extends Controller
 {
     public function index(OpenSearchService $search, Request $request): View
     {
         $user = auth()->user();
-        $prBuilder = new QueryBuilder();
+        $prBuilder = new QueryBuilder;
         $prBuilder
             ->addAggregation(new Aggregation(
                 'prs_opened_per_month',
@@ -28,7 +29,7 @@ class WelcomeController extends Controller
                         'calendar_interval' => 'month',
                         'format' => 'yyyy-MM',
                         'min_doc_count' => 0,
-                    ]
+                    ],
                 ]
             ))
             ->addAggregation(new Aggregation(
@@ -39,19 +40,25 @@ class WelcomeController extends Controller
                         'calendar_interval' => 'month',
                         'format' => 'yyyy-MM',
                         'min_doc_count' => 0,
-                    ]
+                    ],
                 ]
             ))
             ->setSize(0);
 
+        $dataMissing = false;
+
         try {
             $prResponse = $search->searchPRs($prBuilder);
         } catch (\Exception $e) {
-            abort(500, 'Error fetching PR data: ' . $e->getMessage());
+            if (! $this->isMissingIndex($e)) {
+                abort(500, 'Error fetching PR data: '.$e->getMessage());
+            }
+            $prResponse = [];
+            $dataMissing = true;
         }
 
         // ---- ISSUE AGGREGATIONS ----
-        $issueBuilder = new QueryBuilder();
+        $issueBuilder = new QueryBuilder;
         $issueBuilder
             ->addAggregation(new Aggregation(
                 'issues_opened_per_month',
@@ -61,7 +68,7 @@ class WelcomeController extends Controller
                         'calendar_interval' => 'month',
                         'format' => 'yyyy-MM',
                         'min_doc_count' => 0,
-                    ]
+                    ],
                 ]
             ))
             ->addAggregation(new Aggregation(
@@ -72,7 +79,7 @@ class WelcomeController extends Controller
                         'calendar_interval' => 'month',
                         'format' => 'yyyy-MM',
                         'min_doc_count' => 0,
-                    ]
+                    ],
                 ]
             ))
             ->setSize(0);
@@ -80,7 +87,11 @@ class WelcomeController extends Controller
         try {
             $issueResponse = $search->searchIssues($issueBuilder);
         } catch (\Exception $e) {
-            abort(500, 'Error fetching Issue data: ' . $e->getMessage());
+            if (! $this->isMissingIndex($e)) {
+                abort(500, 'Error fetching Issue data: '.$e->getMessage());
+            }
+            $issueResponse = [];
+            $dataMissing = true;
         }
 
         $prsOpened = $prResponse['aggregations']['prs_opened_per_month']['buckets'] ?? [];
@@ -123,6 +134,7 @@ class WelcomeController extends Controller
 
         return view('welcome', [
             'monthlyStats' => $monthlyStats,
+            'dataMissing' => $dataMissing,
         ]);
     }
 }

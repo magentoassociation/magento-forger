@@ -17,15 +17,22 @@ class PrsByMonthController extends Controller
 {
     public function index(OpenItemsByMonthQuery $query): View
     {
+        $dataMissing = false;
+
         try {
             $prs = $query->execute(OpenSearchService::OPENSEARCH_GITHUB_PULL_REQUESTS_INDEX);
         } catch (\Exception $e) {
-            abort(500, 'Error fetching PR data: '.$e->getMessage());
+            if (! $this->isMissingIndex($e)) {
+                abort(500, 'Error fetching PR data: '.$e->getMessage());
+            }
+            $prs = [];
+            $dataMissing = true;
         }
 
         return view('prsByMonth/index', [
             'infoText' => $this->getInfoText(),
             'prs' => $prs,
+            'dataMissing' => $dataMissing,
         ]);
     }
 

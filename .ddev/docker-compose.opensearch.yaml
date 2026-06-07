@@ -2,6 +2,7 @@
 services:
   opensearch:
     container_name: ddev-${DDEV_SITENAME}-opensearch
+    image: opensearchproject/opensearch:${OPENSEARCH_TAG:-latest}-${DDEV_SITENAME}-built
     build:
       dockerfile_inline: |
         ARG OPENSEARCH_TAG="latest"
@@ -23,7 +24,7 @@ services:
       - node.name=opensearch-node
       - discovery.type=single-node
       - bootstrap.memory_lock=true
-      - "OPENSEARCH_JAVA_OPTS=-Xms2g -Xmx2g"
+      - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
       - VIRTUAL_HOST=$DDEV_HOSTNAME
       - HTTP_EXPOSE=9200:9200
       - HTTPS_EXPOSE=9201:9200
