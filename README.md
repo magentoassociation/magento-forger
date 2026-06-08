@@ -150,6 +150,9 @@ ddev artisan sync:github:events
 # Sync GitHub interactions (this will take a long time for the initial sync)
 ddev artisan sync:github:interactions
 
+# Process interactions for the leaderboard (this will take a long time)
+ddev artisan opensearch:process-interactions
+
 ```
 
 **Note**: The initial sync can take a few minutes or hours depending on the repository size. You can monitor progress in the 

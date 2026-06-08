@@ -16,11 +16,35 @@ class LeaderboardController extends Controller
 {
     public function index(LeaderboardByYearQuery $query): View
     {
-        return view('leaderboard/leaderboard', ['data' => $query->execute()]);
+        $dataMissing = false;
+
+        try {
+            $data = $query->execute();
+        } catch (\Exception $e) {
+            if (! $this->isMissingIndex($e)) {
+                throw $e;
+            }
+            $data = [];
+            $dataMissing = true;
+        }
+
+        return view('leaderboard/leaderboard', ['data' => $data, 'dataMissing' => $dataMissing]);
     }
 
     public function showYear(LeaderboardByMonthQuery $query, int $year): View
     {
-        return view('leaderboard/monthly', ['data' => $query->execute($year), 'year' => $year]);
+        $dataMissing = false;
+
+        try {
+            $data = $query->execute($year);
+        } catch (\Exception $e) {
+            if (! $this->isMissingIndex($e)) {
+                throw $e;
+            }
+            $data = [];
+            $dataMissing = true;
+        }
+
+        return view('leaderboard/monthly', ['data' => $data, 'year' => $year, 'dataMissing' => $dataMissing]);
     }
 }
