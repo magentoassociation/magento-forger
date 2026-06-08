@@ -13,7 +13,7 @@
         $currentMonth = date('m');
     @endphp
     <div class="container">
-    @if(empty($prs))
+    @if(empty($prs) && ! $dataMissing)
         <div class="alert alert-info text-center">
             <h4>There is no data available, please ensure the import has run.</h4>
         </div>
