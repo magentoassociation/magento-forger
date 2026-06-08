@@ -16,7 +16,7 @@ class AgeOverTimeQuery
     public function __construct(private readonly Client $client) {}
 
     /**
-     * @return array<string, int> month string (yyyy-MM) => average days open
+     * @return array<string, int|null> month string (yyyy-MM) => average days open (null when no data)
      */
     public function execute(string $index): array
     {
@@ -60,7 +60,8 @@ EOT
 
         $result = [];
         foreach ($response['aggregations']['monthly_closures']['buckets'] as $bucket) {
-            $result[$bucket['key_as_string']] = (int) $bucket['avg_days_open']['value'];
+            $value = $bucket['avg_days_open']['value'] ?? null;
+            $result[$bucket['key_as_string']] = $value === null ? null : (int) $value;
         }
 
         return $result;

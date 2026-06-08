@@ -18,9 +18,11 @@ class ChartController extends Controller
 {
     public function __construct(private readonly AgeOverTimeQuery $query) {}
 
+    private const ALLOWED_HANDLERS = ['prAgeOverTime', 'issueAgeOverTime'];
+
     public function dispatch(Request $request, string $method): mixed
     {
-        if (method_exists($this, $method) && is_callable([$this, $method])) {
+        if (in_array($method, self::ALLOWED_HANDLERS, true) && is_callable([$this, $method])) {
             return $this->$method($request);
         }
 

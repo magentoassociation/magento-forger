@@ -17,15 +17,22 @@ class IssuesByMonthController extends Controller
 {
     public function index(OpenItemsByMonthQuery $query): View
     {
+        $dataMissing = false;
+
         try {
             $issues = $query->execute(OpenSearchService::OPENSEARCH_GITHUB_ISSUES_INDEX);
         } catch (\Exception $e) {
-            abort(500, 'Error fetching Issue data: '.$e->getMessage());
+            if (! $this->isMissingIndex($e)) {
+                abort(500, 'Error fetching Issue data: '.$e->getMessage());
+            }
+            $issues = [];
+            $dataMissing = true;
         }
 
         return view('issuesByMonth/index', [
             'infoText' => $this->getInfoText(),
             'issues' => $issues,
+            'dataMissing' => $dataMissing,
         ]);
     }
 
