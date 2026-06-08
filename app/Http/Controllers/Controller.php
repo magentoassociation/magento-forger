@@ -1,4 +1,5 @@
 <?php
+
 /*
  * @copyright Copyright (c) 2026 The Magento Association
  * @license https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
@@ -9,5 +10,9 @@ namespace App\Http\Controllers;
 
 abstract class Controller
 {
-    //
+    protected function isMissingIndex(\Exception $e): bool
+    {
+        return str_contains($e->getMessage(), 'index_not_found_exception')
+            || str_contains($e->getMessage(), 'no such index');
+    }
 }

@@ -25,6 +25,13 @@
 @endpush
 
 @section('content')
+    @if ($dataMissing)
+        <x-data-missing>
+            The points index is empty or missing. Run
+            <code>ddev artisan opensearch:process-interactions</code> to build it.
+        </x-data-missing>
+    @endif
+
     @php
         use App\Helpers\CompanyHelper;
         $currentYear = date('Y');
@@ -81,7 +88,7 @@
             @php
                 $unclaimedCompany = null;
                 $maxVisible = 3;
-                $visibleCompanies = array_filter($companies, fn($c) => $c['name'] !== 'unclaimed by company');
+                $visibleCompanies = array_filter($companies, fn($c) => $c->name !== 'unclaimed by company');
                 $companyIndex = 0;
             @endphp
             <div class="col-12 col-md-6 col-lg-4">
@@ -97,15 +104,15 @@
                     <div class="card-body p-0">
                         <ul class="list-group list-group-flush">
                         @foreach($companies as $company)
-                            @if ($company['name'] === 'unclaimed by company')
+                            @if ($company->name === 'unclaimed by company')
                                 @php
                                     $unclaimedCompany = $company;
                                 @endphp
                             @endif
-                            @if($company['name'] !== 'unclaimed by company')
-                                <li class="list-group-item d-flex justify-content-between align-items-center {{ CompanyHelper::getCompanyRowClass($company['name']) }} {{ $companyIndex >= $maxVisible ? 'collapse-item d-none' : '' }}" data-year="{{ $year }}">
-                                    <span class="fw-medium">{{ $company['name'] }}</span>
-                                    <span class="badge text-bg-success rounded-pill">{{ number_format($company['points']) }}</span>
+                            @if($company->name !== 'unclaimed by company')
+                                <li class="list-group-item d-flex justify-content-between align-items-center {{ CompanyHelper::getCompanyRowClass($company->name) }} {{ $companyIndex >= $maxVisible ? 'collapse-item d-none' : '' }}" data-year="{{ $year }}">
+                                    <span class="fw-medium">{{ $company->name }}</span>
+                                    <span class="badge text-bg-success rounded-pill">{{ number_format($company->points) }}</span>
                                 </li>
                                 @php $companyIndex++; @endphp
                             @endif
@@ -119,8 +126,8 @@
                             @endif
                             @if ($unclaimedCompany)
                             <li class="list-group-item d-flex justify-content-between align-items-center bg-warning-subtle text-danger">
-                                <span class="fw-medium">{{ $unclaimedCompany['name'] }}</span>
-                                <span class="badge text-bg-warning rounded-pill">{{ number_format($unclaimedCompany['points']) }}</span>
+                                <span class="fw-medium">{{ $unclaimedCompany->name }}</span>
+                                <span class="badge text-bg-warning rounded-pill">{{ number_format($unclaimedCompany->points) }}</span>
                             </li>
                             @endif
                         </ul>

@@ -1,12 +1,19 @@
 @extends('layouts.app')
 
 @section('content')
+    @if ($dataMissing)
+        <x-data-missing>
+            The issues index is empty or missing. Run
+            <code>ddev artisan sync:github:issues</code> to populate it.
+        </x-data-missing>
+    @endif
+
     @php
         $currentYear = date('Y');
         $currentMonth = date('m');
     @endphp
     <div class="container">
-    @if(empty($issues))
+    @if(empty($issues) && ! $dataMissing)
         <div class="alert alert-info text-center">
             <h4>There is no data available, please ensure the import has run.</h4>
         </div>
