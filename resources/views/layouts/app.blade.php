@@ -79,7 +79,9 @@
         </div>
     </div>
 </nav>
-@include('components.header')
+@unless (request()->routeIs('home'))
+    @include('components.header')
+@endunless
 
 <main role="main" class="flex-grow container mx-auto pt-4 px-3 px-md-4 pb-4 transition-all duration-300 ease-in-out mb-4">
     @yield('content')
