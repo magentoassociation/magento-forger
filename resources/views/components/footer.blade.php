@@ -34,23 +34,24 @@
     </div>
     --}}
 
-    {{-- Join the Magento Association Slack --}}
-    <div class="bg-primary py-5 w-full text-center">
-        <div class="container">
-            <span class="text-white fs-3 fw-light d-inline-block mb-4">
-                Join the conversation on the Magento Association Slack
-            </span>
-            <div>
-                {{-- TODO: get a new link --}}
-                <a href="https://join.slack.com/t/magentoassociation/shared_invite/zt-3fdqz50me-evleP47euvEUI0JXycGLPw"
-                   target="_blank"
-                   rel="noopener"
-                   class="btn btn-dark btn-lg rounded-pill">
-                    <i class="fab fa-slack"></i> Join our Slack
-                </a>
+    {{-- Join the Magento Association Slack (invite URL rotated via SLACK_INVITE_URL) --}}
+    @if ($slackInviteUrl = config('homepage.slack_invite_url'))
+        <div class="bg-primary py-5 w-full text-center">
+            <div class="container">
+                <span class="text-white fs-3 fw-light d-inline-block mb-4">
+                    Join the conversation on the Magento Association Slack
+                </span>
+                <div>
+                    <a href="{{ $slackInviteUrl }}"
+                       target="_blank"
+                       rel="noopener"
+                       class="btn btn-dark btn-lg rounded-pill">
+                        <i class="fab fa-slack"></i> Join our Slack
+                    </a>
+                </div>
             </div>
         </div>
-    </div>
+    @endif
 
     {{-- Copyright / trademark --}}
     <div class="text-white" style="background-color: #2b2b2b;">

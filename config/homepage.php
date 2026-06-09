@@ -1,4 +1,5 @@
 <?php
+
 /*
  * @copyright Copyright (c) 2026 The Magento Association
  * @license https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
@@ -63,4 +64,10 @@ return [
         'contributing' => 'https://github.com/magento/magento2/blob/2.4-develop/.github/CONTRIBUTING.md',
         'dev_setup' => 'https://developer.adobe.com/commerce/contributor/guides/',
     ],
+
+    // Footer — Magento Association Slack invite. Rotated via env; the banner is hidden when empty.
+    'slack_invite_url' => env(
+        'SLACK_INVITE_URL',
+        'https://join.slack.com/t/magentoassociation/shared_invite/zt-3fdqz50me-evleP47euvEUI0JXycGLPw'
+    ),
 ];
