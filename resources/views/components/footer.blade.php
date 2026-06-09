@@ -1,49 +1,66 @@
-<footer class="bg-primary shadow py-4 mb-6">
-    <div class="container mx-auto px-4">
-        <div class="row">
-            <div class="d-flex flex-column flex-lg-row gap-4">
-                <div class="card flex-fill mb-3 mb-lg-0">
-                    <div class="card-body">
-                        <h5 class="card-title">
-                            <a href="https://magento-opensource.com" target="_blank">
-                                <img src="{{ asset('assets/logo_magento_opensource_color.svg') }}" height="40" class="card-img-top" alt="Magento Open Source">
-                            </a>
-                        </h5>
-                        <p class="card-text">Magento Open Source is a powerful, flexible eCommerce platform trusted by businesses worldwide. It empowers merchants to customize and scale their online stores with full access to the source code and a vibrant community of developers and contributors.</p>
-                    </div>
-                    <div class="card-body">
-                        <a href="https://magento-opensource.com" class="card-link">Learn More</a>
-                        <a href="https://github.com/magento/magento2" class="card-link">GitHub</a>
-                    </div>
+<footer class="page-footer mt-auto">
+    {{-- Newsletter signup — disabled. The magento-opensource.com endpoint validates a
+         server-issued form_key + invisible reCAPTCHA, so a cross-domain post will not work.
+         Restore once a local newsletter route exists. --}}
+    {{--
+    <div class="bg-primary py-5 w-full text-center">
+        <div class="container">
+            <span class="text-white fs-3 fw-light d-inline-block mb-4">
+                Sign Up to our Newsletter for exclusive updates
+            </span>
+
+            <form class="w-100"
+                  action="https://www.magento-opensource.com/newsletter/subscriber/new/"
+                  method="post"
+                  aria-label="Subscribe to Newsletter">
+                <div class="d-flex mx-auto" style="max-width: 800px;">
+                    <label for="newsletter-subscribe" class="visually-hidden">Email Address</label>
+                    <input name="email"
+                           type="email"
+                           required
+                           id="newsletter-subscribe"
+                           class="form-control form-control-lg border-0"
+                           placeholder="Enter your email address"
+                           autocomplete="email"
+                           style="border-radius: 50px 0 0 50px;">
+                    <button type="submit"
+                            class="btn btn-dark btn-lg flex-shrink-0"
+                            style="border-radius: 0 50px 50px 0;">
+                        Subscribe
+                    </button>
                 </div>
-                <div class="card flex-fill mb-3 mb-lg-0">
-                    <div class="card-body">
-                        <h5 class="card-title">
-                            <a href="https://meet-magento.com" target="_blank">
-                                <img src="{{ asset('assets/logo_meetmagento_color.svg') }}" height="40" class="card-img-top" alt="Meet Magento">
-                            </a>
-                        </h5>
-                        <p class="card-text">Meet Magento events are official gatherings of the global Magento Open Source community, hosted in cities around the world. These events connect merchants, developers, agencies, and tech partners for a day of learning, networking, and collaboration centered on the Magento ecosystem.</p>
-                    </div>
-                    <div class="card-body">
-                        <a href="https://meet-magento.com" class="card-link">Learn More</a>
-                    </div>
-                </div>
-                <div class="card flex-fill mb-3 mb-lg-0">
-                    <div class="card-body">
-                        <h5 class="card-title">
-                            <a href="https://magentoassociation.org" target="_blank">
-                                <img src="{{ asset('assets/logo_magento_association_color.svg') }}" height="40" class="card-img-top" alt="Magento Open Source">
-                            </a>
-                        </h5>
-                        <p class="card-text">The Magento Association unites and supports the global Magento Open Source community. We foster collaboration, drive innovation, and protect the future of the platform through events, education, and advocacy.</p>
-                    </div>
-                    <div class="card-body">
-                        <a href="https://magentoassociation.org" class="card-link">Learn More</a>
-                        <a href="https://hub.magentoassociation.org/" class="card-link">Become a member today</a>
-                    </div>
-                </div>
+            </form>
+        </div>
+    </div>
+    --}}
+
+    {{-- Join the Magento Association Slack --}}
+    <div class="bg-primary py-5 w-full text-center">
+        <div class="container">
+            <span class="text-white fs-3 fw-light d-inline-block mb-4">
+                Join the conversation on the Magento Association Slack
+            </span>
+            <div>
+                {{-- TODO: get a new link --}}
+                <a href="https://join.slack.com/t/magentoassociation/shared_invite/zt-3fdqz50me-evleP47euvEUI0JXycGLPw"
+                   target="_blank"
+                   rel="noopener"
+                   class="btn btn-dark btn-lg rounded-pill">
+                    <i class="fab fa-slack"></i> Join our Slack
+                </a>
             </div>
+        </div>
+    </div>
+
+    {{-- Copyright / trademark --}}
+    <div class="text-white" style="background-color: #2b2b2b;">
+        <div class="container py-4 mx-auto text-center">
+            <p class="mb-0 small" style="color: #cbd5e1;">
+                Magento, Meet Magento and all related logos are either registered trademarks or
+                trademarks of Adobe Inc. in the United States and/or other Countries. Use of such
+                trademarks is under license and does not imply any affiliation, endorsement, or
+                sponsorship by Adobe Inc.
+            </p>
         </div>
     </div>
 </footer>

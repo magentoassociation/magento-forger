@@ -9,11 +9,13 @@
 
 {{-- Shared by §3 path cards (icon + blurb + cta) and §4 area tiles (compact name + count).
      The count is the only count-bearing element, so when it is unknown the card simply
-     renders without a pill — the prose stays grammatical. The whole card is the link. --}}
-<a href="{{ $href }}"
-   class="d-flex flex-column h-100 bg-white p-4 shadow rounded-xl text-decoration-none text-gray-900 transition-all duration-200 hover:shadow-lg"
-   style="transition: box-shadow .2s, transform .2s;"
-   onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
+     renders without a pill — the prose stays grammatical.
+
+     Linking differs by card type: a card with a CTA links only the CTA, while a card
+     without one (area tile) is fully clickable via a stretched link. --}}
+<div class="d-flex flex-column h-100 bg-white p-4 shadow rounded-xl position-relative"
+     style="transition: box-shadow .2s, transform .2s;"
+     onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
     <div class="d-flex align-items-start justify-content-between gap-2">
         <h4 class="text-lg font-medium mb-0">
             @if ($icon)<span class="me-1">{{ $icon }}</span>@endif{{ $title }}
@@ -30,6 +32,8 @@
     @endif
 
     @if ($cta)
-        <span class="text-primary fw-medium mt-3">{{ $cta }} →</span>
+        <a href="{{ $href }}" class="text-primary fw-medium mt-3">{{ $cta }} →</a>
+    @else
+        <a href="{{ $href }}" class="stretched-link" aria-label="{{ $title }}"></a>
     @endif
-</a>
+</div>

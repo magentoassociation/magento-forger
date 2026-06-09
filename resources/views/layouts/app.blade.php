@@ -30,6 +30,9 @@
         <div class="collapse navbar-collapse" id="navbarSupportedContent">
             {!! $mainMenu !!}
 
+            {{-- Account area (login / logout / username / admin / companies) temporarily hidden,
+                 leaving only the logo in the navbar. Remove this comment wrapper to restore it. --}}
+            {{--
             <div class="navbar-nav ms-auto align-items-lg-center">
                 <hr class="d-lg-none text-white my-2">
 
@@ -76,6 +79,7 @@
                     </div>
                 @endguest
             </div>
+            --}}
         </div>
     </div>
 </nav>

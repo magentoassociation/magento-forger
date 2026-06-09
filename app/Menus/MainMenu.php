@@ -15,7 +15,11 @@ use Spatie\Menu\Laravel\Link;
 
 class MainMenu
 {
-    private const MENU_ROUTE_PATTERN = '/^(home|issues|prs|labels|employment|leaderboard)(-[\w]+)?$/';
+    // All nav links temporarily hidden — only the logo shows in the navbar.
+    // Restore one of the patterns below to bring the menu back ('leaderboard' was already omitted).
+    // private const MENU_ROUTE_PATTERN = '/^(home|leaderboard|issues|prs|labels|employment)(-[\w]+)?$/';
+    // private const MENU_ROUTE_PATTERN = '/^(home|issues|prs|labels|employment)(-[\w]+)?$/';
+    private const MENU_ROUTE_PATTERN = '/^$/';
 
     public static function build(): Menu
     {
@@ -109,7 +113,7 @@ class MainMenu
      * @param \Illuminate\Routing\Route $route The route to check
      * @return bool True if the route has no required parameters and has a name
      */
-    private static function hasNoRequiredParameters($route): bool
+    private static function hasNoRequiredParameters(\Illuminate\Routing\Route $route): bool
     {
         $params = $route->parameterNames();
 

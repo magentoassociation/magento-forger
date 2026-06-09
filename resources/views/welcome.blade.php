@@ -11,13 +11,11 @@
         </p>
         <div class="d-flex gap-3 justify-content-center flex-wrap">
             <a href="#choose-how" class="btn btn-primary btn-lg">Find an issue to work on →</a>
-            @auth
-                <a href="{{ route('leaderboard') }}" class="btn btn-outline-primary btn-lg">View the leaderboard →</a>
-            @else
-                <a href="{{ route('github_login') }}" class="btn btn-outline-primary btn-lg">
-                    <i class="fab fa-github"></i> Login with GitHub
-                </a>
-            @endauth
+{{--            @guest--}}
+{{--                <a href="{{ route('github_login') }}" class="btn btn-outline-primary btn-lg">--}}
+{{--                    <i class="fab fa-github"></i> Login with GitHub--}}
+{{--                </a>--}}
+{{--            @endguest--}}
         </div>
     </section>
 
@@ -39,8 +37,7 @@
             <div class="col-12 col-lg-4">
                 <div class="bg-white p-4 shadow rounded-xl h-100">
                     <h4 class="text-lg font-medium mb-2">Get recognized</h4>
-                    <p class="text-gray-600 mb-0">Every merged PR moves you up the contributor
-                        <a href="{{ route('leaderboard') }}">leaderboard</a>.</p>
+                    <p class="text-gray-600 mb-0">Every merged PR moves you up the contributor leaderboard.</p>
                 </div>
             </div>
         </div>
@@ -130,13 +127,11 @@
         <h3 class="text-2xl font-semibold mb-4">Ready to ship your first fix?</h3>
         <div class="d-flex gap-3 justify-content-center flex-wrap">
             <a href="#choose-how" class="btn btn-primary btn-lg">Find an issue →</a>
-            @auth
-                <a href="{{ route('leaderboard') }}" class="btn btn-outline-primary btn-lg">View the leaderboard →</a>
-            @else
-                <a href="{{ route('github_login') }}" class="btn btn-outline-primary btn-lg">
-                    <i class="fab fa-github"></i> Login with GitHub
-                </a>
-            @endauth
+{{--            @guest--}}
+{{--                <a href="{{ route('github_login') }}" class="btn btn-outline-primary btn-lg">--}}
+{{--                    <i class="fab fa-github"></i> Login with GitHub--}}
+{{--                </a>--}}
+{{--            @endguest--}}
         </div>
     </section>
 @endsection
