@@ -136,6 +136,10 @@
     </section>
 @endsection
 
+{{-- Momentum chart script — disabled alongside the commented-out Momentum section above.
+     Restore both together (the script renders into the #prChart canvas). --}}
+{{--
 @push('scripts')
     @include('components.charts.github-stats', ['monthlyStats' => $monthlyStats])
 @endpush
+--}}

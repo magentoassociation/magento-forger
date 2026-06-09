@@ -19,13 +19,15 @@ class WelcomeController extends Controller
 {
     public function index(OpenSearchService $search, HomepageCountsService $counts): View
     {
-        $monthlyStats = $this->prsOverTime($search, $dataMissing);
+        // Momentum chart disabled — the PR aggregation is skipped. Restore this and the
+        // 'monthlyStats'/'dataMissing' view data alongside the Momentum section in welcome.blade.php.
+        // $monthlyStats = $this->prsOverTime($search, $dataMissing);
 
         $labelCounts = $counts->labelCounts();
 
         return view('welcome', [
-            'monthlyStats' => $monthlyStats,
-            'dataMissing' => $dataMissing,
+            // 'monthlyStats' => $monthlyStats,
+            // 'dataMissing' => $dataMissing,
             'paths' => $this->buildPaths($labelCounts),
             'areas' => $this->buildAreas($labelCounts),
             'links' => config('homepage.links'),
@@ -123,13 +125,15 @@ class WelcomeController extends Controller
      * dropped so a renamed or emptied area degrades gracefully.
      *
      * @param  array<string, int>  $labelCounts
-     * @return list<array{name: string, count: ?int, url: string}>
+     * @return list<array{name: string, count: int, url: string}>
      */
     private function buildAreas(array $labelCounts): array
     {
         $areas = [];
         foreach (config('homepage.areas') as $label) {
-            $count = $labelCounts[$label] ?? null;
+            // A terms aggregation omits labels with no matching docs, so an absent bucket
+            // means zero open issues — treat it the same as zero and drop the tile.
+            $count = $labelCounts[$label] ?? 0;
             if ($count === 0) {
                 continue;
             }

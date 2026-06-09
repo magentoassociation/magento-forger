@@ -78,7 +78,8 @@ class WelcomeControllerTest extends TestCase
         $client = Mockery::mock(Client::class);
         $client->shouldReceive('search')->andReturnUsing(
             static function (array $params) use ($prResult, $labelBuckets) {
-                if ($params['index'] === 'github-issues') {
+                // str_contains, not === : getIndexWithPrefix() prepends a configurable prefix.
+                if (str_contains($params['index'], 'github-issues')) {
                     if ($labelBuckets instanceof \Throwable) {
                         throw $labelBuckets;
                     }
