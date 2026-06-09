@@ -1,5 +1,4 @@
 <?php
-
 /*
  * @copyright Copyright (c) 2026 The Magento Association
  * @license https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
@@ -15,7 +14,10 @@ declare(strict_types=1);
  * so there is a single source of truth and nothing to hand-encode.
  */
 return [
-    // Section 3 — "Choose how you want to help". Each path maps to one workflow label.
+    // Section 3 — contributor entry path(s). Each path maps to one workflow label.
+    // Only "Ready to code" is offered today. Re-enable the commented paths below to turn
+    // this back into a "Choose how you want to help" multi-path choice (the view adapts
+    // automatically: heading, copy, and layout switch on the number of active paths).
     'paths' => [
         [
             'icon' => '🛠',
@@ -24,21 +26,21 @@ return [
             'cta' => 'Browse Ready for Work',
             'label' => 'Issue: Ready for Work',
         ],
-        [
-            'icon' => '🔍',
-            'title' => 'Help us triage',
-            'blurb' => 'Reported issues that need someone to reproduce and confirm. '
-                .'No fix required — a great first step.',
-            'cta' => 'Browse issues awaiting confirmation',
-            'label' => 'Issue: ready for confirmation',
-        ],
-        [
-            'icon' => '💬',
-            'title' => 'Move issues forward',
-            'blurb' => 'Stalled issues waiting on more detail.',
-            'cta' => 'Browse issues needing an update',
-            'label' => 'Issue: needs update',
-        ],
+        // [
+        //     'icon' => '🔍',
+        //     'title' => 'Help us triage',
+        //     'blurb' => 'Reported issues that need someone to reproduce and confirm. '
+        //         .'No fix required — a great first step.',
+        //     'cta' => 'Browse issues awaiting confirmation',
+        //     'label' => 'Issue: ready for confirmation',
+        // ],
+        // [
+        //     'icon' => '💬',
+        //     'title' => 'Move issues forward',
+        //     'blurb' => 'Stalled issues waiting on more detail.',
+        //     'cta' => 'Browse issues needing an update',
+        //     'label' => 'Issue: needs update',
+        // ],
     ],
 
     // Section 4 — "Pick your area". Curated allowlist of component labels; counts are live.

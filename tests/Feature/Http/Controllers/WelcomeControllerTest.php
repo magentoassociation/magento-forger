@@ -45,7 +45,7 @@ class WelcomeControllerTest extends TestCase
 
         $response->assertOk();
         $response->assertViewIs('welcome');
-        $response->assertSee('Choose how you want to help');
+        $response->assertSee('Start contributing');
         $response->assertSee('Ready to code');
         $response->assertSee('20 open');       // Ready for Work path pill
         $response->assertSee('Framework');     // area tile (prefix stripped)

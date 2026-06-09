@@ -37,21 +37,30 @@
                 </div>
             </div>
             <div class="col-12 col-lg-4">
-                <a href="{{ route('leaderboard') }}" class="d-block bg-white p-4 shadow rounded-xl h-100 text-decoration-none text-gray-900">
+                <div class="bg-white p-4 shadow rounded-xl h-100">
                     <h4 class="text-lg font-medium mb-2">Get recognized</h4>
-                    <p class="text-gray-600 mb-0">Every merged PR moves you up the contributor leaderboard. →</p>
-                </a>
+                    <p class="text-gray-600 mb-0">Every merged PR moves you up the contributor
+                        <a href="{{ route('leaderboard') }}">leaderboard</a>.</p>
+                </div>
             </div>
         </div>
     </section>
 
-    {{-- Section 3 — Choose how you want to help --}}
+    {{-- Section 3 — contributor entry path(s).
+         Adapts to the number of active paths in config/homepage.php: a single path reads
+         as a direct call to action, while re-enabling more paths restores the original
+         "Choose how you want to help" multi-path choice with no further edits here. --}}
     <section id="choose-how" class="mb-5">
-        <h3 class="text-2xl font-semibold mb-1">Choose how you want to help</h3>
-        <p class="text-gray-600 mb-4">Whatever your experience level, there's a way in.</p>
+        @if (count($paths) > 1)
+            <h3 class="text-2xl font-semibold mb-1">Choose how you want to help</h3>
+            <p class="text-gray-600 mb-4">Whatever your experience level, there's a way in.</p>
+        @else
+            <h3 class="text-2xl font-semibold mb-1">Start contributing</h3>
+            <p class="text-gray-600 mb-4">Pick up a confirmed, prioritized issue and open your first pull request.</p>
+        @endif
         <div class="row g-4">
             @foreach ($paths as $path)
-                <div class="col-12 col-lg-4">
+                <div class="{{ count($paths) > 1 ? 'col-12 col-lg-4' : 'col-12' }}">
                     <x-issue-card
                         :href="$path['url']"
                         :title="$path['title']"
@@ -80,20 +89,20 @@
     @endif
 
     {{-- Section 5 — Momentum (social proof) --}}
-    <section class="mb-5">
-        <h3 class="text-2xl font-semibold mb-1">Momentum</h3>
-        <p class="text-gray-600 mb-4">Contributors open and merge pull requests every month. Join them.</p>
-        @if ($dataMissing)
-            <x-data-missing>
-                The OpenSearch indices are empty or missing. Run
-                <code>ddev artisan sync:github:prs</code> and
-                <code>ddev artisan sync:github:issues</code> to populate them.
-            </x-data-missing>
-        @endif
-        <div class="bg-white p-4 shadow rounded-xl">
-            <canvas id="prChart" class="w-full" style="height: 360px;"></canvas>
-        </div>
-    </section>
+{{--    <section class="mb-5">--}}
+{{--        <h3 class="text-2xl font-semibold mb-1">Momentum</h3>--}}
+{{--        <p class="text-gray-600 mb-4">Contributors open and merge pull requests every month. Join them.</p>--}}
+{{--        @if ($dataMissing)--}}
+{{--            <x-data-missing>--}}
+{{--                The OpenSearch indices are empty or missing. Run--}}
+{{--                <code>ddev artisan sync:github:prs</code> and--}}
+{{--                <code>ddev artisan sync:github:issues</code> to populate them.--}}
+{{--            </x-data-missing>--}}
+{{--        @endif--}}
+{{--        <div class="bg-white p-4 shadow rounded-xl">--}}
+{{--            <canvas id="prChart" class="w-full" style="height: 360px;"></canvas>--}}
+{{--        </div>--}}
+{{--    </section>--}}
 
     {{-- Section 6 — First time contributing? --}}
     <section class="mb-5">
@@ -109,10 +118,10 @@
                 </li>
                 <li><a href="#choose-how">Claim an issue above</a> and open your first PR</li>
             </ol>
-            <p class="text-gray-600 mb-0">
-                Tidy-up win: help by
-                <a href="{{ route('labels-PRsWithoutComponentLabel') }}">labeling PRs that are missing a component</a>.
-            </p>
+{{--            <p class="text-gray-600 mb-0">--}}
+{{--                Tidy-up win: help by--}}
+{{--                <a href="{{ route('labels-PRsWithoutComponentLabel') }}">labeling PRs that are missing a component</a>.--}}
+{{--            </p>--}}
         </div>
     </section>
 

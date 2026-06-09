@@ -7,7 +7,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ $title ?? 'Magento Forger' }}</title>
     <meta name="description" content="Magento 2 PR & Issue Statistics Viewer">
-    <link rel="icon" href="{{ asset('favicon.ico') }}">
+    <link rel="icon" href="{{ asset('favicon.ico') }}?v=2">
     @vite(['resources/sass/app.scss', 'resources/js/app.js']) {{-- Tailwind CSS --}}
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -30,7 +30,7 @@
         <div class="collapse navbar-collapse" id="navbarSupportedContent">
             {!! $mainMenu !!}
 
-            <div class="navbar-nav ms-auto">
+            <div class="navbar-nav ms-auto align-items-lg-center">
                 <hr class="d-lg-none text-white my-2">
 
                 @auth
