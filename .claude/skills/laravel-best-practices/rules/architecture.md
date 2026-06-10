@@ -91,7 +91,9 @@ $posts = Post::paginate();
 
 Correct:
 ```php
-$posts = Post::latest()->paginate();
+$posts = Post::latest()->paginate(); // defaults to created_at column
+// Or specify the column explicitly
+$posts = Post::latest('id')->paginate();
 ```
 
 ## Use Atomic Locks for Race Conditions

@@ -59,6 +59,8 @@ Tailwind v4 removed deprecated utilities. Use the replacements shown below. Opac
 | ring-opacity-* | ring-black/* |
 | placeholder-opacity-* | placeholder-black/* |
 | flex-shrink-* | shrink-* |
+
+> **Note:** Replace `*` in opacity replacements with the actual opacity value (e.g., `bg-black/50` for 50% opacity, `text-blue-600/75` for 75% opacity).
 | flex-grow-* | grow-* |
 | overflow-ellipsis | text-ellipsis |
 | decoration-slice | box-decoration-slice |
