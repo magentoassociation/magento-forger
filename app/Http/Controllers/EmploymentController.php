@@ -1,4 +1,5 @@
 <?php
+
 /*
  * @copyright Copyright (c) 2026 The Magento Association
  * @license https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
@@ -7,11 +8,15 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
-use App\Models\Company;
+use App\Services\Employment\EmploymentConflictDetector;
 use Illuminate\Http\Request;
 
 class EmploymentController extends Controller
 {
+    public function __construct(
+        private readonly EmploymentConflictDetector $conflictDetector
+    ) {}
+
     public function create()
     {
         return view('employment.form', [
@@ -30,19 +35,12 @@ class EmploymentController extends Controller
 
         $user = auth()->user();
         if ($user) {
-            $conflict = $user->affiliations()
-                ->where('company_id', $request->company_id)
-                ->where(function ($query) use ($request) {
-                    $query
-                        ->where(function ($q) use ($request) {
-                            $q->whereNull('end_date')
-                                ->orWhere('end_date', '>=', $request->start_date);
-                        })
-                        ->where('start_date', '<=', $request->end_date ?? now());
-                })
-                ->exists();
-
-            if ($conflict) {
+            if ($this->conflictDetector->hasConflict(
+                $user->affiliations(),
+                $request->company_id,
+                $request->start_date,
+                $request->end_date,
+            )) {
                 return back()
                     ->withErrors(['conflict' => 'You already have a conflicting employment period at this company.'])
                     ->withInput();
@@ -79,22 +77,15 @@ class EmploymentController extends Controller
         $user = auth()->user();
         $affiliation = $user->affiliations()->findOrFail($id);
 
-        $conflict = $user->affiliations()
-            ->where('company_id', $request->company_id)
-            ->where('id', '!=', $id)
-            ->where(function ($query) use ($request) {
-                $query
-                    ->where(function ($q) use ($request) {
-                        $q->whereNull('end_date')
-                            ->orWhere('end_date', '>=', $request->start_date);
-                    })
-                    ->where('start_date', '<=', $request->end_date ?? now());
-            })
-            ->exists();
-
-        if ($conflict) {
+        if ($this->conflictDetector->hasConflict(
+            $user->affiliations(),
+            $request->company_id,
+            $request->start_date,
+            $request->end_date,
+            (int) $id,
+        )) {
             return back()
-                ->withErrors(['conflict' => 'This employment period overlaps another one you’ve already submitted.'])
+                ->withErrors(['conflict' => "This employment period overlaps another one you've already submitted."])
                 ->withInput();
         }
 

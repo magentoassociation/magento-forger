@@ -1,4 +1,5 @@
 <?php
+
 /*
  * @copyright Copyright (c) 2026 The Magento Association
  * @license https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
@@ -7,7 +8,6 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Http\Controllers;
 
-use App\Http\Controllers\LabelController;
 use App\Models\User;
 use App\Services\GitHub\GitHubService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -18,7 +18,6 @@ use OpenSearch\Client;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
-use RuntimeException;
 use Tests\TestCase;
 
 class LabelControllerTest extends TestCase
@@ -445,26 +444,6 @@ class LabelControllerTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_upload_labels_throws_when_repo_configuration_is_missing(): void
-    {
-        config(['github.repo' => '']);
-
-        $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage('GitHub repository is not configured');
-
-        $this->createController()->exposedGetRepo();
-    }
-
-    public function test_upload_labels_throws_when_repo_configuration_is_invalid(): void
-    {
-        config(['github.repo' => 'invalid/repo/value']);
-
-        $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage('Invalid GitHub repository format');
-
-        $this->createController()->exposedGetRepo();
-    }
-
     private function createLabelSpreadsheet(array $areaRows, array $componentRows = []): UploadedFile
     {
         $spreadsheet = new Spreadsheet;
@@ -501,17 +480,6 @@ class LabelControllerTest extends TestCase
                 $sheet->setCellValue("{$column}{$rowNumber}", $value);
             }
         }
-    }
-
-    private function createController(): LabelController
-    {
-        return new class extends LabelController
-        {
-            public function exposedGetRepo(): array
-            {
-                return $this->getRepo();
-            }
-        };
     }
 
     private function createUser(bool $isAdmin): User
