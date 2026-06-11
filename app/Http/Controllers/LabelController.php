@@ -10,7 +10,6 @@ namespace App\Http\Controllers;
 
 use App\Queries\Dashboard\OpenLabelsByIssueQuery;
 use App\Queries\Dashboard\PrsWithoutComponentLabelQuery;
-use App\Services\GitHub\GitHubService;
 use App\Services\Label\LabelOrchestrator;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -61,7 +60,6 @@ class LabelController extends Controller
      * Process an uploaded label spreadsheet and apply label creates and renames in GitHub.
      *
      * @param  Request  $request  The request containing the uploaded `label_sheet` spreadsheet.
-     * @param  GitHubService  $github  Service used to create and rename labels in GitHub.
      * @param  LabelOrchestrator  $orchestrator  Handles spreadsheet parsing and GitHub orchestration.
      * @return RedirectResponse Redirects back with a success, warning, or error flash message.
      *
@@ -69,15 +67,14 @@ class LabelController extends Controller
      * @throws \PhpOffice\PhpSpreadsheet\Reader\Exception When the spreadsheet cannot be loaded.
      * @throws \RuntimeException When the configured GitHub repository value is missing or invalid.
      */
-    public function uploadLabels(Request $request, GitHubService $github, LabelOrchestrator $orchestrator): RedirectResponse
+    public function uploadLabels(Request $request, LabelOrchestrator $orchestrator): RedirectResponse
     {
         $request->validate([
             'label_sheet' => 'required|mimes:xlsx,xls,ods,csv',
         ]);
 
         $results = $orchestrator->process(
-            $request->file('label_sheet')->getRealPath(),
-            $github
+            $request->file('label_sheet')->getRealPath()
         );
 
         $hasErrors = count($results['errors']) > 0;

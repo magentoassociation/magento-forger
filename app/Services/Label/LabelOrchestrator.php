@@ -8,24 +8,25 @@ declare(strict_types=1);
 
 namespace App\Services\Label;
 
-use App\Services\GitHub\GitHubService;
+use App\Services\GitHub\GitHubLabelService;
 use Illuminate\Support\Facades\Log;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use RuntimeException;
 
 class LabelOrchestrator
 {
+    public function __construct(private readonly GitHubLabelService $labels) {}
+
     /**
      * Parse a label spreadsheet and apply creates and renames via the GitHub API.
      *
      * @param  string  $filePath  Absolute path to the uploaded spreadsheet.
-     * @param  GitHubService  $github  Service used to create and rename labels.
      * @return array{created: int, renamed: int, errors: list<string>, skipped: list<string>}
      *
      * @throws \PhpOffice\PhpSpreadsheet\Reader\Exception When the spreadsheet cannot be loaded.
      * @throws RuntimeException When the configured GitHub repository value is missing or invalid.
      */
-    public function process(string $filePath, GitHubService $github): array
+    public function process(string $filePath): array
     {
         [$owner, $repo] = $this->resolveRepo();
 
@@ -98,10 +99,10 @@ class LabelOrchestrator
 
         foreach ($newLabels as $label) {
             try {
-                $created = $github->createLabel($owner, $repo, $label);
+                $created = $this->labels->createLabel($owner, $repo, $label);
 
                 if ($created === 0) {
-                    $serviceError = $github->getLastLabelOperationError();
+                    $serviceError = $this->labels->getLastOperationError();
                     $message = ($serviceError['status'] ?? null) === 'skipped'
                         ? "Skipped creating label '$label': ".($serviceError['message'] ?? 'GitHub skipped the label creation.')
                         : "Failed to create label '$label': ".($serviceError['message'] ?? 'GitHub returned 0.');
@@ -125,10 +126,10 @@ class LabelOrchestrator
 
         foreach ($renames as $oldName => $newName) {
             try {
-                $renamed = $github->renameLabel($owner, $repo, $oldName, $newName);
+                $renamed = $this->labels->renameLabel($owner, $repo, $oldName, $newName);
 
                 if ($renamed === 0) {
-                    $serviceError = $github->getLastLabelOperationError();
+                    $serviceError = $this->labels->getLastOperationError();
                     $results['errors'][] = "Failed to rename '$oldName' to '$newName': "
                         .($serviceError['message'] ?? 'GitHub returned 0.');
                     Log::error('GitHub label rename returned 0.', [

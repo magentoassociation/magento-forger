@@ -1,4 +1,5 @@
 <?php
+
 /*
  * @copyright Copyright (c) 2026 The Magento Association
  * @license https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
@@ -7,7 +8,8 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
-use App\Services\GitHub\GitHubService;
+use App\Services\GitHub\GitHubInteractionService;
+use App\Services\GitHub\GitHubIssueService;
 use App\Services\Search\OpenSearchService;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
@@ -22,11 +24,11 @@ class SyncGitHubEvents extends Command
 
     protected $description = 'Sync GitHub issue/PR events into OpenSearch';
 
-    public function handle(GitHubService $github, OpenSearchService $openSearch): int
+    public function handle(GitHubIssueService $issues, GitHubInteractionService $interactions, OpenSearchService $openSearch): int
     {
         $repo = config('github.repo', 'magento/magento2');
 
-        if (!str_contains($repo, '/')) {
+        if (! str_contains($repo, '/')) {
             $this->error('Invalid repository. Expected format: owner/repo');
 
             return 1;
@@ -34,13 +36,13 @@ class SyncGitHubEvents extends Command
 
         [$owner, $name] = explode('/', $repo);
         $sinceOption = $this->option('since');
-        $maxPages = $this->option('max-pages') ? (int)$this->option('max-pages') : null;
+        $maxPages = $this->option('max-pages') ? (int) $this->option('max-pages') : null;
         $cutoff = null;
 
         if ($sinceOption) {
             try {
                 $cutoff = Carbon::parse($sinceOption);
-                $this->info("Only syncing events for issues updated since: " . $cutoff->toDateTimeString());
+                $this->info('Only syncing events for issues updated since: '.$cutoff->toDateTimeString());
             } catch (\Exception $e) {
                 $this->error("Invalid date format for --since: $sinceOption");
 
@@ -64,7 +66,7 @@ class SyncGitHubEvents extends Command
 
             try {
                 // Fetch issues WITH events in a single query (eliminates N+1 problem)
-                $response = $github->fetchIssuesWithEvents($owner, $name, $cursor);
+                $response = $issues->fetchIssuesWithEvents($owner, $name, $cursor);
                 $nodes = $response['nodes'] ?? [];
                 $cursor = $response['pageInfo']['endCursor'] ?? null;
                 $hasNextPage = $response['pageInfo']['hasNextPage'] ?? false;
@@ -84,10 +86,10 @@ class SyncGitHubEvents extends Command
                     $issueNumber = $issue['number'];
 
                     // Extract events from inline data (no API call needed)
-                    $events = $github->extractEventsFromIssue($issue);
+                    $events = $interactions->extractEventsFromIssue($issue);
 
                     // Check if we should stop based on most recent event in this issue
-                    if ($cutoff && !empty($events)) {
+                    if ($cutoff && ! empty($events)) {
                         // Get the most recent event date for this issue
                         $mostRecentEvent = collect($events)->sortByDesc('created_at')->first();
                         if ($mostRecentEvent) {
@@ -127,7 +129,7 @@ class SyncGitHubEvents extends Command
                 }
 
                 // Bulk index for better performance
-                if (!empty($documents)) {
+                if (! empty($documents)) {
                     $openSearch->indexBulk(
                         OpenSearchService::getIndexWithPrefix('interactions'),
                         $documents
@@ -136,7 +138,7 @@ class SyncGitHubEvents extends Command
 
                 $page++;
             } catch (Throwable $e) {
-                $this->warn("\nError syncing page $page: " . $e->getMessage());
+                $this->warn("\nError syncing page $page: ".$e->getMessage());
                 Log::error("Failed to process events page $page", ['exception' => $e]);
                 break;
             }

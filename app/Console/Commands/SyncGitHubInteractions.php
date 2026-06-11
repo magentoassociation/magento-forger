@@ -1,4 +1,5 @@
 <?php
+
 /*
  * @copyright Copyright (c) 2026 The Magento Association
  * @license https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
@@ -7,7 +8,8 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
-use App\Services\GitHub\GitHubService;
+use App\Services\GitHub\GitHubInteractionService;
+use App\Services\GitHub\GitHubIssueService;
 use App\Services\Search\OpenSearchService;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
@@ -25,11 +27,11 @@ class SyncGitHubInteractions extends Command
 
     protected $description = 'Sync all GitHub interactions into OpenSearch';
 
-    public function handle(GitHubService $github, OpenSearchService $openSearch): int
+    public function handle(GitHubIssueService $issues, GitHubInteractionService $interactionService, OpenSearchService $openSearch): int
     {
         $repo = config('github.repo', 'magento/magento2');
 
-        if (!str_contains($repo, '/')) {
+        if (! str_contains($repo, '/')) {
             $this->error('Missing or invalid repository. Set it in config/github.php');
 
             return 1;
@@ -42,14 +44,14 @@ class SyncGitHubInteractions extends Command
         if ($sinceOption) {
             try {
                 $cutoff = Carbon::parse($sinceOption);
-                $this->info("Only syncing interactions updated since: " . $cutoff->toDateTimeString());
+                $this->info('Only syncing interactions updated since: '.$cutoff->toDateTimeString());
             } catch (\Exception $e) {
                 $this->error("Invalid date format for --since: $sinceOption");
 
                 return 1;
             }
         } else {
-            $this->info("No date cutoff applied. All interactions will be synced.");
+            $this->info('No date cutoff applied. All interactions will be synced.');
         }
 
         $this->info("Starting sync of interactions for $repo...");
@@ -63,7 +65,7 @@ class SyncGitHubInteractions extends Command
         while ($hasNextPage) {
             try {
                 // Fetch issues WITH interactions in a single query (eliminates N+1 problem)
-                $response = $github->fetchIssuesWithInteractions($owner, $name, $cursor);
+                $response = $issues->fetchIssuesWithInteractions($owner, $name, $cursor);
                 $nodes = $response['nodes'] ?? [];
                 $cursor = $response['pageInfo']['endCursor'] ?? null;
                 $hasNextPage = $response['pageInfo']['hasNextPage'] ?? false;
@@ -91,7 +93,7 @@ class SyncGitHubInteractions extends Command
                     $issueId = $issue['number'];
 
                     // Extract interactions from inline data (no API call needed)
-                    $issueInteractions = $github->extractInteractionsFromIssue($issue);
+                    $issueInteractions = $interactionService->extractInteractionsFromIssue($issue);
 
                     foreach ($issueInteractions as $interaction) {
                         $interactions[] = [
@@ -110,7 +112,7 @@ class SyncGitHubInteractions extends Command
                     break;
                 }
 
-                if (!empty($interactions)) {
+                if (! empty($interactions)) {
                     $openSearch->indexBulk(
                         OpenSearchService::getIndexWithPrefix('interactions'),
                         $interactions
@@ -119,7 +121,7 @@ class SyncGitHubInteractions extends Command
 
                 $page++;
             } catch (Throwable $e) {
-                $this->warn("\nError syncing page $page: " . $e->getMessage());
+                $this->warn("\nError syncing page $page: ".$e->getMessage());
                 Log::warning('GitHub interaction sync error', ['exception' => $e]);
                 break;
             }

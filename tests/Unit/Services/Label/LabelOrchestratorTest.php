@@ -8,12 +8,28 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services\Label;
 
+use App\Services\GitHub\GitHubLabelService;
 use App\Services\Label\LabelOrchestrator;
+use Mockery;
 use RuntimeException;
 use Tests\TestCase;
 
 class LabelOrchestratorTest extends TestCase
 {
+    private LabelOrchestrator $orchestrator;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->orchestrator = new LabelOrchestrator(Mockery::mock(GitHubLabelService::class));
+    }
+
+    protected function tearDown(): void
+    {
+        Mockery::close();
+        parent::tearDown();
+    }
+
     public function test_resolve_repo_throws_when_configuration_is_missing(): void
     {
         config(['github.repo' => '']);
@@ -21,7 +37,7 @@ class LabelOrchestratorTest extends TestCase
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('GitHub repository is not configured');
 
-        (new LabelOrchestrator)->resolveRepo();
+        $this->orchestrator->resolveRepo();
     }
 
     public function test_resolve_repo_throws_when_configuration_has_too_many_slashes(): void
@@ -31,7 +47,7 @@ class LabelOrchestratorTest extends TestCase
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('Invalid GitHub repository format');
 
-        (new LabelOrchestrator)->resolveRepo();
+        $this->orchestrator->resolveRepo();
     }
 
     public function test_resolve_repo_throws_when_owner_segment_is_empty(): void
@@ -41,7 +57,7 @@ class LabelOrchestratorTest extends TestCase
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('Invalid GitHub repository format');
 
-        (new LabelOrchestrator)->resolveRepo();
+        $this->orchestrator->resolveRepo();
     }
 
     public function test_resolve_repo_throws_when_repository_segment_is_empty(): void
@@ -51,14 +67,14 @@ class LabelOrchestratorTest extends TestCase
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('Invalid GitHub repository format');
 
-        (new LabelOrchestrator)->resolveRepo();
+        $this->orchestrator->resolveRepo();
     }
 
     public function test_resolve_repo_returns_owner_and_repository(): void
     {
         config(['github.repo' => 'my-org/my-repo']);
 
-        [$owner, $repo] = (new LabelOrchestrator)->resolveRepo();
+        [$owner, $repo] = $this->orchestrator->resolveRepo();
 
         $this->assertSame('my-org', $owner);
         $this->assertSame('my-repo', $repo);

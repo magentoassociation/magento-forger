@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace Tests\Feature\Http\Controllers;
 
 use App\Models\User;
-use App\Services\GitHub\GitHubService;
+use App\Services\GitHub\GitHubLabelService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Log;
@@ -211,19 +211,19 @@ class LabelControllerTest extends TestCase
 
         $adminUser = $this->createUser(true);
 
-        $github = Mockery::mock(GitHubService::class);
+        $github = Mockery::mock(GitHubLabelService::class);
         $github->shouldReceive('createLabel')->once()->with(
             self::REPO_OWNER,
             self::REPO_NAME,
             'Area: Foo'
         )->andReturn(0);
-        $github->shouldReceive('getLastLabelOperationError')->once()->andReturn([
+        $github->shouldReceive('getLastOperationError')->once()->andReturn([
             'operation' => 'create',
             'status' => 'skipped',
             'message' => "Label 'Area: Foo' already exists.",
         ]);
 
-        $this->app->instance(GitHubService::class, $github);
+        $this->app->instance(GitHubLabelService::class, $github);
 
         $response = $this->actingAs($adminUser)->post(route('labels-uploadLabels'), [
             'label_sheet' => $this->createLabelSpreadsheet([
@@ -255,20 +255,20 @@ class LabelControllerTest extends TestCase
 
         $adminUser = $this->createUser(true);
 
-        $github = Mockery::mock(GitHubService::class);
+        $github = Mockery::mock(GitHubLabelService::class);
         $github->shouldReceive('renameLabel')->once()->with(
             self::REPO_OWNER,
             self::REPO_NAME,
             'Area: Old',
             'Area: New'
         )->andReturn(0);
-        $github->shouldReceive('getLastLabelOperationError')->once()->andReturn([
+        $github->shouldReceive('getLastOperationError')->once()->andReturn([
             'operation' => 'rename',
             'status' => 'failed',
             'message' => 'GitHub rejected the rename request.',
         ]);
 
-        $this->app->instance(GitHubService::class, $github);
+        $this->app->instance(GitHubLabelService::class, $github);
 
         $response = $this->actingAs($adminUser)->post(route('labels-uploadLabels'), [
             'label_sheet' => $this->createLabelSpreadsheet([
@@ -301,7 +301,7 @@ class LabelControllerTest extends TestCase
 
         $adminUser = $this->createUser(true);
 
-        $github = Mockery::mock(GitHubService::class);
+        $github = Mockery::mock(GitHubLabelService::class);
         $github->shouldReceive('createLabel')->once()->with(
             self::REPO_OWNER,
             self::REPO_NAME,
@@ -312,13 +312,13 @@ class LabelControllerTest extends TestCase
             self::REPO_NAME,
             'Area: Bad'
         )->andReturn(0);
-        $github->shouldReceive('getLastLabelOperationError')->once()->andReturn([
+        $github->shouldReceive('getLastOperationError')->once()->andReturn([
             'operation' => 'create',
             'status' => 'failed',
             'message' => 'GitHub rejected the create request.',
         ]);
 
-        $this->app->instance(GitHubService::class, $github);
+        $this->app->instance(GitHubLabelService::class, $github);
 
         $response = $this->actingAs($adminUser)->post(route('labels-uploadLabels'), [
             'label_sheet' => $this->createLabelSpreadsheet([
@@ -342,7 +342,7 @@ class LabelControllerTest extends TestCase
     {
         $adminUser = $this->createUser(true);
 
-        $github = Mockery::mock(GitHubService::class);
+        $github = Mockery::mock(GitHubLabelService::class);
         $github->shouldReceive('createLabel')->once()->with(
             self::REPO_OWNER,
             self::REPO_NAME,
@@ -355,7 +355,7 @@ class LabelControllerTest extends TestCase
             'Component: New'
         )->andReturn(1);
 
-        $this->app->instance(GitHubService::class, $github);
+        $this->app->instance(GitHubLabelService::class, $github);
 
         $response = $this->actingAs($adminUser)->post(route('labels-uploadLabels'), [
             'label_sheet' => $this->createLabelSpreadsheet(
@@ -385,9 +385,9 @@ class LabelControllerTest extends TestCase
 
         $adminUser = $this->createUser(true);
 
-        $github = Mockery::mock(GitHubService::class);
+        $github = Mockery::mock(GitHubLabelService::class);
 
-        $this->app->instance(GitHubService::class, $github);
+        $this->app->instance(GitHubLabelService::class, $github);
 
         $response = $this->actingAs($adminUser)->post(route('labels-uploadLabels'), [
             'label_sheet' => $this->createLabelSpreadsheet(

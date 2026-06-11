@@ -1,4 +1,5 @@
 <?php
+
 /*
  * @copyright Copyright (c) 2026 The Magento Association
  * @license https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
@@ -7,7 +8,7 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
-use App\Services\GitHub\GitHubService;
+use App\Services\GitHub\GitHubPullRequestService;
 use App\Services\Search\OpenSearchService;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
@@ -17,8 +18,6 @@ use Throwable;
 
 /**
  * Sync GitHub Pull Requests using GraphQL
- *
- * @package App\Console\Commands
  */
 class SyncGitHubPRs extends Command implements Isolatable
 {
@@ -28,14 +27,14 @@ class SyncGitHubPRs extends Command implements Isolatable
 
     protected $description = 'Sync GitHub Pull Requests using GraphQL';
 
-    public function handle(GitHubService $github, OpenSearchService $openSearch): int
+    public function handle(GitHubPullRequestService $github, OpenSearchService $openSearch): int
     {
         $repo = config('github.repo');
         $cursor = $this->option('cursor');
         $since = $this->option('since');
         $cutoff = null;
 
-        if (!$repo || !str_contains($repo, '/')) {
+        if (! $repo || ! str_contains($repo, '/')) {
             $this->error('Missing or invalid repository. Set it in config/github.php');
 
             return 1;
@@ -43,12 +42,12 @@ class SyncGitHubPRs extends Command implements Isolatable
 
         if ($since) {
             $cutoff = Carbon::parse($since);
-            if (!$cutoff->isValid()) {
+            if (! $cutoff->isValid()) {
                 $this->error("Invalid date format for --since option: $since");
 
                 return 1;
             }
-            $this->info("Filtering PRs updated since: " . $cutoff->toDateTimeString());
+            $this->info('Filtering PRs updated since: '.$cutoff->toDateTimeString());
         } else {
             $this->info('No date filter applied');
         }
@@ -62,7 +61,7 @@ class SyncGitHubPRs extends Command implements Isolatable
             $totalCount = $totalCounts->total;
             $this->info("Syncing PRs for $repo. ($summary)");
         } catch (Throwable $e) {
-            $this->warn("Could not retrieve pull request count");
+            $this->warn('Could not retrieve pull request count');
             Log::warning('GitHub PR count failed', ['exception' => $e]);
         }
         $totalPages = $totalCount ? ceil($totalCount / 100) : null;
@@ -95,10 +94,10 @@ class SyncGitHubPRs extends Command implements Isolatable
                     }
                 }
 
-                $this->info("Page $page" . ($totalPages ? " of $totalPages" : '') . " done. Cursor: $cursor");
+                $this->info("Page $page".($totalPages ? " of $totalPages" : '')." done. Cursor: $cursor");
                 $page++;
             } catch (Throwable $e) {
-                $this->warn("Could not retrieve pull requests");
+                $this->warn('Could not retrieve pull requests');
                 Log::warning('GitHub PR sync failed', ['exception' => $e]);
             }
 
