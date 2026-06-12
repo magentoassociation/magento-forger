@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Console\Commands;
 
 use App\Services\GitHub\GitHubPullRequestService;
+use App\Services\GitHub\GitHubSyncer;
 use App\Services\Search\OpenSearchService;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
@@ -16,9 +17,6 @@ use Illuminate\Contracts\Console\Isolatable;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
-/**
- * Sync GitHub Pull Requests using GraphQL
- */
 class SyncGitHubPRs extends Command implements Isolatable
 {
     protected $signature = 'sync:github:prs
@@ -27,18 +25,19 @@ class SyncGitHubPRs extends Command implements Isolatable
 
     protected $description = 'Sync GitHub Pull Requests using GraphQL';
 
-    public function handle(GitHubPullRequestService $github, OpenSearchService $openSearch): int
+    public function handle(GitHubPullRequestService $github, OpenSearchService $openSearch, GitHubSyncer $syncer): int
     {
         $repo = config('github.repo');
-        $cursor = $this->option('cursor');
-        $since = $this->option('since');
-        $cutoff = null;
 
         if (! $repo || ! str_contains($repo, '/')) {
             $this->error('Missing or invalid repository. Set it in config/github.php');
 
             return 1;
         }
+
+        $cursor = $this->option('cursor');
+        $since = $this->option('since');
+        $cutoff = null;
 
         if ($since) {
             $cutoff = Carbon::parse($since);
@@ -54,54 +53,38 @@ class SyncGitHubPRs extends Command implements Isolatable
 
         [$owner, $name] = explode('/', $repo);
 
-        $totalCount = null;
+        $totalPages = null;
         try {
             $totalCounts = $github->fetchPullRequestCount($owner, $name);
-            $summary = $totalCounts->summary();
-            $totalCount = $totalCounts->total;
-            $this->info("Syncing PRs for $repo. ($summary)");
+            $this->info("Syncing PRs for $repo. ({$totalCounts->summary()})");
+            $totalPages = (int) ceil($totalCounts->total / 100);
         } catch (Throwable $e) {
             $this->warn('Could not retrieve pull request count');
             Log::warning('GitHub PR count failed', ['exception' => $e]);
         }
-        $totalPages = $totalCount ? ceil($totalCount / 100) : null;
 
         if ($cursor) {
             $this->info("Resuming from cursor: $cursor");
         }
-        $page = 1;
-        do {
-            $hasNextPage = false;
-            try {
-                $response = $github->fetchPullRequests($owner, $name, $cursor);
-                $nodes = $response['nodes'] ?? [];
 
-                foreach ($nodes as $pr) {
-                    $this->line("#{$pr['number']}: {$pr['title']} ({$pr['state']})");
-                }
-
-                $openSearch->indexPullRequests($nodes);
-
-                $cursor = $response['pageInfo']['endCursor'] ?? null;
-                $hasNextPage = $response['pageInfo']['hasNextPage'] ?? false;
-
-                $last = $nodes[array_key_last($nodes)] ?? null;
-                if ($last && $cutoff) {
-                    $lastUpdatedAt = Carbon::parse($last['updatedAt']);
-                    if ($lastUpdatedAt->lessThan($cutoff)) {
-                        $this->info("Last PR is older than given cutoff ({$cutoff->toDateTimeString()}), stopping sync.");
-                        break;
-                    }
-                }
-
-                $this->info("Page $page".($totalPages ? " of $totalPages" : '')." done. Cursor: $cursor");
-                $page++;
-            } catch (Throwable $e) {
+        $result = $syncer->sync(
+            fetchPage: fn ($c) => $github->fetchPullRequests($owner, $name, $c),
+            index: fn ($nodes) => $openSearch->indexPullRequests($nodes),
+            cutoff: $cutoff,
+            cursor: $cursor,
+            onPage: function (int $page, ?string $c) use ($totalPages) {
+                $this->info('Page '.$page.($totalPages ? ' of '.$totalPages : '').' done. Cursor: '.$c);
+            },
+            onNode: fn ($pr) => $this->line("#{$pr['number']}: {$pr['title']} ({$pr['state']})"),
+            onError: function (Throwable $e, int $page) {
                 $this->warn('Could not retrieve pull requests');
                 Log::warning('GitHub PR sync failed', ['exception' => $e]);
-            }
+            },
+        );
 
-        } while ($hasNextPage);
+        if ($result['cutoffReached'] && $cutoff !== null) {
+            $this->info('Last PR is older than given cutoff ('.$cutoff->toDateTimeString().'), stopping sync.');
+        }
 
         $this->info('Done syncing PRs.');
 
