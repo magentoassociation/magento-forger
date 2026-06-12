@@ -1,4 +1,5 @@
 <?php
+
 /*
  * @copyright Copyright (c) 2026 The Magento Association
  * @license https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
@@ -10,13 +11,13 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\CompanyResource\Pages;
 use App\Filament\Resources\CompanyResource\RelationManagers;
 use App\Models\Company;
+use App\Services\Company\CompanyMergeService;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Support\Facades\DB;
 
 class CompanyResource extends Resource
 {
@@ -57,7 +58,7 @@ class CompanyResource extends Resource
                     ->label('Country')
                     ->options(
                         collect(countries())
-                            ->mapWithKeys(fn($country) => [
+                            ->mapWithKeys(fn ($country) => [
                                 $country['iso_3166_1_alpha3'] => $country['name'],
                             ])
                             ->sort()
@@ -72,7 +73,7 @@ class CompanyResource extends Resource
                     ->label('Recommended by Users'),
 
                 Forms\Components\FileUpload::make('logo')
-                    ->acceptedFileTypes(['image/png', 'image/jpg', 'image/jpeg', 'image/gif'])
+                    ->acceptedFileTypes(['image/png', 'image/jpg', 'image/jpeg', 'image/gif']),
             ]);
     }
 
@@ -84,7 +85,7 @@ class CompanyResource extends Resource
 
                 Tables\Columns\TextColumn::make('status')
                     ->badge()
-                    ->color(fn(string $state): string => match ($state) {
+                    ->color(fn (string $state): string => match ($state) {
                         'pending' => 'warning',
                         'approved' => 'success',
                         'rejected' => 'danger',
@@ -111,7 +112,7 @@ class CompanyResource extends Resource
                 Tables\Actions\Action::make('approve')
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
-                    ->visible(fn(Company $record) => $record->status === 'pending')
+                    ->visible(fn (Company $record) => $record->status === 'pending')
                     ->requiresConfirmation()
                     ->action(function (Company $record): void {
                         $record->status = 'approved';
@@ -127,7 +128,7 @@ class CompanyResource extends Resource
                 Tables\Actions\Action::make('reject')
                     ->icon('heroicon-o-x-circle')
                     ->color('danger')
-                    ->visible(fn(Company $record) => $record->status === 'pending')
+                    ->visible(fn (Company $record) => $record->status === 'pending')
                     ->requiresConfirmation()
                     ->action(function (Company $record): void {
                         $record->status = 'rejected';
@@ -146,35 +147,21 @@ class CompanyResource extends Resource
                     ->form([
                         Forms\Components\Select::make('target_company_id')
                             ->label('Merge into Company')
-                            ->options(fn(Company $record) => Company::where('status', 'approved')
+                            ->options(fn (Company $record) => Company::where('status', 'approved')
                                 ->whereNot('id', $record->id)
                                 ->pluck('name', 'id')
                             )
                             ->searchable()
                             ->required(),
                     ])
-                    ->action(function (Company $record, array $data): void {
-                        $targetCompanyId = $data['target_company_id'];
-
-                        // Get user IDs that already have company_affiliations with target company
-                        $existingUserIds = DB::table('company_affiliations')
-                            ->where('company_id', $targetCompanyId)
-                            ->pluck('user_id');
-
-                        // Delete affiliations that would create duplicates
-                        $record->affiliations()
-                            ->whereIn('user_id', $existingUserIds)
-                            ->delete();
-
-                        // Move remaining affiliations to target company
-                        $record->affiliations()->update(['company_id' => $targetCompanyId]);
-
-                        $record->update(['status' => 'rejected']);
+                    ->action(function (Company $record, array $data, CompanyMergeService $mergeService): void {
+                        $target = Company::findOrFail($data['target_company_id']);
+                        $mergeService->merge($record, $target);
 
                         Notification::make()
                             ->success()
                             ->title('Company merged')
-                            ->body("{$record->name} merged into " . Company::find($targetCompanyId)->name)
+                            ->body("{$record->name} merged into {$target->name}")
                             ->send();
                     }),
 
