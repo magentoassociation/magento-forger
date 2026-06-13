@@ -1,4 +1,5 @@
 <?php
+
 /*
  * @copyright Copyright (c) 2026 The Magento Association
  * @license https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
@@ -19,7 +20,7 @@ Route::middleware(['is_admin'])->group(function () {
 });
 Route::get('labels/prsMissingComponent', [Controllers\LabelController::class, 'listPrWithoutComponentLabel'])->name('labels-PRsWithoutComponentLabel');
 Route::get('leaderboard', [Controllers\LeaderboardController::class, 'index'])->name('leaderboard');
-Route::get('leaderboard/{year}', [Controllers\LeaderboardController::class, 'showYear'])->where('year', '[0-9]+')->name('leaderboard-year');
+Route::get('leaderboard/{metric}', [Controllers\LeaderboardController::class, 'show'])->name('leaderboard.show');
 Route::get('/api/charts/{method}', [Controllers\ChartController::class, 'dispatch']);
 Route::get('/api/universe-bar', [Controllers\UniverseBarController::class, 'render']);
 
@@ -38,6 +39,7 @@ Route::post('/logout', function () {
     Auth::logout();
     request()->session()->invalidate();
     request()->session()->regenerateToken();
+
     return redirect('/');
 })->name('logout');
 

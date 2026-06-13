@@ -8,10 +8,11 @@ declare(strict_types=1);
 
 namespace App\DataTransferObjects\Dashboard;
 
-readonly class CompanyPoints
+readonly class ContributorCount
 {
     public function __construct(
-        public string $name,
-        public int $points,
+        public string $login,
+        public int $count,
+        public ?string $company = null,
     ) {}
 }
