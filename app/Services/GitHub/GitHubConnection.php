@@ -1,4 +1,5 @@
 <?php
+
 /*
  * @copyright Copyright (c) 2026 The Magento Association
  * @license https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
@@ -12,7 +13,6 @@ use DateTime;
 use Exception;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\ConnectException;
-use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Middleware;
 use Illuminate\Support\Facades\Log;
@@ -154,20 +154,21 @@ class GitHubConnection
                 return false;
             }
 
-            if ($response && in_array($response->getStatusCode(), [502, 503, 504], true)) {
+            if ($response && in_array($response->getStatusCode(), [429, 502, 503, 504], true)) {
                 Log::warning("GitHub API returned {$response->getStatusCode()}. Retrying...");
+
+                return true;
+            }
+
+            // Secondary rate limit returns 403 with a Retry-After header
+            if ($response && $response->getStatusCode() === 403 && $response->hasHeader('Retry-After')) {
+                Log::warning('GitHub secondary rate limit hit. Retrying after delay...');
 
                 return true;
             }
 
             if ($reason instanceof ConnectException) {
                 Log::warning("Network error: {$reason->getMessage()}. Retrying...");
-
-                return true;
-            }
-
-            if ($reason instanceof RequestException) {
-                Log::warning("Request error: {$reason->getMessage()}. Retrying...");
 
                 return true;
             }
@@ -181,7 +182,14 @@ class GitHubConnection
      */
     private function getRetryDelay(): callable
     {
-        return static function ($retries) {
+        return static function ($retries, $response) {
+            if ($response && in_array($response->getStatusCode(), [403, 429], true) && $response->hasHeader('Retry-After')) {
+                $waitSeconds = max((int) $response->getHeaderLine('Retry-After'), 60);
+                Log::info("GitHub rate limit. Waiting {$waitSeconds}s before retry...");
+
+                return $waitSeconds * 1000;
+            }
+
             $delayMs = (2 ** $retries) * 2000;
             Log::info("Waiting {$delayMs}ms before retry...");
 
