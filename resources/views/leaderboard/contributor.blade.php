@@ -21,7 +21,7 @@
             @foreach ($metrics as $key => $meta)
                 <li class="nav-item">
                     <a class="nav-link {{ $metric === $key ? 'active' : '' }}"
-                       href="{{ route('leaderboard.show', ['metric' => $key, 'period' => $period]) }}">
+                       href="{{ route('leaderboard.show', array_merge(['metric' => $key, 'period' => $period], $period === 'custom' ? ['from' => $from->toDateString(), 'to' => $to->toDateString()] : [])) }}">
                         {{ $meta['label'] }}
                     </a>
                 </li>

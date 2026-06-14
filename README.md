@@ -4,7 +4,8 @@ A Laravel application for analyzing GitHub issues and pull requests for the Mage
 
 ## Features
 
-- **Monthly GitHub Stats**: Interactive charts showing pull requests and issues over time
+- **Contributor Leaderboards**: Ranked contributors by PRs merged, PRs opened, issues opened, and issues closed
+- **Maintainer Leaderboards**: Ranked maintainers by PR reviews approved and rejected
 - **Issues by Month**: Detailed monthly breakdown of GitHub issues with direct links to GitHub
 - **PRs by Month**: Detailed monthly breakdown of GitHub pull requests with direct links to GitHub
 - **Label Analysis**: Comprehensive view of all GitHub labels with issue counts
@@ -143,32 +144,14 @@ ddev artisan sync:github:issues
 
 # Sync GitHub pull requests (this may take a while for the initial sync)
 ddev artisan sync:github:prs
-
-# Sync GitHub events (this may take a long time for the initial sync)
-ddev artisan sync:github:events
-
-# Sync GitHub interactions (this will take a long time for the initial sync)
-ddev artisan sync:github:interactions
-
-# Process interactions for the leaderboard (this will take a long time)
-ddev artisan opensearch:process-interactions
-
 ```
 
-**Note**: The initial sync can take a few minutes or hours depending on the repository size. You can monitor progress in the 
-terminal. For subsequent syncs, you can use the `--since` option:
+**Note**: The initial sync can take a few minutes or hours depending on the repository size. You can monitor progress in the terminal. For subsequent syncs, use the `--since` option:
 
 ```bash
 # Sync only recent data (much faster)
 ddev artisan sync:github:issues --since "1 week ago"
 ddev artisan sync:github:prs --since "1 week ago"
-ddev artisan sync:github:events --since "1 week ago"
-ddev artisan sync:github:interactions --since "1 week ago"
-```
-
-Process the interactions:
-```bash
-ddev artisan process:github:interactions
 ```
 
 ### 6. Start the Development Server
@@ -187,14 +170,17 @@ Your application should now be available at the URL provided by `ddev describe` 
 
 ### Available Pages
 
-- **Home** (`/`): Interactive charts showing monthly GitHub statistics
+- **Home** (`/`): Overview dashboard
+- **Contributor Leaderboard** (`/leaderboard`): Top contributors ranked by PRs merged, PRs opened, issues opened, or issues closed
+- **Maintainer Leaderboard** (`/maintainer/leaderboard`): Top reviewers ranked by approvals or change requests
 - **Issues by Month** (`/issuesByMonth`): Detailed breakdown of issues by month and year
 - **PRs by Month** (`/prsByMonth`): Detailed breakdown of pull requests by month and year
 - **All Labels** (`/labels/allLabels`): Comprehensive view of all GitHub labels with counts
+- **PRs Without Component Label** (`/labels/prsMissingComponent`): Pull requests missing a component label
 
 ### Keeping Data Updated
 
-The application includes scheduled commands that automatically sync data every 2 hours:
+The application includes scheduled commands that automatically sync data. A full sync runs weekly; incremental syncs run every 15 minutes (paused between 23:40 and 00:20):
 
 ```bash
 # View scheduled commands

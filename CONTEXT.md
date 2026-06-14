@@ -7,11 +7,11 @@ A dashboard and tooling application for the Magento Association to track and sur
 ### GitHub Data
 
 **Interaction**:
-A deliberate human contribution act on a GitHub issue: opening it, commenting on it, or having it assigned/labeled/closed. Sourced from `SyncGitHubInteractions` via issue comment nodes and timeline items.
+A deliberate human contribution act on a GitHub issue: opening it, commenting on it, or having it assigned/labeled/closed. Previously sourced from the removed `SyncGitHubInteractions` command via issue comment nodes and timeline items.
 _Avoid_: event (overlaps with GitHub's own "timeline event" concept)
 
 **Event**:
-A GitHub timeline item on an issue — a system or workflow action such as `labeled`, `closed`, `assigned`. Sourced from `SyncGitHubEvents` via `timelineItems`. Distinct from an Interaction in that events are triggered by any actor (including bots), not necessarily the issue author.
+A GitHub timeline item on an issue — a system or workflow action such as `labeled`, `closed`, `assigned`. Previously sourced from the removed `SyncGitHubEvents` command via `timelineItems`. Distinct from an Interaction in that events are triggered by any actor (including bots), not necessarily the issue author.
 _Avoid_: interaction (reserved for deliberate contribution acts)
 
 **Bot**:

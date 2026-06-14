@@ -19,12 +19,15 @@ use Tests\TestCase;
 
 class GitHubServiceRetryTest extends TestCase
 {
-    private function createServiceWithMockHandler(MockHandler $mock): GitHubIssueService
+    private function createServiceWithMockHandler(MockHandler $mock, ?\Closure $retryDelay = null): GitHubIssueService
     {
         config()->set('github.token', 'test-token');
 
         return new GitHubIssueService(
-            new GitHubConnection(graphQlHandler: HandlerStack::create($mock))
+            new GitHubConnection(
+                graphQlHandler: HandlerStack::create($mock),
+                retryDelayOverride: $retryDelay,
+            )
         );
     }
 
@@ -113,7 +116,7 @@ class GitHubServiceRetryTest extends TestCase
             new Response(200, [], $successBody),
         ]);
 
-        $service = $this->createServiceWithMockHandler($mock);
+        $service = $this->createServiceWithMockHandler($mock, fn () => 0);
         $result = $service->fetchIssuesPaged('laravel', 'framework');
 
         $this->assertIsArray($result);
@@ -147,7 +150,7 @@ class GitHubServiceRetryTest extends TestCase
             new Response(200, [], $successBody),
         ]);
 
-        $service = $this->createServiceWithMockHandler($mock);
+        $service = $this->createServiceWithMockHandler($mock, fn () => 0);
         $result = $service->fetchIssuesPaged('laravel', 'framework');
 
         $this->assertIsArray($result);

@@ -30,6 +30,7 @@ class GitHubConnection
         ?Client $restClient = null,
         ?HandlerStack $graphQlHandler = null,
         private readonly int $maxRetries = 3,
+        private readonly ?\Closure $retryDelayOverride = null,
     ) {
         $token = null;
 
@@ -114,7 +115,7 @@ class GitHubConnection
         $stack = $handler ?? HandlerStack::create();
         $stack->push(Middleware::retry(
             $this->getRetryDecider(),
-            $this->getRetryDelay()
+            $this->retryDelayOverride ?? $this->getRetryDelay()
         ));
 
         return new Client([

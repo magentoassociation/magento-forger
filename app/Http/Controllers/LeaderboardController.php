@@ -77,9 +77,24 @@ class LeaderboardController extends Controller
         return match ($period) {
             'last-quarter' => $this->lastQuarter(),
             'last-year' => [Carbon::now()->subYear()->startOfYear(), Carbon::now()->subYear()->endOfYear(), $period],
-            'custom' => [Carbon::parse($request->get('from')), Carbon::parse($request->get('to')), $period],
+            'custom' => $this->resolveCustomPeriod($request),
             default => [Carbon::now()->subMonth()->startOfMonth(), Carbon::now()->subMonth()->endOfMonth(), 'last-month'],
         };
+    }
+
+    /**
+     * @return array{Carbon, Carbon, string}
+     */
+    private function resolveCustomPeriod(Request $request): array
+    {
+        $from = Carbon::tryParse($request->get('from'));
+        $to = Carbon::tryParse($request->get('to'));
+
+        if (! $from || ! $to) {
+            return [Carbon::now()->subMonth()->startOfMonth(), Carbon::now()->subMonth()->endOfMonth(), 'last-month'];
+        }
+
+        return [$from, $to, 'custom'];
     }
 
     /**

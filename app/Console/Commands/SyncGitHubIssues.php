@@ -40,8 +40,8 @@ class SyncGitHubIssues extends Command implements Isolatable
         $cutoff = null;
 
         if ($since) {
-            $cutoff = Carbon::parse($since);
-            if (! $cutoff->isValid()) {
+            $cutoff = Carbon::tryParse($since);
+            if ($cutoff === null) {
                 $this->error("Invalid date format for --since option: $since");
 
                 return 1;
