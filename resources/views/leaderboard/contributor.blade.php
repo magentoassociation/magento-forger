@@ -12,7 +12,7 @@
         <div class="row mb-3">
             <div class="col-12">
                 <h2>Contributor Leaderboard</h2>
-                <p class="text-muted">Top 100 contributors to the Magento 2 project</p>
+                <p class="text-muted">Top contributors to the Magento 2 project</p>
             </div>
         </div>
 
@@ -47,7 +47,7 @@
         </div>
 
         <p class="text-muted small mb-3">
-            Showing {{ $metricLabel }} from {{ $from->toFormattedDateString() }} to {{ $to->toFormattedDateString() }}
+            {{ number_format(collect($contributors)->sum('count')) }} {{ $metricLabel }} from {{ $from->toFormattedDateString() }} to {{ $to->toFormattedDateString() }}
         </p>
 
         {{-- Leaderboard table --}}
@@ -75,7 +75,9 @@
                                 </td>
                                 <td class="text-muted">{{ $contributor->company ?? '—' }}</td>
                                 <td class="text-end">
-                                    <span class="badge text-bg-success rounded-pill">{{ number_format($contributor->count) }}</span>
+                                    <a href="{{ $githubUrl($contributor->login) }}" target="_blank" rel="noopener noreferrer" class="text-decoration-none">
+                                        <span class="badge text-bg-success rounded-pill">{{ number_format($contributor->count) }}</span>
+                                    </a>
                                 </td>
                             </tr>
                         @endforeach

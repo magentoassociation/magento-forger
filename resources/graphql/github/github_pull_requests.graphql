@@ -34,6 +34,11 @@ query($owner: String!, $name: String!, $cursor: String) {
             name
           }
         }
+        closingIssuesReferences(first: 25) {
+          nodes {
+            number
+          }
+        }
       }
     }
   }

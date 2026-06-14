@@ -84,7 +84,7 @@ class PRsMergedLeaderboardQueryTest extends TestCase
         $this->query->execute(Carbon::parse('2026-01-01'), Carbon::parse('2026-01-31'));
 
         $filters = $capturedParams['body']['query']['bool']['filter'];
-        $this->assertTrue(collect($filters)->contains(fn ($f) => ($f['term']['state'] ?? null) === 'MERGED'));
+        $this->assertTrue(collect($filters)->contains(fn ($f) => ($f['term']['state.keyword'] ?? null) === 'MERGED'));
         $this->assertTrue(collect($filters)->contains(fn ($f) => isset($f['range']['merged_at'])));
     }
 

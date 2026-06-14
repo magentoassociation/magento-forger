@@ -12,7 +12,6 @@ use App\DataTransferObjects\Dashboard\ContributorCount;
 use App\Models\User;
 use App\Queries\Dashboard\IssuesClosedLeaderboardQuery;
 use App\Queries\Dashboard\IssuesOpenedLeaderboardQuery;
-use App\Queries\Dashboard\PRsClosedLeaderboardQuery;
 use App\Queries\Dashboard\PRsMergedLeaderboardQuery;
 use App\Queries\Dashboard\PRsOpenedLeaderboardQuery;
 use Carbon\Carbon;
@@ -25,7 +24,6 @@ class LeaderboardController extends Controller
     private const METRICS = [
         'prs-merged' => ['label' => 'PRs Merged',      'query' => PRsMergedLeaderboardQuery::class],
         'prs-opened' => ['label' => 'PRs Opened',      'query' => PRsOpenedLeaderboardQuery::class],
-        'prs-closed' => ['label' => 'PRs Closed',      'query' => PRsClosedLeaderboardQuery::class],
         'issues-opened' => ['label' => 'Issues Opened',   'query' => IssuesOpenedLeaderboardQuery::class],
         'issues-closed' => ['label' => 'Issues Closed',   'query' => IssuesClosedLeaderboardQuery::class],
     ];
@@ -68,6 +66,7 @@ class LeaderboardController extends Controller
             'to' => $to,
             'period' => $period,
             'dataMissing' => $dataMissing,
+            'githubUrl' => $this->buildGitHubUrlResolver($metric, $from->toDateString(), $to->toDateString()),
         ]);
     }
 
@@ -135,5 +134,20 @@ class LeaderboardController extends Controller
         $to = $from->copy()->addMonths(3)->subDay()->endOfDay();
 
         return [$from, $to, 'last-quarter'];
+    }
+
+    private function buildGitHubUrlResolver(string $metric, string $from, string $to): \Closure
+    {
+        $repo = config('github.repo');
+        $base = "https://github.com/{$repo}";
+        $range = "{$from}..{$to}";
+
+        return match ($metric) {
+            'prs-merged' => fn (string $login) => "{$base}/pulls?q=is:pr+is:merged+author:{$login}+merged:{$range}",
+            'prs-opened' => fn (string $login) => "{$base}/pulls?q=is:pr+author:{$login}+created:{$range}",
+            'issues-opened' => fn (string $login) => "{$base}/issues?q=is:issue+author:{$login}+created:{$range}",
+            'issues-closed' => fn (string $login) => "{$base}/issues?q=is:issue+is:closed+reason:completed+author:{$login}+closed:{$range}",
+            default => fn (string $login) => "https://github.com/{$login}",
+        };
     }
 }
