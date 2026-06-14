@@ -69,6 +69,7 @@ class IssuesClosedLeaderboardQuery
             ['wildcard' => ['author.keyword' => 'engcom-*']],
             ['term' => ['author.keyword' => 'dependabot[bot]']],
             ['term' => ['author.keyword' => 'github-actions[bot]']],
+            ['term' => ['author.keyword' => 'm2-assistant']],
         ];
     }
 }
