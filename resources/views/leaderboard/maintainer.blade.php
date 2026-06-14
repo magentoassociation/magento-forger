@@ -3,16 +3,15 @@
 @section('content')
     @if ($dataMissing)
         <x-data-missing>
-            No data found for this leaderboard. Run <code>ddev artisan sync:github:prs</code>
-            or <code>ddev artisan sync:github:issues</code> to populate the indexes.
+            No data found for this leaderboard. Run <code>ddev artisan sync:github:prs</code> to populate the index.
         </x-data-missing>
     @endif
 
     <div class="container">
         <div class="row mb-3">
             <div class="col-12">
-                <h2>Contributor Leaderboard</h2>
-                <p class="text-muted">Top contributors to the Magento 2 project</p>
+                <h2>Maintainer Leaderboard</h2>
+                <p class="text-muted">Top reviewers of the Magento 2 project</p>
             </div>
         </div>
 
@@ -21,7 +20,7 @@
             @foreach ($metrics as $key => $meta)
                 <li class="nav-item">
                     <a class="nav-link {{ $metric === $key ? 'active' : '' }}"
-                       href="{{ route('leaderboard.show', ['metric' => $key, 'period' => $period]) }}">
+                       href="{{ route('maintainer.leaderboard.show', ['metric' => $key, 'period' => $period]) }}">
                         {{ $meta['label'] }}
                     </a>
                 </li>
@@ -31,13 +30,13 @@
         {{-- Date range filter --}}
         <div class="d-flex align-items-center gap-2 mb-4 flex-wrap">
             @foreach (['last-month' => 'Last Month', 'last-quarter' => 'Last Quarter', 'last-year' => 'Last Year'] as $key => $label)
-                <a href="{{ route('leaderboard.show', ['metric' => $metric, 'period' => $key]) }}"
+                <a href="{{ route('maintainer.leaderboard.show', ['metric' => $metric, 'period' => $key]) }}"
                    class="btn btn-sm {{ $period === $key ? 'btn-primary' : 'btn-outline-secondary' }}">
                     {{ $label }}
                 </a>
             @endforeach
 
-            <form method="GET" action="{{ route('leaderboard.show', ['metric' => $metric]) }}" class="d-flex gap-2 align-items-center ms-2">
+            <form method="GET" action="{{ route('maintainer.leaderboard.show', ['metric' => $metric]) }}" class="d-flex gap-2 align-items-center ms-2">
                 <input type="hidden" name="period" value="custom">
                 <input type="date" name="from" class="form-control form-control-sm" value="{{ $from->toDateString() }}" style="width:auto">
                 <span class="text-muted">to</span>
@@ -59,7 +58,7 @@
                     <thead class="table-light">
                         <tr>
                             <th style="width: 60px">#</th>
-                            <th>Contributor</th>
+                            <th>Maintainer</th>
                             <th class="text-end">{{ $metricLabel }}</th>
                         </tr>
                     </thead>

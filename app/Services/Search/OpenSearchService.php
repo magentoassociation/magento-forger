@@ -17,6 +17,8 @@ class OpenSearchService
 
     public const OPENSEARCH_GITHUB_ISSUES_INDEX = 'github-issues';
 
+    public const OPENSEARCH_GITHUB_PR_REVIEWS_INDEX = 'github-pr-reviews';
+
     protected Client $client;
 
     protected string $indexPrefix;
@@ -77,6 +79,32 @@ class OpenSearchService
 
         $this->client->bulk(['body' => $body]);
         $this->flagIssuesClosedByMergedPRs($pullRequests);
+        $this->indexPullRequestReviews($pullRequests);
+    }
+
+    protected function indexPullRequestReviews(array $pullRequests): void
+    {
+        $indexName = self::getIndexWithPrefix(self::OPENSEARCH_GITHUB_PR_REVIEWS_INDEX);
+        $body = [];
+
+        foreach ($pullRequests as $pr) {
+            foreach ($pr['reviews']['nodes'] ?? [] as $review) {
+                if (empty($review['id'])) {
+                    continue;
+                }
+                $body[] = ['index' => ['_index' => $indexName, '_id' => $review['id']]];
+                $body[] = [
+                    'pr_number' => $pr['number'],
+                    'author' => $review['author']['login'] ?? null,
+                    'state' => $review['state'],
+                    'submitted_at' => $review['submittedAt'],
+                ];
+            }
+        }
+
+        if (! empty($body)) {
+            $this->client->bulk(['body' => $body]);
+        }
     }
 
     protected function flagIssuesClosedByMergedPRs(array $pullRequests): void

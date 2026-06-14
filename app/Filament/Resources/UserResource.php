@@ -1,4 +1,5 @@
 <?php
+
 /*
  * @copyright Copyright (c) 2026 The Magento Association
  * @license https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
@@ -8,8 +9,6 @@ declare(strict_types=1);
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\UserResource\Pages;
-use App\Filament\Resources\UserResource\RelationManagers\AffiliationsRelationManager;
-use App\Filament\Resources\UserResource\RelationManagers\CompaniesRelationManager;
 use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -73,10 +72,7 @@ class UserResource extends Resource
 
     public static function getRelations(): array
     {
-        return [
-            AffiliationsRelationManager::class,
-            CompaniesRelationManager::class,
-        ];
+        return [];
     }
 
     public static function getPages(): array

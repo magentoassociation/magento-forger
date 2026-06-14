@@ -1,4 +1,5 @@
 <?php
+
 /*
  * @copyright Copyright (c) 2026 The Magento Association
  * @license https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
@@ -9,14 +10,8 @@ namespace App\Helpers;
 
 class RouteLabelHelper
 {
-    // Map of route names to custom labels
     private static array $customLabels = [
-        // Add your custom mappings here
         'prs' => 'PRs',
-        'company-owner.index' => 'My Companies',
-        'company-owner.edit' => 'Edit Company',
-        'employment' => 'Employment',
-        'employment.edit' => 'Edit Employment',
     ];
 
     public static function formatLabel(string $routeName): string
@@ -27,7 +22,7 @@ class RouteLabelHelper
         }
 
         // If there's no dash, just format the whole route name
-        if (!str_contains($routeName, '-')) {
+        if (! str_contains($routeName, '-')) {
             return ucwords(preg_replace('/([a-z])([A-Z])/', '$1 $2', $routeName));
         }
 

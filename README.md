@@ -366,4 +366,4 @@ This application uses:
 
 ## License
 
-This project is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+This project is open-sourced software licensed under the [Open Software License (OSL 3.0)](https://opensource.org/licenses/OSL-3.0).

@@ -45,7 +45,7 @@ A date range defined by calendar boundaries, not rolling windows. Presets: last 
 _Avoid_: rolling window, time window
 
 **Maintainer Leaderboard**:
-A future set of Contributor Leaderboards for review-based metrics: PRs approved, PRs rejected, PRs assigned to review. These require expanding the PR sync to include `reviewRequests` and `reviews` nodes. Not yet implemented.
+A future set of Contributor Leaderboards for review-based metrics: PRs approved (review state `APPROVED`) and PRs rejected (review state `CHANGES_REQUESTED`). Sourced from a separate `github-pr-reviews` index, one document per review, upserted by GitHub review node ID. Populated by expanding the existing PR sync query. Not yet implemented.
 
 ---
 

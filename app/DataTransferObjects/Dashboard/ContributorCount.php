@@ -13,6 +13,5 @@ readonly class ContributorCount
     public function __construct(
         public string $login,
         public int $count,
-        public ?string $company = null,
     ) {}
 }

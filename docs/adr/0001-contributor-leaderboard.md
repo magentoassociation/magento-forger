@@ -14,7 +14,6 @@ The points system assigned opaque numerical weights to GitHub timeline events an
 | Issues closed | `github-issues` | `closed_at` |
 | PRs opened | `github-pull-requests` | `created_at` |
 | PRs merged | `github-pull-requests` | `merged_at` |
-| PRs closed (no merge) | `github-pull-requests` | `closed_at` |
 
 Each leaderboard returns top 100 contributors sorted by count descending. Bots (`engcom-*`, `dependabot`, `github-actions[bot]`) are excluded at query time. Company attribution is shown where `User.github_username` matches the GitHub login; otherwise left blank.
 
@@ -22,7 +21,7 @@ Date filtering uses Calendar Periods (last month, last quarter, last year, custo
 
 ## Deferred: Maintainer Leaderboards
 
-Three review-based leaderboards (PRs approved, PRs rejected, PRs assigned to review) are deferred. They require expanding `github_pull_requests.graphql` to fetch `reviews` and `reviewRequests` nodes and re-syncing. These will be implemented as a separate Maintainer Leaderboards phase.
+Two review-based leaderboards (PRs approved, PRs rejected) are deferred. They require expanding `github_pull_requests.graphql` to fetch `reviews` nodes and re-syncing. These will be implemented as a separate Maintainer Leaderboards phase.
 
 ## Considered options
 
