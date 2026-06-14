@@ -26,12 +26,25 @@ query($owner: String!, $name: String!, $cursor: String) {
         comments {
           totalCount
         }
-        reviews {
+        reviews(first: 50) {
           totalCount
+          nodes {
+            id
+            author {
+              login
+            }
+            state
+            submittedAt
+          }
         }
         labels (first: 10) {
           nodes {
             name
+          }
+        }
+        closingIssuesReferences(first: 25) {
+          nodes {
+            number
           }
         }
       }

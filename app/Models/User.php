@@ -1,4 +1,5 @@
 <?php
+
 /*
  * @copyright Copyright (c) 2026 The Magento Association
  * @license https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
@@ -7,13 +8,11 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 use Illuminate\Database\Eloquent\Builder;
-use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -69,24 +68,8 @@ class User extends Authenticatable implements FilamentUser
         ];
     }
 
-    public function affiliations(): HasMany
-    {
-        return $this->hasMany(CompanyAffiliation::class);
-    }
-
-    public function companies(): BelongsToMany
-    {
-        return $this->belongsToMany(Company::class, 'company_owners')->withTimestamps();
-    }
-
-    // Alias for clarity when accessing owned companies
-    public function ownedCompanies(): BelongsToMany
-    {
-        return $this->companies();
-    }
-
     public function canAccessPanel(Panel $panel): bool
     {
-        return (bool)$this->getAttribute('is_admin');
+        return (bool) $this->getAttribute('is_admin');
     }
 }

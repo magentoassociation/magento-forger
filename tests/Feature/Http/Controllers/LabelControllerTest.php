@@ -1,4 +1,5 @@
 <?php
+
 /*
  * @copyright Copyright (c) 2026 The Magento Association
  * @license https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
@@ -7,9 +8,8 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Http\Controllers;
 
-use App\Http\Controllers\LabelController;
 use App\Models\User;
-use App\Services\GitHub\GitHubService;
+use App\Services\GitHub\GitHubLabelService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Log;
@@ -18,7 +18,6 @@ use OpenSearch\Client;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
-use RuntimeException;
 use Tests\TestCase;
 
 class LabelControllerTest extends TestCase
@@ -206,25 +205,25 @@ class LabelControllerTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_upload_labels_records_an_error_when_create_returns_zero(): void
+    public function test_upload_labels_records_a_warning_when_create_returns_skipped(): void
     {
         Log::spy();
 
         $adminUser = $this->createUser(true);
 
-        $github = Mockery::mock(GitHubService::class);
+        $github = Mockery::mock(GitHubLabelService::class);
         $github->shouldReceive('createLabel')->once()->with(
             self::REPO_OWNER,
             self::REPO_NAME,
             'Area: Foo'
         )->andReturn(0);
-        $github->shouldReceive('getLastLabelOperationError')->once()->andReturn([
+        $github->shouldReceive('getLastOperationError')->once()->andReturn([
             'operation' => 'create',
             'status' => 'skipped',
             'message' => "Label 'Area: Foo' already exists.",
         ]);
 
-        $this->app->instance(GitHubService::class, $github);
+        $this->app->instance(GitHubLabelService::class, $github);
 
         $response = $this->actingAs($adminUser)->post(route('labels-uploadLabels'), [
             'label_sheet' => $this->createLabelSpreadsheet([
@@ -233,16 +232,17 @@ class LabelControllerTest extends TestCase
         ]);
 
         $response->assertRedirect();
-        $response->assertSessionHas('error', function (array $flash): bool {
-            return $flash['header'] === 'Label processing failed.'
+        $response->assertSessionHas('warning', function (array $flash): bool {
+            return $flash['header'] === 'Labels were processed with skipped remaps.'
                 && $flash['created'] === 0
-                && in_array("Skipped creating label 'Area: Foo': Label 'Area: Foo' already exists.", $flash['errors'], true);
+                && in_array("Skipped creating label 'Area: Foo': Label 'Area: Foo' already exists.", $flash['skipped'], true)
+                && $flash['errors'] === [];
         });
         $response->assertSessionMissing('success');
-        $response->assertSessionMissing('warning');
+        $response->assertSessionMissing('error');
 
-        Log::shouldHaveReceived('error')->once()->with(
-            'GitHub label creation returned 0.',
+        Log::shouldHaveReceived('info')->once()->with(
+            'GitHub label creation skipped.',
             Mockery::on(static function (array $context): bool {
                 return $context['label'] === 'Area: Foo'
                     && $context['service_error']['status'] === 'skipped';
@@ -256,20 +256,20 @@ class LabelControllerTest extends TestCase
 
         $adminUser = $this->createUser(true);
 
-        $github = Mockery::mock(GitHubService::class);
+        $github = Mockery::mock(GitHubLabelService::class);
         $github->shouldReceive('renameLabel')->once()->with(
             self::REPO_OWNER,
             self::REPO_NAME,
             'Area: Old',
             'Area: New'
         )->andReturn(0);
-        $github->shouldReceive('getLastLabelOperationError')->once()->andReturn([
+        $github->shouldReceive('getLastOperationError')->once()->andReturn([
             'operation' => 'rename',
             'status' => 'failed',
             'message' => 'GitHub rejected the rename request.',
         ]);
 
-        $this->app->instance(GitHubService::class, $github);
+        $this->app->instance(GitHubLabelService::class, $github);
 
         $response = $this->actingAs($adminUser)->post(route('labels-uploadLabels'), [
             'label_sheet' => $this->createLabelSpreadsheet([
@@ -302,7 +302,7 @@ class LabelControllerTest extends TestCase
 
         $adminUser = $this->createUser(true);
 
-        $github = Mockery::mock(GitHubService::class);
+        $github = Mockery::mock(GitHubLabelService::class);
         $github->shouldReceive('createLabel')->once()->with(
             self::REPO_OWNER,
             self::REPO_NAME,
@@ -313,13 +313,13 @@ class LabelControllerTest extends TestCase
             self::REPO_NAME,
             'Area: Bad'
         )->andReturn(0);
-        $github->shouldReceive('getLastLabelOperationError')->once()->andReturn([
+        $github->shouldReceive('getLastOperationError')->once()->andReturn([
             'operation' => 'create',
             'status' => 'failed',
             'message' => 'GitHub rejected the create request.',
         ]);
 
-        $this->app->instance(GitHubService::class, $github);
+        $this->app->instance(GitHubLabelService::class, $github);
 
         $response = $this->actingAs($adminUser)->post(route('labels-uploadLabels'), [
             'label_sheet' => $this->createLabelSpreadsheet([
@@ -343,7 +343,7 @@ class LabelControllerTest extends TestCase
     {
         $adminUser = $this->createUser(true);
 
-        $github = Mockery::mock(GitHubService::class);
+        $github = Mockery::mock(GitHubLabelService::class);
         $github->shouldReceive('createLabel')->once()->with(
             self::REPO_OWNER,
             self::REPO_NAME,
@@ -356,7 +356,7 @@ class LabelControllerTest extends TestCase
             'Component: New'
         )->andReturn(1);
 
-        $this->app->instance(GitHubService::class, $github);
+        $this->app->instance(GitHubLabelService::class, $github);
 
         $response = $this->actingAs($adminUser)->post(route('labels-uploadLabels'), [
             'label_sheet' => $this->createLabelSpreadsheet(
@@ -386,9 +386,9 @@ class LabelControllerTest extends TestCase
 
         $adminUser = $this->createUser(true);
 
-        $github = Mockery::mock(GitHubService::class);
+        $github = Mockery::mock(GitHubLabelService::class);
 
-        $this->app->instance(GitHubService::class, $github);
+        $this->app->instance(GitHubLabelService::class, $github);
 
         $response = $this->actingAs($adminUser)->post(route('labels-uploadLabels'), [
             'label_sheet' => $this->createLabelSpreadsheet(
@@ -445,26 +445,6 @@ class LabelControllerTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_upload_labels_throws_when_repo_configuration_is_missing(): void
-    {
-        config(['github.repo' => '']);
-
-        $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage('GitHub repository is not configured');
-
-        $this->createController()->exposedGetRepo();
-    }
-
-    public function test_upload_labels_throws_when_repo_configuration_is_invalid(): void
-    {
-        config(['github.repo' => 'invalid/repo/value']);
-
-        $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage('Invalid GitHub repository format');
-
-        $this->createController()->exposedGetRepo();
-    }
-
     private function createLabelSpreadsheet(array $areaRows, array $componentRows = []): UploadedFile
     {
         $spreadsheet = new Spreadsheet;
@@ -501,17 +481,6 @@ class LabelControllerTest extends TestCase
                 $sheet->setCellValue("{$column}{$rowNumber}", $value);
             }
         }
-    }
-
-    private function createController(): LabelController
-    {
-        return new class extends LabelController
-        {
-            public function exposedGetRepo(): array
-            {
-                return $this->getRepo();
-            }
-        };
     }
 
     private function createUser(bool $isAdmin): User

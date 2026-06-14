@@ -26,9 +26,21 @@
             <img src="{{ asset('assets/logo_magento_soul_white.svg') }}" alt="Logo" width="32" height="32" style="margin-top: -3px;">
             <span class="fw-light">Magento Open Source</span> Forger
         </a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"><span class="navbar-toggler-icon"></span></button>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent"
+                aria-controls="navbarSupportedContent" aria-expanded="false"
+                aria-label="Toggle navigation"><span class="navbar-toggler-icon"></span></button>
         <div class="collapse navbar-collapse" id="navbarSupportedContent">
             {!! $mainMenu !!}
+{{--            <ul class="navbar-nav me-auto mb-2 mb-lg-0">--}}
+{{--                <li class="nav-item">--}}
+{{--                    <a class="nav-link {{ request()->routeIs('leaderboard*') ? 'active' : '' }}"--}}
+{{--                       href="{{ route('leaderboard') }}">Contributor Leaderboard</a>--}}
+{{--                </li>--}}
+{{--                <li class="nav-item">--}}
+{{--                    <a class="nav-link {{ request()->routeIs('maintainer.leaderboard*') ? 'active' : '' }}"--}}
+{{--                       href="{{ route('maintainer.leaderboard') }}">Maintainer Leaderboard</a>--}}
+{{--                </li>--}}
+{{--            </ul>--}}
 
             {{-- Account area (login / logout / username / admin / companies) temporarily hidden,
                  leaving only the logo in the navbar. Remove this comment wrapper to restore it. --}}

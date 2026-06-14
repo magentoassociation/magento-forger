@@ -8,27 +8,23 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
-use App\Queries\Dashboard\IssuesClosedLeaderboardQuery;
-use App\Queries\Dashboard\IssuesOpenedLeaderboardQuery;
-use App\Queries\Dashboard\PRsMergedLeaderboardQuery;
-use App\Queries\Dashboard\PRsOpenedLeaderboardQuery;
+use App\Queries\Dashboard\ReviewsApprovedLeaderboardQuery;
+use App\Queries\Dashboard\ReviewsRejectedLeaderboardQuery;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
-class LeaderboardController extends Controller
+class MaintainerLeaderboardController extends Controller
 {
     private const METRICS = [
-        'prs-merged' => ['label' => 'PRs Merged',      'query' => PRsMergedLeaderboardQuery::class],
-        'prs-opened' => ['label' => 'PRs Opened',      'query' => PRsOpenedLeaderboardQuery::class],
-        'issues-opened' => ['label' => 'Issues Opened',   'query' => IssuesOpenedLeaderboardQuery::class],
-        'issues-closed' => ['label' => 'Issues Closed',   'query' => IssuesClosedLeaderboardQuery::class],
+        'reviews-approved' => ['label' => 'PRs Approved', 'query' => ReviewsApprovedLeaderboardQuery::class],
+        'reviews-rejected' => ['label' => 'PRs Rejected', 'query' => ReviewsRejectedLeaderboardQuery::class],
     ];
 
     public function index(): RedirectResponse
     {
-        return redirect()->route('leaderboard.show', ['metric' => 'prs-merged']);
+        return redirect()->route('maintainer.leaderboard.show', ['metric' => 'reviews-approved']);
     }
 
     public function show(Request $request, string $metric): View
@@ -54,7 +50,7 @@ class LeaderboardController extends Controller
             $dataMissing = true;
         }
 
-        return view('leaderboard.contributor', [
+        return view('leaderboard.maintainer', [
             'metric' => $metric,
             'metricLabel' => self::METRICS[$metric]['label'],
             'metrics' => self::METRICS,
@@ -77,24 +73,9 @@ class LeaderboardController extends Controller
         return match ($period) {
             'last-quarter' => $this->lastQuarter(),
             'last-year' => [Carbon::now()->subYear()->startOfYear(), Carbon::now()->subYear()->endOfYear(), $period],
-            'custom' => $this->resolveCustomPeriod($request),
+            'custom' => [Carbon::parse($request->get('from')), Carbon::parse($request->get('to')), $period],
             default => [Carbon::now()->subMonth()->startOfMonth(), Carbon::now()->subMonth()->endOfMonth(), 'last-month'],
         };
-    }
-
-    /**
-     * @return array{Carbon, Carbon, string}
-     */
-    private function resolveCustomPeriod(Request $request): array
-    {
-        $from = Carbon::tryParse($request->get('from'));
-        $to = Carbon::tryParse($request->get('to'));
-
-        if (! $from || ! $to) {
-            return [Carbon::now()->subMonth()->startOfMonth(), Carbon::now()->subMonth()->endOfMonth(), 'last-month'];
-        }
-
-        return [$from, $to, 'custom'];
     }
 
     /**
@@ -126,10 +107,8 @@ class LeaderboardController extends Controller
         $range = "{$from}..{$to}";
 
         return match ($metric) {
-            'prs-merged' => fn (string $login) => "{$base}/pulls?q=is:pr+is:merged+author:{$login}+merged:{$range}",
-            'prs-opened' => fn (string $login) => "{$base}/pulls?q=is:pr+author:{$login}+created:{$range}",
-            'issues-opened' => fn (string $login) => "{$base}/issues?q=is:issue+author:{$login}+created:{$range}",
-            'issues-closed' => fn (string $login) => "{$base}/issues?q=is:issue+is:closed+reason:completed+author:{$login}+closed:{$range}",
+            'reviews-approved' => fn (string $login) => "{$base}/pulls?q=is:pr+reviewed-by:{$login}+review:approved+updated:{$range}",
+            'reviews-rejected' => fn (string $login) => "{$base}/pulls?q=is:pr+reviewed-by:{$login}+review:changes_requested+updated:{$range}",
             default => fn (string $login) => "https://github.com/{$login}",
         };
     }

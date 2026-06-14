@@ -1,4 +1,5 @@
 <?php
+
 /*
  * @copyright Copyright (c) 2026 The Magento Association
  * @license https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
@@ -7,14 +8,16 @@ declare(strict_types=1);
 
 namespace App\Services\Search;
 
-use OpenSearch\Client;
 use Illuminate\Support\Facades\Log;
+use OpenSearch\Client;
 
 class OpenSearchService
 {
     public const OPENSEARCH_GITHUB_PULL_REQUESTS_INDEX = 'github-pull-requests';
 
     public const OPENSEARCH_GITHUB_ISSUES_INDEX = 'github-issues';
+
+    public const OPENSEARCH_GITHUB_PR_REVIEWS_INDEX = 'github-pr-reviews';
 
     protected Client $client;
 
@@ -75,6 +78,53 @@ class OpenSearchService
         }
 
         $this->client->bulk(['body' => $body]);
+        $this->flagIssuesClosedByMergedPRs($pullRequests);
+        $this->indexPullRequestReviews($pullRequests);
+    }
+
+    protected function indexPullRequestReviews(array $pullRequests): void
+    {
+        $indexName = self::getIndexWithPrefix(self::OPENSEARCH_GITHUB_PR_REVIEWS_INDEX);
+        $body = [];
+
+        foreach ($pullRequests as $pr) {
+            foreach ($pr['reviews']['nodes'] ?? [] as $review) {
+                if (empty($review['id'])) {
+                    continue;
+                }
+                $body[] = ['index' => ['_index' => $indexName, '_id' => $review['id']]];
+                $body[] = [
+                    'pr_number' => $pr['number'],
+                    'author' => $review['author']['login'] ?? null,
+                    'state' => $review['state'],
+                    'submitted_at' => $review['submittedAt'],
+                ];
+            }
+        }
+
+        if (! empty($body)) {
+            $this->client->bulk(['body' => $body]);
+        }
+    }
+
+    protected function flagIssuesClosedByMergedPRs(array $pullRequests): void
+    {
+        $issueIndex = self::getIndexWithPrefix(self::OPENSEARCH_GITHUB_ISSUES_INDEX);
+        $body = [];
+
+        foreach ($pullRequests as $pr) {
+            if ($pr['state'] !== 'MERGED') {
+                continue;
+            }
+            foreach ($pr['closingIssuesReferences']['nodes'] ?? [] as $issue) {
+                $body[] = ['update' => ['_index' => $issueIndex, '_id' => $issue['number']]];
+                $body[] = ['doc' => ['closed_by_merged_pr' => true], 'doc_as_upsert' => true];
+            }
+        }
+
+        if (! empty($body)) {
+            $this->client->bulk(['body' => $body]);
+        }
     }
 
     protected function toPullRequestDocument(array $pr): array
@@ -108,13 +158,8 @@ class OpenSearchService
 
         $body = [];
         foreach ($issues as $issue) {
-            $body[] = [
-                'index' => [
-                    '_index' => $indexName,
-                    '_id' => $issue['number'],
-                ],
-            ];
-            $body[] = $this->toIssueDocument($issue);
+            $body[] = ['update' => ['_index' => $indexName, '_id' => $issue['number']]];
+            $body[] = ['doc' => $this->toIssueDocument($issue), 'doc_as_upsert' => true];
         }
 
         $this->client->bulk(['body' => $body]);
@@ -122,7 +167,7 @@ class OpenSearchService
 
     protected function toIssueDocument(array $issue): array
     {
-        return [
+        $doc = [
             'id' => $issue['number'],
             'graphql_id' => $issue['id'],
             'title' => $issue['title'],
@@ -136,13 +181,16 @@ class OpenSearchService
             'author' => $issue['author']['login'] ?? null,
             'comments_count' => $issue['comments']['totalCount'] ?? 0,
         ];
+
+        if ($issue['state'] === 'OPEN') {
+            $doc['closed_by_merged_pr'] = false;
+        }
+
+        return $doc;
     }
 
     /**
      * Bulk index any documents with a SHA1 hash of the document as its ID.
-     *
-     * @param string $index
-     * @param array $documents
      */
     public function indexBulk(string $index, array $documents): void
     {
@@ -195,7 +243,7 @@ class OpenSearchService
                 'body' => $document,
             ]);
         } catch (\Throwable $e) {
-            \Log::error("OpenSearch indexing failed", [
+            \Log::error('OpenSearch indexing failed', [
                 'index' => $index,
                 'document' => $document,
                 'exception' => $e,
@@ -215,6 +263,6 @@ class OpenSearchService
             return $index;
         }
 
-        return $prefix . $index;
+        return $prefix.$index;
     }
 }
