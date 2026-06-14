@@ -205,7 +205,7 @@ class LabelControllerTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_upload_labels_records_an_error_when_create_returns_zero(): void
+    public function test_upload_labels_records_a_warning_when_create_returns_skipped(): void
     {
         Log::spy();
 
@@ -232,16 +232,17 @@ class LabelControllerTest extends TestCase
         ]);
 
         $response->assertRedirect();
-        $response->assertSessionHas('error', function (array $flash): bool {
-            return $flash['header'] === 'Label processing failed.'
+        $response->assertSessionHas('warning', function (array $flash): bool {
+            return $flash['header'] === 'Labels were processed with skipped remaps.'
                 && $flash['created'] === 0
-                && in_array("Skipped creating label 'Area: Foo': Label 'Area: Foo' already exists.", $flash['errors'], true);
+                && in_array("Skipped creating label 'Area: Foo': Label 'Area: Foo' already exists.", $flash['skipped'], true)
+                && $flash['errors'] === [];
         });
         $response->assertSessionMissing('success');
-        $response->assertSessionMissing('warning');
+        $response->assertSessionMissing('error');
 
-        Log::shouldHaveReceived('error')->once()->with(
-            'GitHub label creation returned 0.',
+        Log::shouldHaveReceived('info')->once()->with(
+            'GitHub label creation skipped.',
             Mockery::on(static function (array $context): bool {
                 return $context['label'] === 'Area: Foo'
                     && $context['service_error']['status'] === 'skipped';

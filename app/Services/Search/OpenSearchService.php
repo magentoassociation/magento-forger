@@ -167,7 +167,7 @@ class OpenSearchService
 
     protected function toIssueDocument(array $issue): array
     {
-        return [
+        $doc = [
             'id' => $issue['number'],
             'graphql_id' => $issue['id'],
             'title' => $issue['title'],
@@ -181,6 +181,12 @@ class OpenSearchService
             'author' => $issue['author']['login'] ?? null,
             'comments_count' => $issue['comments']['totalCount'] ?? 0,
         ];
+
+        if ($issue['state'] === 'OPEN') {
+            $doc['closed_by_merged_pr'] = false;
+        }
+
+        return $doc;
     }
 
     /**

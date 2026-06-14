@@ -26,7 +26,7 @@ class GitHubServiceRetryTest extends TestCase
         return new GitHubIssueService(
             new GitHubConnection(
                 graphQlHandler: HandlerStack::create($mock),
-                retryDelayOverride: $retryDelay,
+                retryDelayOverride: $retryDelay ?? fn () => 0,
             )
         );
     }

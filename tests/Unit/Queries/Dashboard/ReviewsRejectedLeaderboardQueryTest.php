@@ -54,6 +54,9 @@ class ReviewsRejectedLeaderboardQueryTest extends TestCase
         $this->assertInstanceOf(ContributorCount::class, $result[0]);
         $this->assertSame('carol', $result[0]->login);
         $this->assertSame(6, $result[0]->count);
+        $this->assertInstanceOf(ContributorCount::class, $result[1]);
+        $this->assertSame('dave', $result[1]->login);
+        $this->assertSame(2, $result[1]->count);
     }
 
     public function test_returns_empty_array_when_no_buckets(): void

@@ -11,6 +11,8 @@ namespace Tests\Unit\Services\Label;
 use App\Services\GitHub\GitHubLabelService;
 use App\Services\Label\LabelOrchestrator;
 use Mockery;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use RuntimeException;
 use Tests\TestCase;
 
@@ -28,6 +30,28 @@ class LabelOrchestratorTest extends TestCase
     {
         Mockery::close();
         parent::tearDown();
+    }
+
+    public function test_process_returns_error_when_no_supported_worksheets_found(): void
+    {
+        config(['github.repo' => 'my-org/my-repo']);
+
+        $spreadsheet = new Spreadsheet;
+        $spreadsheet->getActiveSheet()->setTitle('unsupported-tab');
+
+        $path = tempnam(sys_get_temp_dir(), 'label_test_').'.xlsx';
+        (new Xlsx($spreadsheet))->save($path);
+
+        try {
+            $result = $this->orchestrator->process($path);
+        } finally {
+            unlink($path);
+        }
+
+        $this->assertSame(0, $result['created']);
+        $this->assertSame(0, $result['renamed']);
+        $this->assertCount(1, $result['errors']);
+        $this->assertStringContainsString('No supported worksheets found', $result['errors'][0]);
     }
 
     public function test_resolve_repo_throws_when_configuration_is_missing(): void

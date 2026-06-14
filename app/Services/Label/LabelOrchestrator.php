@@ -35,12 +35,15 @@ class LabelOrchestrator
         $newLabels = [];
         $renames = [];
         $remaps = [];
+        $sheetsFound = 0;
 
         foreach (['area', 'component'] as $tabName) {
             $sheet = $spreadsheet->getSheetByName($tabName);
             if (! $sheet) {
                 continue;
             }
+
+            $sheetsFound++;
 
             $highestRow = $sheet->getHighestRow();
             $data = $sheet->toArray(null, true, true, true);
@@ -97,21 +100,28 @@ class LabelOrchestrator
             'skipped' => [],
         ];
 
+        if ($sheetsFound === 0) {
+            $results['errors'][] = 'No supported worksheets found. Expected an "area" or "component" tab.';
+
+            return $results;
+        }
+
         foreach ($newLabels as $label) {
             try {
                 $created = $this->labels->createLabel($owner, $repo, $label);
 
                 if ($created === 0) {
                     $serviceError = $this->labels->getLastOperationError();
-                    $message = ($serviceError['status'] ?? null) === 'skipped'
-                        ? "Skipped creating label '$label': ".($serviceError['message'] ?? 'GitHub skipped the label creation.')
-                        : "Failed to create label '$label': ".($serviceError['message'] ?? 'GitHub returned 0.');
 
-                    $results['errors'][] = $message;
-                    Log::error('GitHub label creation returned 0.', [
-                        'label' => $label,
-                        'service_error' => $serviceError,
-                    ]);
+                    if (($serviceError['status'] ?? null) === 'skipped') {
+                        $message = "Skipped creating label '$label': ".($serviceError['message'] ?? 'GitHub skipped the label creation.');
+                        $results['skipped'][] = $message;
+                        Log::info('GitHub label creation skipped.', ['label' => $label, 'service_error' => $serviceError]);
+                    } else {
+                        $message = "Failed to create label '$label': ".($serviceError['message'] ?? 'GitHub returned 0.');
+                        $results['errors'][] = $message;
+                        Log::error('GitHub label creation returned 0.', ['label' => $label, 'service_error' => $serviceError]);
+                    }
 
                     continue;
                 }

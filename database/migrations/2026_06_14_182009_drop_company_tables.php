@@ -14,6 +14,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        // Tables were intentionally removed with the company subsystem
+        throw new \RuntimeException('This migration cannot be rolled back: the company tables were permanently dropped with the company subsystem.');
     }
 };

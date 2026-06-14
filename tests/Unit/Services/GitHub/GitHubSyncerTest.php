@@ -94,7 +94,9 @@ class GitHubSyncerTest extends TestCase
         $indexCalls = 0;
 
         $result = $this->syncer->sync(
-            fetchPage: fn ($cursor) => $pages[$pageIndex++],
+            fetchPage: function ($cursor) use (&$pages, &$pageIndex) {
+                return $pages[$pageIndex++];
+            },
             index: function () use (&$indexCalls) {
                 $indexCalls++;
             },
@@ -116,7 +118,9 @@ class GitHubSyncerTest extends TestCase
         $pageIndex = 0;
 
         $result = $this->syncer->sync(
-            fetchPage: fn ($cursor) => $pages[$pageIndex++],
+            fetchPage: function ($cursor) use (&$pages, &$pageIndex) {
+                return $pages[$pageIndex++];
+            },
             index: fn ($n) => null,
             cutoff: $cutoff,
         );
@@ -151,7 +155,9 @@ class GitHubSyncerTest extends TestCase
         $pageCallbacks = [];
 
         $this->syncer->sync(
-            fetchPage: fn ($cursor) => $pages[$pageIndex++],
+            fetchPage: function ($cursor) use (&$pages, &$pageIndex) {
+                return $pages[$pageIndex++];
+            },
             index: fn ($n) => null,
             onPage: function (int $page, ?string $cursor) use (&$pageCallbacks) {
                 $pageCallbacks[] = [$page, $cursor];
