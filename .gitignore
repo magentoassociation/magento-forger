@@ -1,4 +1,7 @@
 /.phpunit.cache
+/resources/graphql/github/schema.json
+/resources/graphql/github/schema.graphql
+/graphql.config.yml
 /node_modules
 /public/build
 /public/hot
