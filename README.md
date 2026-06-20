@@ -211,6 +211,51 @@ If you want to create a submenu, prefix your route name with the name of the mai
 
 ## Development
 
+### IDE Setup: GraphQL Plugin (PhpStorm)
+
+The `.graphql` query files in `resources/graphql/github/` require a local copy of GitHub's schema for "unresolved reference" errors to clear.
+
+**1. Install the JetBrains GraphQL plugin**
+
+Settings → Plugins → search "GraphQL" → install the JetBrains one → restart.
+
+**2. Create `graphql.config.yml`**
+
+This file is gitignored — each developer creates it locally. Copy from the example and paste in your GitHub token:
+
+```bash
+cp graphql.config.yml.example graphql.config.yml
+```
+
+Open `graphql.config.yml` and replace `YOUR_GITHUB_TOKEN` with your personal access token (the same one in your `.env` as `GITHUB_TOKEN`).
+
+**3. Download GitHub's GraphQL schema**
+
+```bash
+curl -H "Authorization: bearer $(grep GITHUB_TOKEN .env | cut -d= -f2)" \
+  -H "Content-Type: application/json" \
+  -X POST \
+  -d '{"query":"{ __schema { types { name kind fields { name type { name kind ofType { name kind } } } } } }"}' \
+  https://api.github.com/graphql \
+  -o resources/graphql/github/schema.json
+```
+
+Or if you have Node available (produces cleaner SDL output):
+
+```bash
+npx --yes get-graphql-schema https://api.github.com/graphql \
+  -h "Authorization=bearer $(grep GITHUB_TOKEN .env | cut -d= -f2)" \
+  > resources/graphql/github/schema.graphql
+```
+
+Update `graphql.config.yml` at the project root to match whichever file you generated (`schema.json` or `schema.graphql`).
+
+**3. Reload the schema**
+
+File → Invalidate Caches → Invalidate and Restart. After restart, PhpStorm resolves all field references against the schema.
+
+> `schema.json` / `schema.graphql` are in `.gitignore` — do not commit them.
+
 ### Running Tests
 
 ```bash

@@ -1,4 +1,5 @@
 <?php
+
 /*
  * @copyright Copyright (c) 2026 The Magento Association
  * @license https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
@@ -37,8 +38,8 @@ class GitHubIssueServiceTest extends TestCase
             new Response(200, [], json_encode([
                 'data' => [
                     'repository' => [
-                        'issues'       => ['totalCount' => 30],
-                        'openIssues'   => ['totalCount' => 20],
+                        'issues' => ['totalCount' => 30],
+                        'openIssues' => ['totalCount' => 20],
                         'closedIssues' => ['totalCount' => 10],
                     ],
                 ],
@@ -96,10 +97,10 @@ class GitHubIssueServiceTest extends TestCase
         $mock = new MockHandler([
             new Response(200, [], json_encode([
                 'data' => [
-                    'rateLimit'  => ['remaining' => 5000],
+                    'rateLimit' => ['remaining' => 5000],
                     'repository' => [
                         'issues' => [
-                            'nodes'    => $nodes,
+                            'nodes' => $nodes,
                             'pageInfo' => ['hasNextPage' => false, 'endCursor' => null],
                         ],
                     ],
@@ -122,7 +123,7 @@ class GitHubIssueServiceTest extends TestCase
                 'data' => [
                     'repository' => [
                         'issues' => [
-                            'nodes'    => [],
+                            'nodes' => [],
                             'pageInfo' => ['hasNextPage' => false, 'endCursor' => null],
                         ],
                     ],
@@ -148,73 +149,4 @@ class GitHubIssueServiceTest extends TestCase
 
         $this->createService($mock)->fetchIssues('owner', 'repo');
     }
-
-    // -------------------------------------------------------------------------
-    // fetchIssuesPaged
-    // -------------------------------------------------------------------------
-
-    public function test_fetch_issues_paged_returns_issues_and_pagination(): void
-    {
-        $nodes = [['number' => 5, 'title' => 'Issue 5']];
-
-        $mock = new MockHandler([
-            new Response(200, [], json_encode([
-                'data' => [
-                    'repository' => [
-                        'issues' => [
-                            'nodes'    => $nodes,
-                            'pageInfo' => ['hasNextPage' => true, 'endCursor' => 'cursor-abc'],
-                        ],
-                    ],
-                ],
-            ], JSON_THROW_ON_ERROR)),
-        ]);
-
-        $result = $this->createService($mock)->fetchIssuesPaged('owner', 'repo');
-
-        $this->assertArrayHasKey('issues', $result);
-        $this->assertArrayHasKey('endCursor', $result);
-        $this->assertArrayHasKey('hasNextPage', $result);
-        $this->assertSame($nodes, $result['issues']);
-        $this->assertSame('cursor-abc', $result['endCursor']);
-        $this->assertTrue($result['hasNextPage']);
-    }
-
-    public function test_fetch_issues_paged_forwards_cursor_parameter(): void
-    {
-        $mock = new MockHandler([
-            new Response(200, [], json_encode([
-                'data' => [
-                    'repository' => [
-                        'issues' => [
-                            'nodes'    => [],
-                            'pageInfo' => ['hasNextPage' => false, 'endCursor' => null],
-                        ],
-                    ],
-                ],
-            ], JSON_THROW_ON_ERROR)),
-        ]);
-
-        $result = $this->createService($mock)->fetchIssuesPaged('owner', 'repo', 'cursor-xyz');
-
-        $this->assertSame([], $result['issues']);
-        $this->assertNull($result['endCursor']);
-        $this->assertFalse($result['hasNextPage']);
-    }
-
-    public function test_fetch_issues_paged_returns_defaults_when_data_is_absent(): void
-    {
-        $mock = new MockHandler([
-            new Response(200, [], json_encode([
-                'data' => ['repository' => []],
-            ], JSON_THROW_ON_ERROR)),
-        ]);
-
-        $result = $this->createService($mock)->fetchIssuesPaged('owner', 'repo');
-
-        $this->assertSame([], $result['issues']);
-        $this->assertNull($result['endCursor']);
-        $this->assertFalse($result['hasNextPage']);
-    }
-
 }

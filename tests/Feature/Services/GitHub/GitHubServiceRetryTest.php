@@ -45,10 +45,10 @@ class GitHubServiceRetryTest extends TestCase
         ]);
 
         $service = $this->createServiceWithMockHandler($mock);
-        $result = $service->fetchIssuesPaged('laravel', 'framework');
+        $result = $service->fetchIssues('laravel', 'framework');
 
         $this->assertIsArray($result);
-        $this->assertArrayHasKey('issues', $result);
+        $this->assertArrayHasKey('nodes', $result);
     }
 
     public function test_retries_on_502_bad_gateway(): void
@@ -64,7 +64,7 @@ class GitHubServiceRetryTest extends TestCase
         ]);
 
         $service = $this->createServiceWithMockHandler($mock);
-        $result = $service->fetchIssuesPaged('laravel', 'framework');
+        $result = $service->fetchIssues('laravel', 'framework');
 
         $this->assertIsArray($result);
     }
@@ -82,7 +82,7 @@ class GitHubServiceRetryTest extends TestCase
         ]);
 
         $service = $this->createServiceWithMockHandler($mock);
-        $result = $service->fetchIssuesPaged('laravel', 'framework');
+        $result = $service->fetchIssues('laravel', 'framework');
 
         $this->assertIsArray($result);
     }
@@ -99,7 +99,7 @@ class GitHubServiceRetryTest extends TestCase
         ]);
 
         $service = $this->createServiceWithMockHandler($mock);
-        $service->fetchIssuesPaged('laravel', 'framework');
+        $service->fetchIssues('laravel', 'framework');
     }
 
     public function test_retries_on_403_secondary_rate_limit_with_retry_after_header(): void
@@ -117,10 +117,10 @@ class GitHubServiceRetryTest extends TestCase
         ]);
 
         $service = $this->createServiceWithMockHandler($mock, fn () => 0);
-        $result = $service->fetchIssuesPaged('laravel', 'framework');
+        $result = $service->fetchIssues('laravel', 'framework');
 
         $this->assertIsArray($result);
-        $this->assertArrayHasKey('issues', $result);
+        $this->assertArrayHasKey('nodes', $result);
     }
 
     public function test_does_not_retry_on_403_without_retry_after_header(): void
@@ -133,7 +133,7 @@ class GitHubServiceRetryTest extends TestCase
         ]);
 
         $service = $this->createServiceWithMockHandler($mock);
-        $service->fetchIssuesPaged('laravel', 'framework');
+        $service->fetchIssues('laravel', 'framework');
     }
 
     public function test_retries_on_429_too_many_requests(): void
@@ -151,7 +151,7 @@ class GitHubServiceRetryTest extends TestCase
         ]);
 
         $service = $this->createServiceWithMockHandler($mock, fn () => 0);
-        $result = $service->fetchIssuesPaged('laravel', 'framework');
+        $result = $service->fetchIssues('laravel', 'framework');
 
         $this->assertIsArray($result);
     }
@@ -168,9 +168,9 @@ class GitHubServiceRetryTest extends TestCase
         ]);
 
         $service = $this->createServiceWithMockHandler($mock);
-        $result = $service->fetchIssuesPaged('laravel', 'framework');
+        $result = $service->fetchIssues('laravel', 'framework');
 
         $this->assertIsArray($result);
-        $this->assertArrayHasKey('issues', $result);
+        $this->assertArrayHasKey('nodes', $result);
     }
 }

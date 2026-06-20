@@ -2,6 +2,17 @@
 
 A dashboard and tooling application for the Magento Association to track and surface open-source contributions to the Magento 2 project on GitHub.
 
+## Features
+
+- [GitHub Sync](docs/features/github-sync.md) — GraphQL-based sync of issues and PRs into OpenSearch
+- [OpenSearch](docs/features/opensearch.md) — Index structure, read/write paths, QueryBuilder
+- [Contributor Leaderboards](docs/features/contributor-leaderboards.md) — Top 100 contributors by metric and Calendar Period
+- [Maintainer Leaderboards](docs/features/maintainer-leaderboards.md) — Top 100 reviewers by approval/rejection metric
+- [Label Management](docs/features/label-management.md) — Label views, missing-component detection, bulk spreadsheet upload
+- [Authentication](docs/features/authentication.md) — GitHub OAuth login, admin role, rate limiting
+- [Analytics](docs/features/analytics.md) — Homepage counts, issues/PRs by month, chart API, universe bar
+- [Admin Panel](docs/features/admin-panel.md) — Filament user management, GitHubStats widget
+
 ## Language
 
 ### GitHub Data
@@ -45,7 +56,7 @@ A date range defined by calendar boundaries, not rolling windows. Presets: last 
 _Avoid_: rolling window, time window
 
 **Maintainer Leaderboard**:
-A future set of Contributor Leaderboards for review-based metrics: PRs approved (review state `APPROVED`) and PRs rejected (review state `CHANGES_REQUESTED`). Sourced from a separate `github-pr-reviews` index, one document per review, upserted by GitHub review node ID. Populated by expanding the existing PR sync query. Not yet implemented.
+A set of Contributor Leaderboards for review-based metrics: PRs approved (review state `APPROVED`) and PRs rejected (review state `CHANGES_REQUESTED`). Sourced from the `github-pr-reviews` index, one document per review, upserted by GitHub review node ID. Populated as a side effect of the PR sync. See [Maintainer Leaderboards](docs/features/maintainer-leaderboards.md).
 
 ---
 

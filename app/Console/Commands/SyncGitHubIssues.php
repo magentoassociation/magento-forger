@@ -40,8 +40,9 @@ class SyncGitHubIssues extends Command implements Isolatable
         $cutoff = null;
 
         if ($since) {
-            $cutoff = Carbon::tryParse($since);
-            if ($cutoff === null) {
+            try {
+                $cutoff = Carbon::parse($since);
+            } catch (Throwable) {
                 $this->error("Invalid date format for --since option: $since");
 
                 return 1;
@@ -54,13 +55,15 @@ class SyncGitHubIssues extends Command implements Isolatable
         [$owner, $name] = explode('/', $repo);
 
         $totalPages = null;
-        try {
-            $totalCounts = $github->fetchIssueCount($owner, $name);
-            $this->info("Syncing issues for $repo. ({$totalCounts->summary()})");
-            $totalPages = (int) ceil($totalCounts->total / 100);
-        } catch (Throwable $e) {
-            $this->warn('Could not retrieve issue count');
-            Log::warning('GitHub issue count failed', ['exception' => $e]);
+        if ($cutoff === null) {
+            try {
+                $totalCounts = $github->fetchIssueCount($owner, $name);
+                $this->info("Syncing issues for $repo. ({$totalCounts->summary()})");
+                $totalPages = (int) ceil($totalCounts->total / 100);
+            } catch (Throwable $e) {
+                $this->warn('Could not retrieve issue count');
+                Log::warning('GitHub issue count failed', ['exception' => $e]);
+            }
         }
 
         if ($cursor) {
