@@ -35,16 +35,26 @@ class SyncGitHubEvents extends Command implements Isolatable
     ): int {
         $repo = config('github.repo');
 
-        if (! $repo || ! str_contains($repo, '/')) {
+        $parts = explode('/', (string) $repo);
+        if (count($parts) !== 2 || $parts[0] === '' || $parts[1] === '') {
             $this->error('Missing or invalid repository. Set it in config/github.php');
 
             return 1;
         }
 
-        [$owner, $name] = explode('/', $repo);
+        [$owner, $name] = $parts;
         $cursor = $this->option('cursor');
         $since = $this->option('since');
-        $maxPages = $this->option('max-pages') ? (int) $this->option('max-pages') : null;
+        $maxPagesOption = $this->option('max-pages');
+        $maxPages = null;
+        if ($maxPagesOption !== null) {
+            if (! is_numeric($maxPagesOption) || (int) $maxPagesOption <= 0) {
+                $this->error('--max-pages must be a positive integer.');
+
+                return 1;
+            }
+            $maxPages = (int) $maxPagesOption;
+        }
         $cutoff = null;
 
         if ($since) {
@@ -91,11 +101,11 @@ class SyncGitHubEvents extends Command implements Isolatable
 
                 return $response;
             },
-            index: function (array $nodes) use ($github, $openSearch, $cutoff) {
+            index: function (array $nodes) use ($github, $openSearch, $cutoff, $owner, $name) {
                 $documents = [];
                 foreach ($nodes as $issue) {
                     $issueNumber = $issue['number'];
-                    foreach ($github->extractEventsFromIssue($issue) as $event) {
+                    foreach ($github->fetchAllEventsFromIssue($issue, $owner, $name) as $event) {
                         if ($cutoff && Carbon::parse($event['created_at'])->lt($cutoff)) {
                             continue;
                         }
@@ -109,7 +119,7 @@ class SyncGitHubEvents extends Command implements Isolatable
                 }
                 if (! empty($documents)) {
                     $openSearch->indexBulk(
-                        OpenSearchService::getIndexWithPrefix(OpenSearchService::OPENSEARCH_GITHUB_EVENTS_INDEX),
+                        OpenSearchService::OPENSEARCH_GITHUB_EVENTS_INDEX,
                         $documents
                     );
                 }

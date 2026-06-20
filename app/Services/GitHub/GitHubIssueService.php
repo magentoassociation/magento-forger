@@ -32,6 +32,10 @@ class GitHubIssueService
             'cursor' => $cursor,
         ]);
 
+        if ($data === null) {
+            return ['nodes' => [], 'pageInfo' => [], 'totalCount' => 0, 'rateLimit' => null];
+        }
+
         $issues = $data['repository']['issues'] ?? [];
         $issues['rateLimit'] = $data['rateLimit'] ?? null;
 
@@ -45,6 +49,10 @@ class GitHubIssueService
             'name' => $repo,
             'cursor' => $cursor,
         ]);
+
+        if ($data === null) {
+            return ['nodes' => [], 'pageInfo' => [], 'totalCount' => 0, 'rateLimit' => null];
+        }
 
         $issues = $data['repository']['issues'] ?? [];
 
@@ -70,6 +78,10 @@ class GitHubIssueService
                 'connect_timeout' => 15,
             ]
         );
+
+        if ($data === null) {
+            return ['nodes' => [], 'pageInfo' => [], 'totalCount' => 0, 'rateLimit' => null];
+        }
 
         $issues = $data['repository']['issues'] ?? [];
 

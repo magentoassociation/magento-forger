@@ -11,9 +11,11 @@ namespace Tests\Feature\Services\GitHub;
 use App\Exceptions\GitHubGraphQLException;
 use App\Services\GitHub\GitHubConnection;
 use App\Services\GitHub\GitHubInteractionService;
+use GuzzleHttp\Client;
 use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Psr7\Response;
+use Illuminate\Support\Facades\Log;
 use Tests\TestCase;
 
 class GitHubInteractionServiceTest extends TestCase
@@ -34,6 +36,15 @@ class GitHubInteractionServiceTest extends TestCase
     private function emptyService(): GitHubInteractionService
     {
         return $this->createService(new MockHandler([]));
+    }
+
+    private function createServiceWithRestMock(MockHandler $mock): GitHubInteractionService
+    {
+        $restClient = new Client(['handler' => HandlerStack::create($mock)]);
+
+        return new GitHubInteractionService(
+            new GitHubConnection(restClient: $restClient)
+        );
     }
 
     // -------------------------------------------------------------------------
@@ -286,5 +297,115 @@ class GitHubInteractionServiceTest extends TestCase
         ]);
 
         $this->createService($mock)->fetchInteractionsForIssue('owner', 'repo', 1);
+    }
+
+    // -------------------------------------------------------------------------
+    // fetchEventsForIssue
+    // -------------------------------------------------------------------------
+
+    public function test_fetch_events_for_issue_returns_events_from_rest_timeline(): void
+    {
+        $mock = new MockHandler([
+            new Response(200, [], json_encode([
+                ['event' => 'assigned', 'actor' => ['login' => 'alice'], 'created_at' => '2026-01-01T00:00:00Z'],
+                ['event' => 'closed', 'actor' => ['login' => 'bob'], 'created_at' => '2026-01-02T00:00:00Z'],
+            ], JSON_THROW_ON_ERROR)),
+        ]);
+
+        $result = $this->createServiceWithRestMock($mock)->fetchEventsForIssue('owner', 'repo', 1);
+
+        $this->assertCount(2, $result);
+        $this->assertSame('assigned', $result[0]['type']);
+        $this->assertSame('alice', $result[0]['actor']);
+        $this->assertSame('2026-01-01T00:00:00Z', $result[0]['created_at']);
+        $this->assertSame('closed', $result[1]['type']);
+        $this->assertSame('bob', $result[1]['actor']);
+    }
+
+    public function test_fetch_events_for_issue_defaults_actor_to_unknown_when_missing(): void
+    {
+        $mock = new MockHandler([
+            new Response(200, [], json_encode([
+                ['event' => 'labeled', 'created_at' => '2026-01-01T00:00:00Z'],
+            ], JSON_THROW_ON_ERROR)),
+        ]);
+
+        $result = $this->createServiceWithRestMock($mock)->fetchEventsForIssue('owner', 'repo', 1);
+
+        $this->assertCount(1, $result);
+        $this->assertSame('unknown', $result[0]['actor']);
+    }
+
+    public function test_fetch_events_for_issue_skips_events_missing_event_field(): void
+    {
+        $mock = new MockHandler([
+            new Response(200, [], json_encode([
+                ['actor' => ['login' => 'alice'], 'created_at' => '2026-01-01T00:00:00Z'],
+                ['event' => 'closed', 'actor' => ['login' => 'bob'], 'created_at' => '2026-01-02T00:00:00Z'],
+            ], JSON_THROW_ON_ERROR)),
+        ]);
+
+        $result = $this->createServiceWithRestMock($mock)->fetchEventsForIssue('owner', 'repo', 1);
+
+        $this->assertCount(1, $result);
+        $this->assertSame('closed', $result[0]['type']);
+    }
+
+    public function test_fetch_events_for_issue_skips_events_missing_created_at(): void
+    {
+        $mock = new MockHandler([
+            new Response(200, [], json_encode([
+                ['event' => 'assigned', 'actor' => ['login' => 'alice']],
+                ['event' => 'closed', 'actor' => ['login' => 'bob'], 'created_at' => '2026-01-02T00:00:00Z'],
+            ], JSON_THROW_ON_ERROR)),
+        ]);
+
+        $result = $this->createServiceWithRestMock($mock)->fetchEventsForIssue('owner', 'repo', 1);
+
+        $this->assertCount(1, $result);
+        $this->assertSame('closed', $result[0]['type']);
+    }
+
+    public function test_fetch_events_for_issue_returns_empty_for_empty_response(): void
+    {
+        $mock = new MockHandler([
+            new Response(200, [], json_encode([], JSON_THROW_ON_ERROR)),
+        ]);
+
+        $result = $this->createServiceWithRestMock($mock)->fetchEventsForIssue('owner', 'repo', 1);
+
+        $this->assertSame([], $result);
+    }
+
+    public function test_fetch_events_for_issue_returns_empty_and_logs_on_api_error(): void
+    {
+        Log::spy();
+
+        $mock = new MockHandler([
+            new Response(500, [], 'Internal Server Error'),
+        ]);
+
+        $result = $this->createServiceWithRestMock($mock)->fetchEventsForIssue('owner', 'repo', 42);
+
+        $this->assertSame([], $result);
+        Log::shouldHaveReceived('error')
+            ->once()
+            ->with('Failed to fetch events for issue #42', \Mockery::any());
+    }
+
+    public function test_fetch_events_for_issue_returns_empty_and_logs_on_malformed_json(): void
+    {
+        Log::spy();
+
+        $mock = new MockHandler([
+            new Response(200, [], 'not-valid-json'),
+        ]);
+
+        $result = $this->createServiceWithRestMock($mock)->fetchEventsForIssue('owner', 'repo', 7);
+
+        $this->assertSame([], $result);
+        Log::shouldHaveReceived('error')
+            ->once()
+            ->with('Failed to fetch events for issue #7', \Mockery::any());
     }
 }

@@ -23,6 +23,7 @@ query($owner: String!, $name: String!, $cursor: String) {
                     login
                 }
                 comments(first: 100) {
+                    pageInfo { hasNextPage endCursor }
                     nodes {
                         author {
                             login
@@ -31,6 +32,7 @@ query($owner: String!, $name: String!, $cursor: String) {
                     }
                 }
                 timelineItems(first: 100, itemTypes: [ASSIGNED_EVENT, CLOSED_EVENT, LABELED_EVENT, UNLABELED_EVENT]) {
+                    pageInfo { hasNextPage endCursor }
                     nodes {
                         __typename
                         ... on AssignedEvent {

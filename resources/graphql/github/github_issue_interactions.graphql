@@ -1,17 +1,19 @@
-query($owner: String!, $name: String!, $number: Int!) {
+query($owner: String!, $name: String!, $number: Int!, $commentsCursor: String, $timelinesCursor: String) {
     repository(owner: $owner, name: $name) {
         issueOrPullRequest(number: $number) {
             __typename
             ... on Issue {
                 author { login }
                 createdAt
-                comments(first: 100) {
+                comments(first: 100, after: $commentsCursor) {
+                    pageInfo { hasNextPage endCursor }
                     nodes {
                         author { login }
                         createdAt
                     }
                 }
-                timelineItems(first: 100) {
+                timelineItems(first: 100, after: $timelinesCursor) {
+                    pageInfo { hasNextPage endCursor }
                     nodes {
                         __typename
                         ... on AssignedEvent {
@@ -38,7 +40,8 @@ query($owner: String!, $name: String!, $number: Int!) {
                 createdAt
                 updatedAt
                 mergedAt
-                comments(first: 100) {
+                comments(first: 100, after: $commentsCursor) {
+                    pageInfo { hasNextPage endCursor }
                     nodes {
                         author { login }
                         createdAt

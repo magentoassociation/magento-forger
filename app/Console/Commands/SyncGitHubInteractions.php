@@ -26,7 +26,8 @@ class SyncGitHubInteractions extends Command implements Isolatable
 {
     protected $signature = 'sync:github:interactions
                             {--cursor= : Optional endCursor to resume pagination}
-                            {--since= : Only import issues updated since this date (e.g. "2 weeks", "5 days")}';
+                            {--since= : Only import issues updated since this date (e.g. "2 weeks", "5 days")}
+                            {--max-pages= : Maximum number of pages to process (default: all)}';
 
     protected $description = 'Sync all GitHub interactions into OpenSearch';
 
@@ -38,15 +39,26 @@ class SyncGitHubInteractions extends Command implements Isolatable
     ): int {
         $repo = config('github.repo');
 
-        if (! $repo || ! str_contains($repo, '/')) {
+        $parts = explode('/', (string) $repo);
+        if (count($parts) !== 2 || $parts[0] === '' || $parts[1] === '') {
             $this->error('Missing or invalid repository. Set it in config/github.php');
 
             return 1;
         }
 
-        [$owner, $name] = explode('/', $repo);
+        [$owner, $name] = $parts;
         $cursor = $this->option('cursor');
         $since = $this->option('since');
+        $maxPagesOption = $this->option('max-pages');
+        $maxPages = null;
+        if ($maxPagesOption !== null) {
+            if (! is_numeric($maxPagesOption) || (int) $maxPagesOption <= 0) {
+                $this->error('--max-pages must be a positive integer.');
+
+                return 1;
+            }
+            $maxPages = (int) $maxPagesOption;
+        }
         $cutoff = null;
 
         if ($since) {
@@ -68,6 +80,9 @@ class SyncGitHubInteractions extends Command implements Isolatable
                 $totalCounts = $gitHubIssueService->fetchIssueCount($owner, $name);
                 $this->info("Syncing interactions for $repo. ({$totalCounts->summary()})");
                 $totalPages = (int) ceil($totalCounts->total / 25);
+                if ($maxPages !== null) {
+                    $totalPages = min($totalPages, $maxPages);
+                }
             } catch (Throwable $e) {
                 $this->warn('Could not retrieve issue count');
                 Log::warning('GitHub issue count failed', ['exception' => $e]);
@@ -78,13 +93,23 @@ class SyncGitHubInteractions extends Command implements Isolatable
             $this->info("Resuming from cursor: $cursor");
         }
 
+        $pagesProcessed = 0;
+
         $result = $syncer->sync(
-            fetchPage: fn ($c) => $gitHubIssueService->fetchIssuesWithInteractions($owner, $name, $c),
-            index: function (array $nodes) use ($github, $openSearch) {
+            fetchPage: function (?string $c) use ($gitHubIssueService, $owner, $name, $maxPages, &$pagesProcessed) {
+                $pagesProcessed++;
+                $response = $gitHubIssueService->fetchIssuesWithInteractions($owner, $name, $c);
+                if ($maxPages !== null && $pagesProcessed >= $maxPages) {
+                    $response['pageInfo']['hasNextPage'] = false;
+                }
+
+                return $response;
+            },
+            index: function (array $nodes) use ($github, $openSearch, $owner, $name) {
                 $interactions = [];
                 foreach ($nodes as $issue) {
                     $issueId = $issue['number'];
-                    foreach ($github->extractInteractionsFromIssue($issue) as $interaction) {
+                    foreach ($github->fetchAllInteractionsFromIssue($issue, $owner, $name) as $interaction) {
                         $interactions[] = [
                             'github_account_name' => $interaction['author'] ?? 'unknown',
                             'interaction_name' => $interaction['type'],
@@ -95,7 +120,7 @@ class SyncGitHubInteractions extends Command implements Isolatable
                 }
                 if (! empty($interactions)) {
                     $openSearch->indexBulk(
-                        OpenSearchService::getIndexWithPrefix(OpenSearchService::OPENSEARCH_GITHUB_INTERACTIONS_INDEX),
+                        OpenSearchService::OPENSEARCH_GITHUB_INTERACTIONS_INDEX,
                         $interactions
                     );
                 }

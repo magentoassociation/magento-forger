@@ -34,6 +34,7 @@ query($owner: String!, $name: String!, $cursor: String) {
                     MARKED_AS_DUPLICATE_EVENT,
                     TRANSFERRED_EVENT
                 ]) {
+                    pageInfo { hasNextPage endCursor }
                     nodes {
                         __typename
                         ... on AssignedEvent {

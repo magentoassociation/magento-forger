@@ -58,6 +58,14 @@ class ProcessGitHubInteractions extends Command
         while (! empty($documents)) {
             foreach ($documents as $doc) {
                 $source = $doc['_source'];
+
+                if (empty($source['github_account_name']) || empty($source['interaction_name'])) {
+                    $this->warn("Skipping document {$doc['_id']}: missing required fields.");
+                    $bar->advance();
+
+                    continue;
+                }
+
                 $githubUsername = $source['github_account_name'] ?? null;
 
                 $realName = 'unclaimed by user';
