@@ -16,6 +16,7 @@ use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Throwable;
 
 class LeaderboardController extends Controller
 {
@@ -87,11 +88,13 @@ class LeaderboardController extends Controller
      */
     private function resolveCustomPeriod(Request $request): array
     {
-        $from = Carbon::parse($request->get('from'));
-        $to = Carbon::parse($request->get('to'));
+        $lastMonth = [Carbon::now()->subMonth()->startOfMonth(), Carbon::now()->subMonth()->endOfMonth(), 'last-month'];
 
-        if (! $from || ! $to) {
-            return [Carbon::now()->subMonth()->startOfMonth(), Carbon::now()->subMonth()->endOfMonth(), 'last-month'];
+        try {
+            $from = Carbon::parse($request->get('from'));
+            $to = Carbon::parse($request->get('to'));
+        } catch (Throwable) {
+            return $lastMonth;
         }
 
         return [$from, $to, 'custom'];

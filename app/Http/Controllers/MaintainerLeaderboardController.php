@@ -14,6 +14,7 @@ use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Throwable;
 
 class MaintainerLeaderboardController extends Controller
 {
@@ -73,9 +74,26 @@ class MaintainerLeaderboardController extends Controller
         return match ($period) {
             'last-quarter' => $this->lastQuarter(),
             'last-year' => [Carbon::now()->subYear()->startOfYear(), Carbon::now()->subYear()->endOfYear(), $period],
-            'custom' => [Carbon::parse($request->get('from')), Carbon::parse($request->get('to')), $period],
+            'custom' => $this->resolveCustomPeriod($request),
             default => [Carbon::now()->subMonth()->startOfMonth(), Carbon::now()->subMonth()->endOfMonth(), 'last-month'],
         };
+    }
+
+    /**
+     * @return array{Carbon, Carbon, string}
+     */
+    private function resolveCustomPeriod(Request $request): array
+    {
+        $lastMonth = [Carbon::now()->subMonth()->startOfMonth(), Carbon::now()->subMonth()->endOfMonth(), 'last-month'];
+
+        try {
+            $from = Carbon::parse($request->get('from'));
+            $to = Carbon::parse($request->get('to'));
+        } catch (Throwable) {
+            return $lastMonth;
+        }
+
+        return [$from, $to, 'custom'];
     }
 
     /**
