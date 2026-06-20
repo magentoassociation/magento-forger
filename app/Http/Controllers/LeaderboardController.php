@@ -87,8 +87,8 @@ class LeaderboardController extends Controller
      */
     private function resolveCustomPeriod(Request $request): array
     {
-        $from = Carbon::tryParse($request->get('from'));
-        $to = Carbon::tryParse($request->get('to'));
+        $from = Carbon::parse($request->get('from'));
+        $to = Carbon::parse($request->get('to'));
 
         if (! $from || ! $to) {
             return [Carbon::now()->subMonth()->startOfMonth(), Carbon::now()->subMonth()->endOfMonth(), 'last-month'];
