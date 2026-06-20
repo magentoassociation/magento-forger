@@ -40,8 +40,9 @@ class SyncGitHubPRs extends Command implements Isolatable
         $cutoff = null;
 
         if ($since) {
-            $cutoff = Carbon::parse($since);
-            if (! $cutoff->isValid()) {
+            try {
+                $cutoff = Carbon::parse($since);
+            } catch (Throwable) {
                 $this->error("Invalid date format for --since option: $since");
 
                 return 1;
@@ -54,13 +55,15 @@ class SyncGitHubPRs extends Command implements Isolatable
         [$owner, $name] = explode('/', $repo);
 
         $totalPages = null;
-        try {
-            $totalCounts = $github->fetchPullRequestCount($owner, $name);
-            $this->info("Syncing PRs for $repo. ({$totalCounts->summary()})");
-            $totalPages = (int) ceil($totalCounts->total / 100);
-        } catch (Throwable $e) {
-            $this->warn('Could not retrieve pull request count');
-            Log::warning('GitHub PR count failed', ['exception' => $e]);
+        if ($cutoff === null) {
+            try {
+                $totalCounts = $github->fetchPullRequestCount($owner, $name);
+                $this->info("Syncing PRs for $repo. ({$totalCounts->summary()})");
+                $totalPages = (int) ceil($totalCounts->total / 100);
+            } catch (Throwable $e) {
+                $this->warn('Could not retrieve pull request count');
+                Log::warning('GitHub PR count failed', ['exception' => $e]);
+            }
         }
 
         if ($cursor) {
