@@ -8,10 +8,10 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
+use App\Console\Commands\Concerns\SyncsWithGitHub;
 use App\Services\GitHub\GitHubIssueService;
 use App\Services\GitHub\GitHubSyncer;
 use App\Services\Search\OpenSearchService;
-use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Contracts\Console\Isolatable;
 use Illuminate\Support\Facades\Log;
@@ -19,6 +19,8 @@ use Throwable;
 
 class SyncGitHubIssues extends Command implements Isolatable
 {
+    use SyncsWithGitHub;
+
     protected $signature = 'sync:github:issues
                             {--cursor= : Optional endCursor to resume pagination}
                             {--since= : Optional date to filter issues since this date (e.g 2 days, 1 week, 1 month)}';
@@ -27,38 +29,24 @@ class SyncGitHubIssues extends Command implements Isolatable
 
     public function handle(GitHubIssueService $github, OpenSearchService $openSearch, GitHubSyncer $syncer): int
     {
-        $repo = config('github.repo');
-
-        if (! $repo || ! str_contains($repo, '/')) {
-            $this->error('Missing or invalid repository. Set it in config/github.php');
-
+        if (($parts = $this->resolveRepository()) === null) {
             return 1;
         }
 
+        [$owner, $name] = $parts;
         $cursor = $this->option('cursor');
-        $since = $this->option('since');
-        $cutoff = null;
+        $cutoff = $this->parseCutoff('Filtering issues updated since');
 
-        if ($since) {
-            try {
-                $cutoff = Carbon::parse($since);
-            } catch (Throwable) {
-                $this->error("Invalid date format for --since option: $since");
-
-                return 1;
-            }
-            $this->info('Filtering issues updated since: '.$cutoff->toDateTimeString());
-        } else {
-            $this->info('No date filter applied');
+        if ($cutoff === false) {
+            return 1;
         }
 
-        [$owner, $name] = explode('/', $repo);
-
         $totalPages = null;
+
         if ($cutoff === null) {
             try {
                 $totalCounts = $github->fetchIssueCount($owner, $name);
-                $this->info("Syncing issues for $repo. ({$totalCounts->summary()})");
+                $this->info("Syncing issues for {$owner}/{$name}. ({$totalCounts->summary()})");
                 $totalPages = (int) ceil($totalCounts->total / 100);
             } catch (Throwable $e) {
                 $this->warn('Could not retrieve issue count');
@@ -66,30 +54,25 @@ class SyncGitHubIssues extends Command implements Isolatable
             }
         }
 
-        if ($cursor) {
-            $this->info("Resuming from cursor: $cursor");
-        }
+        $this->reportCursorResume($cursor);
+
+        $errorOccurred = false;
 
         $result = $syncer->sync(
             fetchPage: fn ($c) => $github->fetchIssues($owner, $name, $c),
             index: fn ($nodes) => $openSearch->indexIssues($nodes),
             cutoff: $cutoff,
             cursor: $cursor,
-            onPage: function (int $page, ?string $c) use ($totalPages) {
-                $this->info('Page '.$page.($totalPages ? ' of '.$totalPages : '').' done. Cursor: '.$c);
-            },
-            onNode: fn ($issue) => $this->line("#{$issue['number']}: {$issue['title']} ({$issue['state']})"),
-            onError: function (Throwable $e, int $page) {
-                $this->warn("Could not fetch issues for page $page");
-                Log::warning('GitHub issue fetch failed', ['exception' => $e]);
-            },
+            onPage: $this->makeOnPageCallback($totalPages),
+            onNode: $this->makeOnNodeCallback(),
+            onError: $this->makeOnErrorCallback(
+                $errorOccurred,
+                fn ($e) => Log::warning('GitHub issue fetch failed', ['exception' => $e]),
+            ),
         );
 
-        if ($result['cutoffReached'] && $cutoff !== null) {
-            $this->info('Last issue is older than given cutoff ('.$cutoff->toDateTimeString().'), stopping sync.');
-        }
-
-        $this->info('Done syncing issues.');
+        $this->reportCutoffReached($result, $cutoff, 'issue');
+        $this->reportDone($errorOccurred, 'Done syncing issues.');
 
         return 0;
     }

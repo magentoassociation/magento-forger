@@ -1,4 +1,5 @@
 <?php
+
 /*
  * @copyright Copyright (c) 2026 The Magento Association
  * @license https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
@@ -12,9 +13,7 @@ use App\Exceptions\GitHubGraphQLException;
 
 class GitHubPullRequestService
 {
-    public function __construct(private readonly GitHubConnection $connection)
-    {
-    }
+    public function __construct(private readonly GitHubConnection $connection) {}
 
     public function fetchPullRequestCount(string $owner, string $repo): PullRequestCounts
     {
@@ -34,6 +33,10 @@ class GitHubPullRequestService
             'cursor' => $cursor,
         ]);
 
+        if ($data === null) {
+            return ['nodes' => [], 'pageInfo' => [], 'totalCount' => 0, 'rateLimit' => null];
+        }
+
         $pullRequests = $data['repository']['pullRequests'] ?? [];
         $pullRequests['rateLimit'] = $data['rateLimit'] ?? null;
 
@@ -46,7 +49,7 @@ class GitHubPullRequestService
      */
     private function executeQuery(string $queryFile, array $variables): ?array
     {
-        $query = file_get_contents(resource_path('graphql/github/' . $queryFile));
+        $query = file_get_contents(resource_path('graphql/github/'.$queryFile));
         if ($query === false) {
             throw new \RuntimeException("Failed to load GraphQL query file: {$queryFile}");
         }

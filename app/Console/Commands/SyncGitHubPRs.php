@@ -8,10 +8,10 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
+use App\Console\Commands\Concerns\SyncsWithGitHub;
 use App\Services\GitHub\GitHubPullRequestService;
 use App\Services\GitHub\GitHubSyncer;
 use App\Services\Search\OpenSearchService;
-use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Contracts\Console\Isolatable;
 use Illuminate\Support\Facades\Log;
@@ -19,6 +19,8 @@ use Throwable;
 
 class SyncGitHubPRs extends Command implements Isolatable
 {
+    use SyncsWithGitHub;
+
     protected $signature = 'sync:github:prs
                             {--cursor= : Optional endCursor to resume pagination}
                             {--since= : Optional date to filter PRs since this date (e.g 2 days, 1 week, 1 month)}';
@@ -27,38 +29,24 @@ class SyncGitHubPRs extends Command implements Isolatable
 
     public function handle(GitHubPullRequestService $github, OpenSearchService $openSearch, GitHubSyncer $syncer): int
     {
-        $repo = config('github.repo');
-
-        if (! $repo || ! str_contains($repo, '/')) {
-            $this->error('Missing or invalid repository. Set it in config/github.php');
-
+        if (($parts = $this->resolveRepository()) === null) {
             return 1;
         }
 
+        [$owner, $name] = $parts;
         $cursor = $this->option('cursor');
-        $since = $this->option('since');
-        $cutoff = null;
+        $cutoff = $this->parseCutoff('Filtering PRs updated since');
 
-        if ($since) {
-            try {
-                $cutoff = Carbon::parse($since);
-            } catch (Throwable) {
-                $this->error("Invalid date format for --since option: $since");
-
-                return 1;
-            }
-            $this->info('Filtering PRs updated since: '.$cutoff->toDateTimeString());
-        } else {
-            $this->info('No date filter applied');
+        if ($cutoff === false) {
+            return 1;
         }
 
-        [$owner, $name] = explode('/', $repo);
-
         $totalPages = null;
+
         if ($cutoff === null) {
             try {
                 $totalCounts = $github->fetchPullRequestCount($owner, $name);
-                $this->info("Syncing PRs for $repo. ({$totalCounts->summary()})");
+                $this->info("Syncing PRs for {$owner}/{$name}. ({$totalCounts->summary()})");
                 $totalPages = (int) ceil($totalCounts->total / 100);
             } catch (Throwable $e) {
                 $this->warn('Could not retrieve pull request count');
@@ -66,30 +54,25 @@ class SyncGitHubPRs extends Command implements Isolatable
             }
         }
 
-        if ($cursor) {
-            $this->info("Resuming from cursor: $cursor");
-        }
+        $this->reportCursorResume($cursor);
+
+        $errorOccurred = false;
 
         $result = $syncer->sync(
             fetchPage: fn ($c) => $github->fetchPullRequests($owner, $name, $c),
             index: fn ($nodes) => $openSearch->indexPullRequests($nodes),
             cutoff: $cutoff,
             cursor: $cursor,
-            onPage: function (int $page, ?string $c) use ($totalPages) {
-                $this->info('Page '.$page.($totalPages ? ' of '.$totalPages : '').' done. Cursor: '.$c);
-            },
-            onNode: fn ($pr) => $this->line("#{$pr['number']}: {$pr['title']} ({$pr['state']})"),
-            onError: function (Throwable $e, int $page) {
-                $this->warn('Could not retrieve pull requests');
-                Log::warning('GitHub PR sync failed', ['exception' => $e]);
-            },
+            onPage: $this->makeOnPageCallback($totalPages),
+            onNode: $this->makeOnNodeCallback(),
+            onError: $this->makeOnErrorCallback(
+                $errorOccurred,
+                fn ($e) => Log::warning('GitHub PR sync failed', ['exception' => $e]),
+            ),
         );
 
-        if ($result['cutoffReached'] && $cutoff !== null) {
-            $this->info('Last PR is older than given cutoff ('.$cutoff->toDateTimeString().'), stopping sync.');
-        }
-
-        $this->info('Done syncing PRs.');
+        $this->reportCutoffReached($result, $cutoff, 'PR');
+        $this->reportDone($errorOccurred, 'Done syncing PRs.');
 
         return 0;
     }

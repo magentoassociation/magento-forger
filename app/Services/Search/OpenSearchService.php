@@ -198,6 +198,10 @@ class OpenSearchService
             'merged_at' => $pr['mergedAt'] ?? null,
             'closed_at' => $pr['closedAt'] ?? null,
             'author' => $pr['author']['login'] ?? null,
+            'author_company' => $pr['author']['company'] ?? null,
+            'additions' => $pr['additions'] ?? null,
+            'deletions' => $pr['deletions'] ?? null,
+            'changed_files' => $pr['changedFiles'] ?? null,
             'comments_count' => $pr['comments']['totalCount'] ?? 0,
             'reviews_count' => $pr['reviews']['totalCount'] ?? 0,
         ];
@@ -234,6 +238,7 @@ class OpenSearchService
             'updated_at' => $issue['updatedAt'],
             'closed_at' => $issue['closedAt'] ?? null,
             'author' => $issue['author']['login'] ?? null,
+            'author_company' => $issue['author']['company'] ?? null,
             'comments_count' => $issue['comments']['totalCount'] ?? 0,
         ];
 

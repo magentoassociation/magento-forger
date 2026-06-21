@@ -40,8 +40,8 @@ A maintainer who also authors PRs accrues a Contributor Score *and* a Maintainer
 
 ### Required sync additions before build
 
-- **PR size** for impact weighting: add `additions`, `deletions`, `changedFiles` to `github_pull_requests` GraphQL and `OpenSearchService::toPullRequestDocument()`. Currently absent — impact weight is the whole point of the merge bonus, so this is a hard prerequisite. Backfill historical PRs.
-- **(Optional)** PR/issue author `profile company` to seed org resolution.
+- **PR size** for impact weighting — ✅ done: `additions`, `deletions`, `changedFiles` added to `github_pull_requests` GraphQL and persisted as `additions`/`deletions`/`changed_files` in `toPullRequestDocument()`. Re-sync PRs to backfill.
+- **Author profile company** to seed org resolution — ✅ done: captured via `author { ... on User { company } }` on the PR and issue queries, persisted as `author_company` on both documents.
 - **(Deferred)** A timeline-events index to event-source label application (#9). Until then, maintainer scoring uses reviews only.
 
 ## Scoring formula
@@ -211,7 +211,7 @@ PHPUnit feature tests, using factories, covering: scoring math against fixtures,
 
 ## Build phases
 
-1. **Sync** — add `additions`/`deletions`/`changedFiles` to PR GraphQL + document; backfill.
+1. **Sync** — ✅ done: PR size fields (`additions`/`deletions`/`changed_files`) and `author_company` (PR + issue) captured. Remaining: backfill via re-sync.
 2. **Org model** — tables, resolution pipeline, Filament admin.
 3. **Scoring engine** — `config/leaderboard.php`, compute job → individual score boards.
 4. **Company rollup** — point-in-time org aggregation → company board.

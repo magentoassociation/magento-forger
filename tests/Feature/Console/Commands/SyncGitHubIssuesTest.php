@@ -8,9 +8,11 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Console\Commands;
 
+use App\Exceptions\GitHubGraphQLException;
 use App\Services\GitHub\GitHubIssueService;
 use App\Services\GitHub\GitHubSyncer;
 use App\Services\Search\OpenSearchService;
+use RuntimeException;
 use Tests\TestCase;
 
 class SyncGitHubIssuesTest extends TestCase
@@ -71,6 +73,53 @@ class SyncGitHubIssuesTest extends TestCase
         $this->artisan('sync:github:issues')
             ->assertExitCode(1)
             ->expectsOutputToContain('Missing or invalid repository');
+    }
+
+    public function test_successful_sync_shows_done_message(): void
+    {
+        $this->mockSyncerReturnsEmpty();
+
+        $this->artisan('sync:github:issues')
+            ->assertExitCode(0)
+            ->expectsOutputToContain('Done syncing issues.');
+    }
+
+    public function test_page_error_shows_error_message_and_suppresses_done_message(): void
+    {
+        $this->mock(GitHubIssueService::class);
+        $this->mock(OpenSearchService::class);
+        $this->mock(GitHubSyncer::class)
+            ->shouldReceive('sync')
+            ->andReturnUsing(function (callable $fetchPage, callable $index, $cutoff, $cursor, $onPage, $onNode, $onError) {
+                $onError(new RuntimeException('Connection refused'), 3);
+
+                return ['pages' => 3, 'cutoffReached' => false];
+            });
+
+        $this->artisan('sync:github:issues')
+            ->assertExitCode(0)
+            ->expectsOutputToContain('Page 3 failed: Connection refused')
+            ->doesntExpectOutputToContain('Done syncing issues.');
+    }
+
+    public function test_graphql_error_shows_individual_errors(): void
+    {
+        $this->mock(GitHubIssueService::class);
+        $this->mock(OpenSearchService::class);
+        $this->mock(GitHubSyncer::class)
+            ->shouldReceive('sync')
+            ->andReturnUsing(function (callable $fetchPage, callable $index, $cutoff, $cursor, $onPage, $onNode, $onError) {
+                $onError(new GitHubGraphQLException('GitHub GraphQL API error', [
+                    'errors' => [['message' => 'Could not resolve to a Repository']],
+                ]), 2);
+
+                return ['pages' => 2, 'cutoffReached' => false];
+            });
+
+        $this->artisan('sync:github:issues')
+            ->assertExitCode(0)
+            ->expectsOutputToContain('Page 2 failed: GitHub GraphQL API error')
+            ->expectsOutputToContain('GraphQL error: Could not resolve to a Repository');
     }
 
     private function mockSyncerReturnsEmpty(): void

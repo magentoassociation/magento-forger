@@ -20,8 +20,12 @@ query($owner: String!, $name: String!, $cursor: String) {
         updatedAt
         mergedAt
         closedAt
+        additions
+        deletions
+        changedFiles
         author {
           login
+          ... on User { company }
         }
         comments {
           totalCount

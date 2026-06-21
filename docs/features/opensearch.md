@@ -12,8 +12,8 @@ Serve as the primary data store for all GitHub analytics. Issues, pull requests,
 
 | Index name | Document ID | Content |
 |-----------|------------|---------|
-| `github-issues` | Issue number | Issue metadata, labels, state, author, `closed_by_merged_pr` flag |
-| `github-pull-requests` | PR number | PR metadata, labels, state, review counts, `is_draft` |
+| `github-issues` | Issue number | Issue metadata, labels, state, author, `author_company`, `closed_by_merged_pr` flag |
+| `github-pull-requests` | PR number | PR metadata, labels, state, review counts, `is_draft`, `additions`/`deletions`/`changed_files`, `author_company` |
 | `github-pr-reviews` | GitHub review node ID | One doc per review: `pr_number`, `author`, `state`, `submitted_at` |
 | `github-pr-timeline` | GitHub timeline node ID | One doc per PR label/review-request event: `pr_number`, `type` (`__typename`), `actor`, `created_at`, `label_name`, `requested_reviewer` |
 | `github-events` | content hash (`sha1`) | One doc per issue timeline event: `github_account_name`, `interaction_name`, `issues-id`, `interaction_date`, optional `label_name` |

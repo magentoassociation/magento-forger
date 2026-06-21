@@ -57,7 +57,21 @@ class GitHubConnection
             'connect_timeout' => $options['connect_timeout'] ?? 10,
         ]);
 
-        $json = json_decode($response->getBody()->getContents(), true, 512, JSON_THROW_ON_ERROR);
+        $body = $response->getBody()->getContents();
+
+        try {
+            $json = json_decode($body, true, 512, JSON_THROW_ON_ERROR);
+        } catch (JsonException $e) {
+            throw new JsonException(
+                sprintf(
+                    'GitHub returned non-JSON (HTTP %d): %s',
+                    $response->getStatusCode(),
+                    mb_substr($body, 0, 500),
+                ),
+                $e->getCode(),
+                $e,
+            );
+        }
 
         $this->handleRateLimit($json);
 
