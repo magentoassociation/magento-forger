@@ -149,4 +149,114 @@ class GitHubIssueServiceTest extends TestCase
 
         $this->createService($mock)->fetchIssues('owner', 'repo');
     }
+
+    // -------------------------------------------------------------------------
+    // fetchIssuesWithInteractions
+    // -------------------------------------------------------------------------
+
+    public function test_fetch_issues_with_interactions_returns_nodes_page_info_and_total(): void
+    {
+        $nodes = [
+            ['number' => 1, 'title' => 'Bug', 'comments' => ['nodes' => []]],
+        ];
+
+        $mock = new MockHandler([
+            new Response(200, [], json_encode([
+                'data' => [
+                    'rateLimit' => ['remaining' => 4000],
+                    'repository' => [
+                        'issues' => [
+                            'totalCount' => 1,
+                            'nodes' => $nodes,
+                            'pageInfo' => ['hasNextPage' => false, 'endCursor' => null],
+                        ],
+                    ],
+                ],
+            ], JSON_THROW_ON_ERROR)),
+        ]);
+
+        $result = $this->createService($mock)->fetchIssuesWithInteractions('owner', 'repo');
+
+        $this->assertSame($nodes, $result['nodes']);
+        $this->assertSame(1, $result['totalCount']);
+        $this->assertFalse($result['pageInfo']['hasNextPage']);
+        $this->assertSame(['remaining' => 4000], $result['rateLimit']);
+    }
+
+    public function test_fetch_issues_with_interactions_returns_empty_nodes_when_no_issues(): void
+    {
+        $mock = new MockHandler([
+            new Response(200, [], json_encode([
+                'data' => [
+                    'repository' => [
+                        'issues' => [
+                            'totalCount' => 0,
+                            'nodes' => [],
+                            'pageInfo' => ['hasNextPage' => false, 'endCursor' => null],
+                        ],
+                    ],
+                ],
+            ], JSON_THROW_ON_ERROR)),
+        ]);
+
+        $result = $this->createService($mock)->fetchIssuesWithInteractions('owner', 'repo');
+
+        $this->assertSame([], $result['nodes']);
+        $this->assertSame(0, $result['totalCount']);
+    }
+
+    // -------------------------------------------------------------------------
+    // fetchIssuesWithEvents
+    // -------------------------------------------------------------------------
+
+    public function test_fetch_issues_with_events_returns_nodes_page_info_and_total(): void
+    {
+        $nodes = [
+            ['number' => 1, 'updatedAt' => '2026-01-01T00:00:00Z', 'timelineItems' => ['nodes' => []]],
+        ];
+
+        $mock = new MockHandler([
+            new Response(200, [], json_encode([
+                'data' => [
+                    'rateLimit' => ['remaining' => 4000],
+                    'repository' => [
+                        'issues' => [
+                            'totalCount' => 1,
+                            'nodes' => $nodes,
+                            'pageInfo' => ['hasNextPage' => false, 'endCursor' => null],
+                        ],
+                    ],
+                ],
+            ], JSON_THROW_ON_ERROR)),
+        ]);
+
+        $result = $this->createService($mock)->fetchIssuesWithEvents('owner', 'repo');
+
+        $this->assertSame($nodes, $result['nodes']);
+        $this->assertSame(1, $result['totalCount']);
+        $this->assertFalse($result['pageInfo']['hasNextPage']);
+        $this->assertSame(['remaining' => 4000], $result['rateLimit']);
+    }
+
+    public function test_fetch_issues_with_events_returns_empty_nodes_when_no_issues(): void
+    {
+        $mock = new MockHandler([
+            new Response(200, [], json_encode([
+                'data' => [
+                    'repository' => [
+                        'issues' => [
+                            'totalCount' => 0,
+                            'nodes' => [],
+                            'pageInfo' => ['hasNextPage' => false, 'endCursor' => null],
+                        ],
+                    ],
+                ],
+            ], JSON_THROW_ON_ERROR)),
+        ]);
+
+        $result = $this->createService($mock)->fetchIssuesWithEvents('owner', 'repo');
+
+        $this->assertSame([], $result['nodes']);
+        $this->assertSame(0, $result['totalCount']);
+    }
 }

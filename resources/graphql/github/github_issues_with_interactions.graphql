@@ -1,0 +1,59 @@
+query($owner: String!, $name: String!, $cursor: String) {
+    rateLimit {
+        remaining
+        resetAt
+    }
+    repository(owner: $owner, name: $name) {
+        issues(first: 25, after: $cursor, orderBy: {field: UPDATED_AT, direction: DESC}) {
+            totalCount
+            pageInfo {
+                hasNextPage
+                endCursor
+            }
+            nodes {
+                id
+                number
+                title
+                url
+                state
+                createdAt
+                updatedAt
+                closedAt
+                author {
+                    login
+                }
+                comments(first: 100) {
+                    pageInfo { hasNextPage endCursor }
+                    nodes {
+                        author {
+                            login
+                        }
+                        createdAt
+                    }
+                }
+                timelineItems(first: 100, itemTypes: [ASSIGNED_EVENT, CLOSED_EVENT, LABELED_EVENT, UNLABELED_EVENT]) {
+                    pageInfo { hasNextPage endCursor }
+                    nodes {
+                        __typename
+                        ... on AssignedEvent {
+                            actor { login }
+                            createdAt
+                        }
+                        ... on ClosedEvent {
+                            actor { login }
+                            createdAt
+                        }
+                        ... on LabeledEvent {
+                            actor { login }
+                            createdAt
+                        }
+                        ... on UnlabeledEvent {
+                            actor { login }
+                            createdAt
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

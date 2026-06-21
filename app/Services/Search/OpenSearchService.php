@@ -19,6 +19,10 @@ class OpenSearchService
 
     public const OPENSEARCH_GITHUB_PR_REVIEWS_INDEX = 'github-pr-reviews';
 
+    public const OPENSEARCH_GITHUB_INTERACTIONS_INDEX = 'github-interactions';
+
+    public const OPENSEARCH_GITHUB_EVENTS_INDEX = 'github-events';
+
     protected Client $client;
 
     protected string $indexPrefix;
