@@ -15,10 +15,6 @@ Filament v3 panel configured via `AdminPanelProvider`. Single resource: `UserRes
 - **Delete**: available per-row and as a bulk action.
 - **Create**: disabled. All users are created via GitHub OAuth only.
 
-### GitHubStats widget
-
-`app/Filament/Widgets/GitHubStats.php` — displays GitHub statistics on the Filament dashboard. Queries OpenSearch.
-
 ### Access control
 
 Only users with `is_admin = true` can access the panel. Enforced by Filament's `FilamentUser` contract on the `User` model — or via `AdminPanelProvider` gate configuration. Promote users with:
@@ -32,7 +28,6 @@ php artisan make:user:admin {email}
 - `app/Filament/Resources/UserResource.php` — CRUD resource
 - `app/Filament/Resources/UserResource/Pages/ListUsers.php`
 - `app/Filament/Resources/UserResource/Pages/EditUser.php`
-- `app/Filament/Widgets/GitHubStats.php`
 - `app/Providers/Filament/AdminPanelProvider.php` — Panel registration, path, auth
 
 ## Configuration

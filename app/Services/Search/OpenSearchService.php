@@ -19,6 +19,8 @@ class OpenSearchService
 
     public const OPENSEARCH_GITHUB_PR_REVIEWS_INDEX = 'github-pr-reviews';
 
+    public const OPENSEARCH_GITHUB_PR_TIMELINE_INDEX = 'github-pr-timeline';
+
     public const OPENSEARCH_GITHUB_INTERACTIONS_INDEX = 'github-interactions';
 
     public const OPENSEARCH_GITHUB_EVENTS_INDEX = 'github-events';
@@ -84,6 +86,55 @@ class OpenSearchService
         $this->client->bulk(['body' => $body]);
         $this->flagIssuesClosedByMergedPRs($pullRequests);
         $this->indexPullRequestReviews($pullRequests);
+        $this->indexPullRequestTimeline($pullRequests);
+    }
+
+    protected function indexPullRequestTimeline(array $pullRequests): void
+    {
+        $indexName = self::getIndexWithPrefix(self::OPENSEARCH_GITHUB_PR_TIMELINE_INDEX);
+        $body = [];
+
+        foreach ($pullRequests as $pr) {
+            foreach ($this->toPullRequestTimelineDocuments($pr) as $document) {
+                $body[] = ['index' => ['_index' => $indexName, '_id' => $document['id']]];
+                $body[] = $document['body'];
+            }
+        }
+
+        if (! empty($body)) {
+            $this->client->bulk(['body' => $body]);
+        }
+    }
+
+    /**
+     * Map a pull request's timeline nodes into upsertable documents keyed by GitHub node ID.
+     *
+     * @param  array<string, mixed>  $pr
+     * @return list<array{id: string, body: array<string, mixed>}>
+     */
+    protected function toPullRequestTimelineDocuments(array $pr): array
+    {
+        $documents = [];
+
+        foreach ($pr['timelineItems']['nodes'] ?? [] as $event) {
+            if (empty($event['id'])) {
+                continue;
+            }
+
+            $documents[] = [
+                'id' => $event['id'],
+                'body' => [
+                    'pr_number' => $pr['number'] ?? null,
+                    'type' => $event['__typename'] ?? null,
+                    'actor' => $event['actor']['login'] ?? null,
+                    'created_at' => $event['createdAt'] ?? null,
+                    'label_name' => $event['label']['name'] ?? null,
+                    'requested_reviewer' => $event['requestedReviewer']['login'] ?? null,
+                ],
+            ];
+        }
+
+        return $documents;
     }
 
     protected function indexPullRequestReviews(array $pullRequests): void

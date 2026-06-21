@@ -112,6 +112,26 @@ class GitHubInteractionServiceTest extends TestCase
         $this->assertSame('closed', $result[2]['type']);
     }
 
+    public function test_extract_interactions_captures_label_name(): void
+    {
+        $issue = [
+            'author' => ['login' => 'alice'],
+            'createdAt' => '2026-01-01T00:00:00Z',
+            'comments' => ['nodes' => []],
+            'timelineItems' => [
+                'nodes' => [
+                    ['__typename' => 'LabeledEvent', 'actor' => ['login' => 'mod'], 'createdAt' => '2026-01-02T00:00:00Z', 'label' => ['name' => 'Progress: pending review']],
+                    ['__typename' => 'ClosedEvent', 'actor' => ['login' => 'mod'], 'createdAt' => '2026-01-03T00:00:00Z'],
+                ],
+            ],
+        ];
+
+        $result = $this->emptyService()->extractInteractionsFromIssue($issue);
+
+        $this->assertSame('Progress: pending review', $result[1]['label']);
+        $this->assertNull($result[2]['label']);
+    }
+
     public function test_extract_interactions_defaults_unknown_author_to_unknown(): void
     {
         $issue = [
@@ -212,6 +232,23 @@ class GitHubInteractionServiceTest extends TestCase
         $result = $this->emptyService()->extractEventsFromIssue($issue);
 
         $this->assertSame('unknown', $result[0]['actor']);
+    }
+
+    public function test_extract_events_captures_label_name(): void
+    {
+        $issue = [
+            'timelineItems' => [
+                'nodes' => [
+                    ['__typename' => 'LabeledEvent', 'actor' => ['login' => 'mod'], 'createdAt' => '2026-01-01T00:00:00Z', 'label' => ['name' => 'Progress: pending review']],
+                    ['__typename' => 'ClosedEvent', 'actor' => ['login' => 'bob'], 'createdAt' => '2026-01-02T00:00:00Z'],
+                ],
+            ],
+        ];
+
+        $result = $this->emptyService()->extractEventsFromIssue($issue);
+
+        $this->assertSame('Progress: pending review', $result[0]['label']);
+        $this->assertNull($result[1]['label']);
     }
 
     // -------------------------------------------------------------------------
@@ -407,5 +444,231 @@ class GitHubInteractionServiceTest extends TestCase
         Log::shouldHaveReceived('error')
             ->once()
             ->with('Failed to fetch events for issue #7', \Mockery::any());
+    }
+
+    // -------------------------------------------------------------------------
+    // fetchAllInteractionsFromIssue — pagination
+    // -------------------------------------------------------------------------
+
+    public function test_fetch_all_interactions_aggregates_paginated_comments(): void
+    {
+        $issue = [
+            'number' => 1,
+            'author' => ['login' => 'alice'],
+            'createdAt' => '2026-01-01T00:00:00Z',
+            'comments' => [
+                'pageInfo' => ['hasNextPage' => true, 'endCursor' => 'cursor1'],
+                'nodes' => [
+                    ['author' => ['login' => 'bob'], 'createdAt' => '2026-01-02T00:00:00Z'],
+                ],
+            ],
+            'timelineItems' => ['pageInfo' => ['hasNextPage' => false], 'nodes' => []],
+        ];
+
+        $mock = new MockHandler([
+            new Response(200, [], json_encode([
+                'data' => [
+                    'repository' => [
+                        'issue' => [
+                            'comments' => [
+                                'pageInfo' => ['hasNextPage' => false, 'endCursor' => null],
+                                'nodes' => [
+                                    ['author' => ['login' => 'carol'], 'createdAt' => '2026-01-03T00:00:00Z'],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+            ], JSON_THROW_ON_ERROR)),
+        ]);
+
+        $result = $this->createService($mock)->fetchAllInteractionsFromIssue($issue, 'owner', 'repo');
+
+        $this->assertCount(3, $result);
+        $types = array_column($result, 'type');
+        $this->assertSame(['created_issue', 'comment', 'comment'], $types);
+        $authors = array_column($result, 'author');
+        $this->assertContains('bob', $authors);
+        $this->assertContains('carol', $authors);
+    }
+
+    public function test_fetch_all_interactions_aggregates_paginated_timeline_items(): void
+    {
+        $issue = [
+            'number' => 2,
+            'author' => ['login' => 'alice'],
+            'createdAt' => '2026-01-01T00:00:00Z',
+            'comments' => ['pageInfo' => ['hasNextPage' => false], 'nodes' => []],
+            'timelineItems' => [
+                'pageInfo' => ['hasNextPage' => true, 'endCursor' => 'tl-cursor1'],
+                'nodes' => [
+                    ['__typename' => 'ClosedEvent', 'actor' => ['login' => 'mod'], 'createdAt' => '2026-01-02T00:00:00Z', 'label' => null],
+                ],
+            ],
+        ];
+
+        $mock = new MockHandler([
+            new Response(200, [], json_encode([
+                'data' => [
+                    'repository' => [
+                        'issue' => [
+                            'timelineItems' => [
+                                'pageInfo' => ['hasNextPage' => false, 'endCursor' => null],
+                                'nodes' => [
+                                    ['__typename' => 'AssignedEvent', 'actor' => ['login' => 'admin'], 'createdAt' => '2026-01-03T00:00:00Z', 'label' => null],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+            ], JSON_THROW_ON_ERROR)),
+        ]);
+
+        $result = $this->createService($mock)->fetchAllInteractionsFromIssue($issue, 'owner', 'repo');
+
+        $this->assertCount(3, $result);
+        $types = array_column($result, 'type');
+        $this->assertContains('created_issue', $types);
+        $this->assertContains('closed', $types);
+        $this->assertContains('assigned', $types);
+    }
+
+    public function test_fetch_all_interactions_stops_comments_pagination_on_null_response(): void
+    {
+        $issue = [
+            'number' => 3,
+            'author' => ['login' => 'alice'],
+            'createdAt' => '2026-01-01T00:00:00Z',
+            'comments' => [
+                'pageInfo' => ['hasNextPage' => true, 'endCursor' => 'cursor1'],
+                'nodes' => [
+                    ['author' => ['login' => 'bob'], 'createdAt' => '2026-01-02T00:00:00Z'],
+                ],
+            ],
+            'timelineItems' => ['pageInfo' => ['hasNextPage' => false], 'nodes' => []],
+        ];
+
+        $mock = new MockHandler([
+            new Response(200, [], json_encode(['data' => null], JSON_THROW_ON_ERROR)),
+        ]);
+
+        $result = $this->createService($mock)->fetchAllInteractionsFromIssue($issue, 'owner', 'repo');
+
+        $this->assertCount(2, $result);
+        $this->assertSame('created_issue', $result[0]['type']);
+        $this->assertSame('comment', $result[1]['type']);
+    }
+
+    // -------------------------------------------------------------------------
+    // fetchAllEventsFromIssue — pagination
+    // -------------------------------------------------------------------------
+
+    public function test_fetch_all_events_aggregates_paginated_timeline_items(): void
+    {
+        $issue = [
+            'number' => 10,
+            'timelineItems' => [
+                'pageInfo' => ['hasNextPage' => true, 'endCursor' => 'ev-cursor1'],
+                'nodes' => [
+                    ['__typename' => 'ClosedEvent', 'actor' => ['login' => 'alice'], 'createdAt' => '2026-01-01T00:00:00Z', 'label' => null],
+                ],
+            ],
+        ];
+
+        $mock = new MockHandler([
+            new Response(200, [], json_encode([
+                'data' => [
+                    'repository' => [
+                        'issue' => [
+                            'timelineItems' => [
+                                'pageInfo' => ['hasNextPage' => false, 'endCursor' => null],
+                                'nodes' => [
+                                    ['__typename' => 'AssignedEvent', 'actor' => ['login' => 'bob'], 'createdAt' => '2026-01-02T00:00:00Z', 'label' => null],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+            ], JSON_THROW_ON_ERROR)),
+        ]);
+
+        $result = $this->createService($mock)->fetchAllEventsFromIssue($issue, 'owner', 'repo');
+
+        $this->assertCount(2, $result);
+        $this->assertSame('closed', $result[0]['type']);
+        $this->assertSame('alice', $result[0]['actor']);
+        $this->assertSame('assigned', $result[1]['type']);
+        $this->assertSame('bob', $result[1]['actor']);
+    }
+
+    public function test_fetch_all_events_stops_pagination_on_null_response(): void
+    {
+        $issue = [
+            'number' => 11,
+            'timelineItems' => [
+                'pageInfo' => ['hasNextPage' => true, 'endCursor' => 'ev-cursor1'],
+                'nodes' => [
+                    ['__typename' => 'ClosedEvent', 'actor' => ['login' => 'alice'], 'createdAt' => '2026-01-01T00:00:00Z', 'label' => null],
+                ],
+            ],
+        ];
+
+        $mock = new MockHandler([
+            new Response(200, [], json_encode(['data' => null], JSON_THROW_ON_ERROR)),
+        ]);
+
+        $result = $this->createService($mock)->fetchAllEventsFromIssue($issue, 'owner', 'repo');
+
+        $this->assertCount(1, $result);
+        $this->assertSame('closed', $result[0]['type']);
+    }
+
+    public function test_fetch_all_events_traverses_multiple_pages(): void
+    {
+        $issue = [
+            'number' => 12,
+            'timelineItems' => [
+                'pageInfo' => ['hasNextPage' => true, 'endCursor' => 'page1'],
+                'nodes' => [
+                    ['__typename' => 'AssignedEvent', 'actor' => ['login' => 'alice'], 'createdAt' => '2026-01-01T00:00:00Z', 'label' => null],
+                ],
+            ],
+        ];
+
+        $mock = new MockHandler([
+            new Response(200, [], json_encode([
+                'data' => [
+                    'repository' => [
+                        'issue' => [
+                            'timelineItems' => [
+                                'pageInfo' => ['hasNextPage' => true, 'endCursor' => 'page2'],
+                                'nodes' => [
+                                    ['__typename' => 'ClosedEvent', 'actor' => ['login' => 'bob'], 'createdAt' => '2026-01-02T00:00:00Z', 'label' => null],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+            ], JSON_THROW_ON_ERROR)),
+            new Response(200, [], json_encode([
+                'data' => [
+                    'repository' => [
+                        'issue' => [
+                            'timelineItems' => [
+                                'pageInfo' => ['hasNextPage' => false, 'endCursor' => null],
+                                'nodes' => [
+                                    ['__typename' => 'LabeledEvent', 'actor' => ['login' => 'carol'], 'createdAt' => '2026-01-03T00:00:00Z', 'label' => null],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+            ], JSON_THROW_ON_ERROR)),
+        ]);
+
+        $result = $this->createService($mock)->fetchAllEventsFromIssue($issue, 'owner', 'repo');
+
+        $this->assertCount(3, $result);
+        $this->assertSame(['assigned', 'closed', 'labeled'], array_column($result, 'type'));
     }
 }

@@ -109,12 +109,16 @@ class SyncGitHubEvents extends Command implements Isolatable
                         if ($cutoff && Carbon::parse($event['created_at'])->lt($cutoff)) {
                             continue;
                         }
-                        $documents[] = [
+                        $document = [
                             'github_account_name' => $event['actor'],
                             'interaction_name' => $event['type'],
                             'issues-id' => $issueNumber,
                             'interaction_date' => Carbon::parse($event['created_at'])->toIso8601String(),
                         ];
+                        if (! empty($event['label'])) {
+                            $document['label_name'] = $event['label'];
+                        }
+                        $documents[] = $document;
                     }
                 }
                 if (! empty($documents)) {

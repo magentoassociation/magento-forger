@@ -110,12 +110,16 @@ class SyncGitHubInteractions extends Command implements Isolatable
                 foreach ($nodes as $issue) {
                     $issueId = $issue['number'];
                     foreach ($github->fetchAllInteractionsFromIssue($issue, $owner, $name) as $interaction) {
-                        $interactions[] = [
+                        $interactionDocument = [
                             'github_account_name' => $interaction['author'] ?? 'unknown',
                             'interaction_name' => $interaction['type'],
                             'issues-id' => $issueId,
                             'interaction_date' => Carbon::parse($interaction['date'])->toIso8601String(),
                         ];
+                        if (! empty($interaction['label'])) {
+                            $interactionDocument['label_name'] = $interaction['label'];
+                        }
+                        $interactions[] = $interactionDocument;
                     }
                 }
                 if (! empty($interactions)) {

@@ -47,6 +47,15 @@ query($owner: String!, $name: String!, $cursor: String) {
             number
           }
         }
+        timelineItems(first: 100, itemTypes: [LABELED_EVENT, UNLABELED_EVENT, REVIEW_REQUESTED_EVENT, REVIEW_REQUEST_REMOVED_EVENT]) {
+          nodes {
+            __typename
+            ... on LabeledEvent { id actor { login } createdAt label { name } }
+            ... on UnlabeledEvent { id actor { login } createdAt label { name } }
+            ... on ReviewRequestedEvent { id actor { login } createdAt requestedReviewer { ... on User { login } } }
+            ... on ReviewRequestRemovedEvent { id actor { login } createdAt requestedReviewer { ... on User { login } } }
+          }
+        }
       }
     }
   }

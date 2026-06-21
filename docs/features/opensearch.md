@@ -15,14 +15,19 @@ Serve as the primary data store for all GitHub analytics. Issues, pull requests,
 | `github-issues` | Issue number | Issue metadata, labels, state, author, `closed_by_merged_pr` flag |
 | `github-pull-requests` | PR number | PR metadata, labels, state, review counts, `is_draft` |
 | `github-pr-reviews` | GitHub review node ID | One doc per review: `pr_number`, `author`, `state`, `submitted_at` |
+| `github-pr-timeline` | GitHub timeline node ID | One doc per PR label/review-request event: `pr_number`, `type` (`__typename`), `actor`, `created_at`, `label_name`, `requested_reviewer` |
+| `github-events` | content hash (`sha1`) | One doc per issue timeline event: `github_account_name`, `interaction_name`, `issues-id`, `interaction_date`, optional `label_name` |
+| `github-interactions` | content hash (`sha1`) | One doc per issue interaction (comments + timeline events): `github_account_name`, `interaction_name`, `issues-id`, `interaction_date`, optional `label_name` |
 
 All index names are prefixed with `opensearch.index_prefix` from config (default empty). Use `OpenSearchService::getIndexWithPrefix()` whenever referencing an index name.
 
 ### Write path
 
 - Issues: `indexIssues()` — bulk **upsert** (`update` + `doc_as_upsert`). Safe to reindex without data loss.
-- PRs: `indexPullRequests()` — bulk **replace** (`index`). Also calls `indexPullRequestReviews()` and `flagIssuesClosedByMergedPRs()` as side effects.
+- PRs: `indexPullRequests()` — bulk **replace** (`index`). Also calls `indexPullRequestReviews()`, `indexPullRequestTimeline()`, and `flagIssuesClosedByMergedPRs()` as side effects.
 - Reviews: `indexPullRequestReviews()` — bulk **replace** by GitHub review node ID.
+- PR timeline: `indexPullRequestTimeline()` — bulk **replace** by GitHub timeline node ID. Label and reviewer-request events only.
+- Issue events / interactions: `indexBulk()` — bulk **replace** keyed by `sha1` of the document. Note: changing a document's shape (e.g. adding `label_name`) changes its ID, so re-syncing creates a new doc rather than overwriting the old one — drop and rebuild these indexes when the shape changes.
 
 ### Read path
 

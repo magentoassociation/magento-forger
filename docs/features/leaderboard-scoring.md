@@ -34,7 +34,9 @@ A maintainer who also authors PRs accrues a Contributor Score *and* a Maintainer
 | 7 | Maintainer | Review commented | `github-pr-reviews` | `submitted_at`, `state=COMMENTED` | ✅ exists |
 | 8 | Maintainer | **Approved PR later merged** (approver bonus) | join reviews → PR `merged_at` | derivable | ⚙️ compute-side join |
 | 9 | Maintainer | Label applied | — timeline events | — | ⛔ not event-sourced (deferred) |
-| 10 | Contributor | Comment on issue/PR | — `interactions` index removed in ADR 0001 | — | ⛔ out of scope unless re-added |
+| 10 | Contributor | Comment on issue/PR | `github-interactions` (`type=comment`) | `created_at` | ✅ available — optional, see caveat |
+
+> **Comment scoring caveat:** comments are now available (the interactions index is live), but they are the easiest signal to farm with low-value chatter. If scored at all, give them a low base weight and cap points per thread/day. Recommended: leave comments *out* of the Score initially and revisit, rather than incentivize noise on `magento/magento2`.
 
 ### Required sync additions before build
 
@@ -169,10 +171,23 @@ github_user_stats
 | First / last contribution | min/max event date across all scored actions | existing indexes |
 | Current gap | days since `last_contribution_at` — drives lapse detection | derived |
 | Streak | consecutive weeks with ≥1 contribution | derived |
-| Review latency | median hours from PR `created_at` (proxy for review-requested) to maintainer's first `submitted_at` on it | `github-pull-requests` + `github-pr-reviews` |
-| Responsiveness | share of reviewed PRs answered within N days | derived |
+| Time-to-review (maintainer-controlled) | median hours from reviewer **self-assignment** to that maintainer's first `submitted_at` | ⛔ needs assignment timeline event — **deferred** |
+| Responsiveness | share of self-assigned PRs reviewed within N days | ⛔ same dependency — **deferred** |
 
-> **Triage / "labels applied" caveat:** event-sourced label and triage activity (#9 in the scored-events table) is not yet captured — `labels[]` is only a current snapshot. "Issues triaged" and label-based responsiveness are **deferred** until the timeline-events index lands; until then, maintainer signals use reviews only.
+### Review workflow (Magento-specific) and why latency is deferred
+
+Contributors do **not** request reviews. The flow is:
+
+1. **Adobe** applies the `Progress: pending review` label → the PR enters the pool available for review.
+2. A **maintainer self-assigns** as reviewer — this can be months later.
+3. The maintainer submits their review.
+
+This produces two different clocks:
+
+- **Time-to-claim** (`Progress: pending review` applied → self-assignment): a *backlog / project-health* metric, **not** attributable to any individual maintainer. Do not put this on a maintainer board.
+- **Time-to-review** (self-assignment → first review submitted): the only span a maintainer controls, so the only fair per-maintainer responsiveness signal.
+
+Both require event-sourced timing that the current sync lacks — `labels[]` is only a snapshot and reviewer assignment isn't captured at all. **Review latency, responsiveness, "issues triaged", and label-applied scoring (#9) are all deferred until a timeline-events index lands** — scoped in [GitHub Timeline-Events Sync](github-timeline-events.md). Until then, maintainer signals use review submissions (approve/reject/comment) only. `created_at` is *not* an acceptable proxy — a PR can sit unclaimed for months before any maintainer is responsible for it.
 
 Lapse detection is just a query: `last_contribution_at` older than a threshold (e.g. 90 days) among users with a meaningful prior score. This is the hook for the retention loop in phase 6 (nudges, "we miss you" surfacing).
 

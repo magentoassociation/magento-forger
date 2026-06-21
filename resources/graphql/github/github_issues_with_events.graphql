@@ -56,10 +56,12 @@ query($owner: String!, $name: String!, $cursor: String) {
                         ... on LabeledEvent {
                             actor { login }
                             createdAt
+                            label { name }
                         }
                         ... on UnlabeledEvent {
                             actor { login }
                             createdAt
+                            label { name }
                         }
                         ... on ReferencedEvent {
                             actor { login }

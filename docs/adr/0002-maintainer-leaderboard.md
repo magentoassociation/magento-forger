@@ -1,51 +1,30 @@
-# Add Maintainer Leaderboards for review-based metrics
+# Weighted maintainer scoring from review activity
 
-Contributor Leaderboards cover authorship signals (PRs merged, issues opened, etc.). Review-based signals — approving and rejecting PRs — require a separate data source and a separate UI section targeting a different audience: maintainers, not contributors.
+> Supersedes the earlier raw-count-only revision of this ADR (2026-06-20). Full build detail lives in `docs/features/leaderboard-scoring.md`.
 
-## What changes
+Maintainers are scored separately from contributors, on a **weighted Maintainer Score** built from review activity, with a bonus when a PR they approved is later merged.
 
-**Expand the PR sync** to fetch `reviews` nodes from GitHub GraphQL alongside existing PR fields. Each PR query page now includes:
+## Context
 
-```graphql
-reviews(first: 50) {
-  nodes {
-    id
-    author { login }
-    state
-    submittedAt
-  }
-}
-```
+Maintainers can review (approve / reject / comment) and apply labels; they cannot merge or close — **Adobe** does. The review workflow is not contributor-initiated: Adobe applies `Progress: pending review`, then a maintainer **self-assigns** as reviewer (possibly months later), then reviews. This shapes what we can fairly attribute to an individual maintainer.
 
-**Add `github-pr-reviews` index** — one document per review submission, upserted by GitHub review node ID:
+## Decision
 
-| Field | Value |
-|---|---|
-| `_id` | GitHub review node ID |
-| `pr_number` | PR number |
-| `author` | reviewer login |
-| `state` | `APPROVED`, `CHANGES_REQUESTED`, `COMMENTED`, or `DISMISSED` |
-| `submitted_at` | ISO 8601 timestamp |
+- **Maintainer Score** = weighted sum of: review approved, review rejected, review commented (lower weight), and an impact-weighted **approver bonus** when an approved PR is later merged. The merge bonus is attributed to the review's `submitted_at` for point-in-time company credit. Self-approval cannot earn the bonus (`author == reviewer` guard).
+- Review data comes from the existing `github-pr-reviews` index (one document per review submission). Bot exclusion and Calendar Periods match the contributor boards.
+- **Review latency / responsiveness is deferred.** The only fair per-maintainer span is self-assignment → first review; the `Progress: pending review` → self-assignment span is project-backlog health, not an individual's. Both need timeline events (label timing, reviewer assignment) that the sync does not capture. `created_at` is not an acceptable proxy.
+- **Label-applied / triage scoring is deferred** for the same reason: `labels[]` is a snapshot, not an event stream.
 
-**Add two Maintainer Leaderboard query classes** in `app/Queries/Dashboard/`:
+## Consequences
 
-| Leaderboard | State filter | Date field |
-|---|---|---|
-| Reviews approved | `state: APPROVED` | `submitted_at` |
-| Reviews rejected | `state: CHANGES_REQUESTED` | `submitted_at` |
-
-Bot exclusion (`engcom-*`, `dependabot[bot]`, `github-actions[bot]`) applied at query time, same as Contributor Leaderboards.
-
-**Add `MaintainerLeaderboardController`** with routes `/maintainer/leaderboard` (redirects to `reviews-approved`) and `/maintainer/leaderboard/{metric}`.
-
-**Add two nav links** to `layouts.app`: "Contributor Leaderboard" and "Maintainer Leaderboard" as peer entries.
+- Maintainer scores are precomputed in the same job as contributor scores and written to `leaderboard_entries` (board = `maintainer`).
+- A timeline-events index is the prerequisite for review latency, responsiveness, and label/triage scoring. Until it exists, maintainer signals use review submissions only.
+- A maintainer who also authors PRs accrues an independent Contributor Score (ADR 0001); the two are never combined.
 
 ## Considered options
 
-**Embed reviews in `github-pull-requests`** — rejected. Nested aggregations in OpenSearch are significantly more complex than flat terms-agg. A flat index per review keeps query classes consistent with the existing leaderboard pattern.
+**Raw approve/reject counts only (previous revision)** — rejected for the same reasons as ADR 0001: counts reward volume over impact and ignore whether reviewed work actually shipped. Raw-count review boards are retained as a transparency layer.
 
-**Filter to only `APPROVED` and `CHANGES_REQUESTED` at sync time** — rejected. Storing all states costs little and avoids a re-sync if new review-based leaderboards are added later. Leaderboard queries filter by state at query time.
+**Score `Progress: pending review` → review as maintainer latency** — rejected. That span is mostly queue time before any maintainer is responsible; charging it to the eventual reviewer punishes whoever finally picks up a neglected PR.
 
-**Merge into existing Contributor Leaderboard section** — rejected. Review metrics target a different audience (maintainers) and sourced from a different index. Separate section makes the distinction visible in the UI and keeps the two controllers independent.
-
-**Per-PR review sync command** — rejected. Fetching reviews per PR individually would require thousands of API calls for large repos. Embedding reviews in the existing paginated PR query is fast and reuses the incremental `updatedAt` sync that already captures PRs with recent activity.
+**Embed reviews in `github-pull-requests`** — rejected (unchanged from prior revision): a flat per-review index keeps query classes simple and consistent.
