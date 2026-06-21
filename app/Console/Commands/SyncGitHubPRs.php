@@ -60,14 +60,17 @@ class SyncGitHubPRs extends Command implements Isolatable
 
         $result = $syncer->sync(
             fetchPage: fn ($c) => $github->fetchPullRequests($owner, $name, $c),
-            index: fn ($nodes) => $openSearch->indexPullRequests($nodes),
+            index: function (array $nodes) use ($github, $openSearch, $owner, $name) {
+                $expanded = array_map(fn ($pr) => $github->expandTimelineItems($pr, $owner, $name), $nodes);
+                $openSearch->indexPullRequests($expanded);
+            },
             cutoff: $cutoff,
             cursor: $cursor,
             onPage: $this->makeOnPageCallback($totalPages),
             onNode: $this->makeOnNodeCallback(),
             onError: $this->makeOnErrorCallback(
                 $errorOccurred,
-                fn ($e) => Log::warning('GitHub PR sync failed', ['exception' => $e]),
+                fn ($e, $page) => Log::warning('GitHub PR sync failed', ['exception' => $e]),
             ),
         );
 

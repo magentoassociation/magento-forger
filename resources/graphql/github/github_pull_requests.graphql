@@ -52,6 +52,7 @@ query($owner: String!, $name: String!, $cursor: String) {
           }
         }
         timelineItems(first: 100, itemTypes: [LABELED_EVENT, UNLABELED_EVENT, REVIEW_REQUESTED_EVENT, REVIEW_REQUEST_REMOVED_EVENT]) {
+          pageInfo { hasNextPage endCursor }
           nodes {
             __typename
             ... on LabeledEvent { id actor { login } createdAt label { name } }

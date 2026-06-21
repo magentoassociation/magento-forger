@@ -44,6 +44,28 @@ class GitHubPullRequestService
     }
 
     /**
+     * Fetches any additional timelineItems pages beyond the first 100 and merges them into the PR node.
+     */
+    public function expandTimelineItems(array $pr, string $owner, string $repo): array
+    {
+        $pageInfo = $pr['timelineItems']['pageInfo'] ?? [];
+
+        while ($pageInfo['hasNextPage'] ?? false) {
+            $data = $this->executeQuery('github_pr_timeline_items.graphql', [
+                'owner' => $owner,
+                'name' => $repo,
+                'number' => $pr['number'],
+                'cursor' => $pageInfo['endCursor'],
+            ]);
+            $timelineItems = $data !== null ? ($data['repository']['pullRequest']['timelineItems'] ?? []) : [];
+            $pageInfo = $timelineItems['pageInfo'] ?? ['hasNextPage' => false];
+            $pr['timelineItems']['nodes'] = array_merge($pr['timelineItems']['nodes'] ?? [], $timelineItems['nodes'] ?? []);
+        }
+
+        return $pr;
+    }
+
+    /**
      * @throws GitHubGraphQLException
      * @throws \JsonException
      */

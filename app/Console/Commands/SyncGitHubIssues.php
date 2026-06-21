@@ -67,7 +67,7 @@ class SyncGitHubIssues extends Command implements Isolatable
             onNode: $this->makeOnNodeCallback(),
             onError: $this->makeOnErrorCallback(
                 $errorOccurred,
-                fn ($e) => Log::warning('GitHub issue fetch failed', ['exception' => $e]),
+                fn ($e, $page) => Log::warning('GitHub issue fetch failed', ['exception' => $e]),
             ),
         );
 

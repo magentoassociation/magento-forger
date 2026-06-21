@@ -126,7 +126,7 @@ class SyncGitHubInteractions extends Command implements Isolatable
             onNode: $this->makeOnNodeCallback(),
             onError: $this->makeOnErrorCallback(
                 $errorOccurred,
-                fn ($e) => Log::warning('GitHub interaction sync failed', ['exception' => $e]),
+                fn ($e, $page) => Log::warning('GitHub interaction sync failed', ['exception' => $e]),
             ),
         );
 

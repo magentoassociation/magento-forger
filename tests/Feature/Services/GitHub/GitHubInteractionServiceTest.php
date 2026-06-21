@@ -47,10 +47,6 @@ class GitHubInteractionServiceTest extends TestCase
         );
     }
 
-    // -------------------------------------------------------------------------
-    // extractInteractionsFromIssue
-    // -------------------------------------------------------------------------
-
     public function test_extract_interactions_includes_created_issue_event(): void
     {
         $issue = [
@@ -158,10 +154,6 @@ class GitHubInteractionServiceTest extends TestCase
         $this->assertCount(0, $result);
     }
 
-    // -------------------------------------------------------------------------
-    // extractEventsFromIssue
-    // -------------------------------------------------------------------------
-
     public function test_extract_events_returns_typed_events_from_timeline(): void
     {
         $issue = [
@@ -251,10 +243,6 @@ class GitHubInteractionServiceTest extends TestCase
         $this->assertNull($result[1]['label']);
     }
 
-    // -------------------------------------------------------------------------
-    // fetchInteractionsForIssue
-    // -------------------------------------------------------------------------
-
     public function test_fetch_interactions_for_issue_returns_created_issue_interaction(): void
     {
         $mock = new MockHandler([
@@ -335,10 +323,6 @@ class GitHubInteractionServiceTest extends TestCase
 
         $this->createService($mock)->fetchInteractionsForIssue('owner', 'repo', 1);
     }
-
-    // -------------------------------------------------------------------------
-    // fetchEventsForIssue
-    // -------------------------------------------------------------------------
 
     public function test_fetch_events_for_issue_returns_events_from_rest_timeline(): void
     {
@@ -445,10 +429,6 @@ class GitHubInteractionServiceTest extends TestCase
             ->once()
             ->with('Failed to fetch events for issue #7', \Mockery::any());
     }
-
-    // -------------------------------------------------------------------------
-    // fetchAllInteractionsFromIssue — pagination
-    // -------------------------------------------------------------------------
 
     public function test_fetch_all_interactions_aggregates_paginated_comments(): void
     {
@@ -558,10 +538,6 @@ class GitHubInteractionServiceTest extends TestCase
         $this->assertSame('created_issue', $result[0]['type']);
         $this->assertSame('comment', $result[1]['type']);
     }
-
-    // -------------------------------------------------------------------------
-    // fetchAllEventsFromIssue — pagination
-    // -------------------------------------------------------------------------
 
     public function test_fetch_all_events_aggregates_paginated_timeline_items(): void
     {
