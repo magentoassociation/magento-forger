@@ -61,6 +61,19 @@ class LeaderboardScorerTest extends TestCase
         $this->assertSame(0.0, $this->scorer()->recencyFactor($now->copy()->subDays(400), $now));
     }
 
+    public function test_constructor_throws_on_zero_half_life(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        new LeaderboardScorer(
+            weights: [],
+            impactMin: 1.0,
+            impactMax: 5.0,
+            windowDays: 365,
+            halfLifeDays: 0,
+        );
+    }
+
     public function test_impact_from_size_floors_and_caps(): void
     {
         $this->assertSame(1.0, LeaderboardScorer::impactFromSize(0, 0));

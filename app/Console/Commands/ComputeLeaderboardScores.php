@@ -78,6 +78,11 @@ class ComputeLeaderboardScores extends Command implements Isolatable
         }
 
         if ($entryRows !== []) {
+            LeaderboardEntry::query()
+                ->where('window', 'rolling12')
+                ->whereNotIn('login', array_keys($summary))
+                ->delete();
+
             LeaderboardEntry::upsert($entryRows, ['login', 'board', 'window'], [
                 'score', 'breakdown', 'computed_at',
             ]);

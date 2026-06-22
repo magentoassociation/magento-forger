@@ -50,7 +50,7 @@ class SyncGitHubPRs extends Command implements Isolatable
             try {
                 $totalCounts = $github->fetchPullRequestCount($owner, $name);
                 $this->info("Syncing PRs for {$owner}/{$name}. ({$totalCounts->summary()})");
-                $totalPages = (int) ceil($totalCounts->total / 100);
+                $totalPages = (int) ceil($totalCounts->total / 25);
             } catch (Throwable $e) {
                 $this->warn('Could not retrieve pull request count');
                 Log::warning('GitHub PR count failed', ['exception' => $e]);

@@ -26,7 +26,11 @@ class LeaderboardScorer
         private readonly float $impactMax,
         private readonly int $windowDays,
         private readonly int $halfLifeDays,
-    ) {}
+    ) {
+        if ($halfLifeDays <= 0) {
+            throw new \InvalidArgumentException("halfLifeDays must be positive, got {$halfLifeDays}.");
+        }
+    }
 
     public static function fromConfig(): self
     {

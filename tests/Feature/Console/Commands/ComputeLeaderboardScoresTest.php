@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Console\Commands;
 
+use App\DataTransferObjects\Leaderboard\Board;
 use App\DataTransferObjects\Leaderboard\ScoredEvent;
 use App\Models\GithubUserStat;
 use App\Models\LeaderboardEntry;
@@ -51,8 +52,8 @@ class ComputeLeaderboardScoresTest extends TestCase
         $this->mock(ScoredEventReader::class)
             ->shouldReceive('read')
             ->andReturn([
-                new ScoredEvent('jane', 'contributor', 'pr_opened', $now),
-                new ScoredEvent('jane', 'maintainer', 'review_approved', $now),
+                new ScoredEvent('jane', Board::CONTRIBUTOR, 'pr_opened', $now),
+                new ScoredEvent('jane', Board::MAINTAINER, 'review_approved', $now),
             ]);
 
         $this->artisan('leaderboard:compute')->assertExitCode(0);
@@ -77,7 +78,7 @@ class ComputeLeaderboardScoresTest extends TestCase
         $this->mock(ScoredEventReader::class)
             ->shouldReceive('read')
             ->andReturn([
-                new ScoredEvent('jane', 'contributor', 'pr_opened', $now),
+                new ScoredEvent('jane', Board::CONTRIBUTOR, 'pr_opened', $now),
             ]);
 
         $this->artisan('leaderboard:compute')->assertExitCode(0);
@@ -95,9 +96,9 @@ class ComputeLeaderboardScoresTest extends TestCase
         $this->mock(ScoredEventReader::class)
             ->shouldReceive('read')
             ->andReturn([
-                new ScoredEvent('alice', 'contributor', 'pr_opened', $now),
-                new ScoredEvent('alice', 'contributor', 'pr_opened', $now),
-                new ScoredEvent('bob', 'contributor', 'pr_opened', $now),
+                new ScoredEvent('alice', Board::CONTRIBUTOR, 'pr_opened', $now),
+                new ScoredEvent('alice', Board::CONTRIBUTOR, 'pr_opened', $now),
+                new ScoredEvent('bob', Board::CONTRIBUTOR, 'pr_opened', $now),
             ]);
 
         $this->artisan('leaderboard:compute')->assertExitCode(0);
@@ -130,13 +131,37 @@ class ComputeLeaderboardScoresTest extends TestCase
         $this->mock(ScoredEventReader::class)
             ->shouldReceive('read')
             ->andReturn([
-                new ScoredEvent('jane', 'contributor', 'pr_opened', $now),
+                new ScoredEvent('jane', Board::CONTRIBUTOR, 'pr_opened', $now),
             ]);
 
         $this->artisan('leaderboard:compute')->assertExitCode(0);
 
         $stat = GithubUserStat::where('login', 'jane')->first();
         $this->assertSame(15.0, $stat->contributor_score_prev);
+    }
+
+    public function test_command_evicts_stale_rolling12_entries_for_inactive_users(): void
+    {
+        $now = Carbon::now();
+
+        LeaderboardEntry::create([
+            'login' => 'ghost',
+            'board' => 'contributor',
+            'window' => 'rolling12',
+            'score' => 99.0,
+            'computed_at' => $now,
+        ]);
+
+        $this->mock(ScoredEventReader::class)
+            ->shouldReceive('read')
+            ->andReturn([
+                new ScoredEvent('alice', Board::CONTRIBUTOR, 'pr_opened', $now),
+            ]);
+
+        $this->artisan('leaderboard:compute')->assertExitCode(0);
+
+        $this->assertDatabaseMissing(LeaderboardEntry::class, ['login' => 'ghost']);
+        $this->assertDatabaseHas(LeaderboardEntry::class, ['login' => 'alice']);
     }
 
     public function test_command_outputs_contributor_count(): void
@@ -146,8 +171,8 @@ class ComputeLeaderboardScoresTest extends TestCase
         $this->mock(ScoredEventReader::class)
             ->shouldReceive('read')
             ->andReturn([
-                new ScoredEvent('alice', 'contributor', 'pr_opened', $now),
-                new ScoredEvent('bob', 'contributor', 'pr_opened', $now),
+                new ScoredEvent('alice', Board::CONTRIBUTOR, 'pr_opened', $now),
+                new ScoredEvent('bob', Board::CONTRIBUTOR, 'pr_opened', $now),
             ]);
 
         $this->artisan('leaderboard:compute')
