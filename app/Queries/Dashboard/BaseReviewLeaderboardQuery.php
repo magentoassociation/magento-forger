@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Queries\Dashboard;
 
 use App\DataTransferObjects\Dashboard\ContributorCount;
+use App\Support\BotFilter;
 use OpenSearch\Client;
 
 abstract class BaseReviewLeaderboardQuery
@@ -30,11 +31,6 @@ abstract class BaseReviewLeaderboardQuery
 
     protected function botFilters(): array
     {
-        return [
-            ['wildcard' => ['author.keyword' => 'engcom-*']],
-            ['term' => ['author.keyword' => 'dependabot[bot]']],
-            ['term' => ['author.keyword' => 'github-actions[bot]']],
-            ['term' => ['author.keyword' => 'm2-assistant']],
-        ];
+        return BotFilter::mustNot('author.keyword');
     }
 }

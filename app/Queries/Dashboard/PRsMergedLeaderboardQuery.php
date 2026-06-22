@@ -10,6 +10,7 @@ namespace App\Queries\Dashboard;
 
 use App\DataTransferObjects\Dashboard\ContributorCount;
 use App\Services\Search\OpenSearchService;
+use App\Support\BotFilter;
 use Carbon\Carbon;
 use OpenSearch\Client;
 
@@ -65,11 +66,6 @@ class PRsMergedLeaderboardQuery
 
     private function botFilters(): array
     {
-        return [
-            ['wildcard' => ['author.keyword' => 'engcom-*']],
-            ['term' => ['author.keyword' => 'dependabot[bot]']],
-            ['term' => ['author.keyword' => 'github-actions[bot]']],
-            ['term' => ['author.keyword' => 'm2-assistant']],
-        ];
+        return BotFilter::mustNot('author.keyword');
     }
 }

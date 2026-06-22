@@ -12,6 +12,7 @@ use App\DataTransferObjects\Leaderboard\Board;
 use App\DataTransferObjects\Leaderboard\ScoredEvent;
 use App\Models\GithubUserStat;
 use App\Models\LeaderboardEntry;
+use App\Services\Leaderboard\ClaimRecordReader;
 use App\Services\Leaderboard\ScoredEventReader;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -31,6 +32,13 @@ class ComputeLeaderboardScoresTest extends TestCase
         config()->set('leaderboard.weights.maintainer', ['review_approved' => 3]);
         config()->set('leaderboard.impact.min', 1.0);
         config()->set('leaderboard.impact.max', 5.0);
+
+        // Keep the suite hermetic: the latency reader hits OpenSearch, which is
+        // not part of these sqlite-backed tests. Individual tests drive events
+        // through the ScoredEventReader mock.
+        $this->mock(ClaimRecordReader::class)
+            ->shouldReceive('read')
+            ->andReturn([]);
     }
 
     public function test_command_exits_successfully_with_no_events(): void

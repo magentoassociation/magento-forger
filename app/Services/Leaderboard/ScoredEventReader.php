@@ -11,6 +11,7 @@ namespace App\Services\Leaderboard;
 use App\DataTransferObjects\Leaderboard\Board;
 use App\DataTransferObjects\Leaderboard\ScoredEvent;
 use App\Services\Search\OpenSearchService;
+use App\Support\BotFilter;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use OpenSearch\Client;
@@ -92,19 +93,226 @@ class ScoredEventReader
             'CHANGES_REQUESTED' => 'review_rejected',
             'COMMENTED' => 'review_commented',
         ];
+        $approvedReviews = [];
         $this->scroll(
             OpenSearchService::OPENSEARCH_GITHUB_PR_REVIEWS_INDEX,
             $this->rangeQuery('submitted_at', $from, $to),
-            ['author', 'state', 'submitted_at'],
-            function (array $source) use (&$events, $stateAction): void {
+            ['author', 'state', 'submitted_at', 'pr_number'],
+            function (array $source) use (&$events, &$approvedReviews, $stateAction): void {
                 $action = $stateAction[$source['state'] ?? ''] ?? null;
-                if ($action !== null && ! empty($source['author']) && ! empty($source['submitted_at'])) {
-                    $events[] = new ScoredEvent($source['author'], Board::MAINTAINER, $action, Carbon::parse($source['submitted_at']));
+                if ($action === null || empty($source['author']) || empty($source['submitted_at'])) {
+                    return;
+                }
+
+                $events[] = new ScoredEvent($source['author'], Board::MAINTAINER, $action, Carbon::parse($source['submitted_at']));
+
+                if ($source['state'] === 'APPROVED' && ! empty($source['pr_number'])) {
+                    $approvedReviews[] = [
+                        'pr_number' => $source['pr_number'],
+                        'author' => $source['author'],
+                        'submitted_at' => $source['submitted_at'],
+                    ];
                 }
             }
         );
 
+        // Maintainer: approved PR later merged (impact-weighted approver bonus)
+        $events = array_merge($events, $this->approvedThenMergedEvents($approvedReviews, $impactMin, $impactMax));
+
+        // Maintainer: triage (labels applied to issues and PRs)
+        $events = array_merge($events, $this->labelAppliedEvents($from, $to));
+
         return $events;
+    }
+
+    /**
+     * Triage scoring: one credit per (actor, target, label), so add/remove churn
+     * can't farm points. Issue labels come from github-events, PR labels from
+     * github-pr-timeline. Excluded labels (e.g. Adobe's pending-review label) and
+     * bot actors are filtered out.
+     *
+     * @return list<ScoredEvent>
+     */
+    private function labelAppliedEvents(CarbonInterface $from, CarbonInterface $to): array
+    {
+        $excluded = (array) config('leaderboard.triage.excluded_labels', []);
+        $rows = [];
+
+        // Issue label events
+        $this->scroll(
+            OpenSearchService::OPENSEARCH_GITHUB_EVENTS_INDEX,
+            [
+                'bool' => [
+                    'filter' => [
+                        ['term' => ['interaction_name.keyword' => 'labeled']],
+                        ['range' => ['interaction_date' => ['gte' => $from->toIso8601String(), 'lte' => $to->toIso8601String()]]],
+                    ],
+                    'must_not' => $this->botFiltersFor('github_account_name.keyword'),
+                ],
+            ],
+            ['github_account_name', 'label_name', 'issues-id', 'interaction_date'],
+            function (array $source) use (&$rows): void {
+                if (empty($source['label_name']) || empty($source['interaction_date'])) {
+                    return;
+                }
+                $rows[] = [
+                    'actor' => $source['github_account_name'] ?? null,
+                    'label' => $source['label_name'],
+                    'target' => 'issue:'.($source['issues-id'] ?? ''),
+                    'date' => Carbon::parse($source['interaction_date']),
+                ];
+            }
+        );
+
+        // PR label events
+        $this->scroll(
+            OpenSearchService::OPENSEARCH_GITHUB_PR_TIMELINE_INDEX,
+            [
+                'bool' => [
+                    'filter' => [
+                        ['term' => ['type.keyword' => 'LabeledEvent']],
+                        ['range' => ['created_at' => ['gte' => $from->toIso8601String(), 'lte' => $to->toIso8601String()]]],
+                    ],
+                    'must_not' => $this->botFiltersFor('actor.keyword'),
+                ],
+            ],
+            ['actor', 'label_name', 'pr_number', 'created_at'],
+            function (array $source) use (&$rows): void {
+                if (empty($source['label_name']) || empty($source['created_at'])) {
+                    return;
+                }
+                $rows[] = [
+                    'actor' => $source['actor'] ?? null,
+                    'label' => $source['label_name'],
+                    'target' => 'pr:'.($source['pr_number'] ?? ''),
+                    'date' => Carbon::parse($source['created_at']),
+                ];
+            }
+        );
+
+        return $this->buildLabelEvents($rows, $excluded);
+    }
+
+    /**
+     * Deduplicate raw label rows into one scored event per (actor, target, label),
+     * keeping the earliest application date. Pure — unit-tested.
+     *
+     * @param  list<array{actor: string|null, label: string, target: string, date: CarbonInterface}>  $rows
+     * @param  list<string>  $excluded
+     * @return list<ScoredEvent>
+     */
+    private function buildLabelEvents(array $rows, array $excluded): array
+    {
+        $byKey = [];
+
+        foreach ($rows as $row) {
+            $actor = $row['actor'] ?? null;
+            $label = $row['label'] ?? null;
+            $date = $row['date'] ?? null;
+
+            if (empty($actor) || empty($label) || $date === null || in_array($label, $excluded, true)) {
+                continue;
+            }
+
+            $key = $actor.'|'.$row['target'].'|'.$label;
+
+            if (! isset($byKey[$key]) || $date->lessThan($byKey[$key]['date'])) {
+                $byKey[$key] = ['actor' => $actor, 'date' => $date];
+            }
+        }
+
+        $events = [];
+        foreach ($byKey as $entry) {
+            $events[] = new ScoredEvent($entry['actor'], Board::MAINTAINER, 'label_applied', $entry['date']);
+        }
+
+        return $events;
+    }
+
+    /**
+     * Emit an impact-weighted maintainer bonus for each approved review whose PR
+     * was eventually merged (merge can fall outside the window). Attributed to the
+     * review's submitted_at. Self-reviews (reviewer == PR author) are skipped.
+     *
+     * @param  list<array{pr_number: int|string, author: string, submitted_at: string}>  $approvedReviews
+     * @return list<ScoredEvent>
+     */
+    private function approvedThenMergedEvents(array $approvedReviews, float $impactMin, float $impactMax): array
+    {
+        if ($approvedReviews === []) {
+            return [];
+        }
+
+        $prNumbers = array_values(array_unique(array_column($approvedReviews, 'pr_number')));
+        $mergedPrs = $this->mergedPullRequests($prNumbers, $impactMin, $impactMax);
+
+        $events = [];
+        foreach ($approvedReviews as $review) {
+            $pr = $mergedPrs[$review['pr_number']] ?? null;
+
+            if ($pr === null || $pr['author'] === $review['author']) {
+                continue;
+            }
+
+            $events[] = new ScoredEvent(
+                $review['author'],
+                Board::MAINTAINER,
+                'approved_then_merged',
+                Carbon::parse($review['submitted_at']),
+                $pr['impact'],
+            );
+        }
+
+        return $events;
+    }
+
+    /**
+     * Look up merged PRs among the given numbers, returning impact + author keyed
+     * by PR number. Non-merged PRs are omitted.
+     *
+     * @param  list<int|string>  $prNumbers
+     * @return array<int|string, array{impact: float, author: string|null}>
+     */
+    private function mergedPullRequests(array $prNumbers, float $impactMin, float $impactMax): array
+    {
+        $merged = [];
+
+        foreach (array_chunk($prNumbers, 1000) as $chunk) {
+            $response = $this->client->search([
+                'index' => OpenSearchService::getIndexWithPrefix(OpenSearchService::OPENSEARCH_GITHUB_PULL_REQUESTS_INDEX),
+                'body' => [
+                    'size' => count($chunk),
+                    '_source' => ['id', 'author', 'additions', 'deletions'],
+                    'query' => [
+                        'bool' => [
+                            'filter' => [
+                                ['term' => ['state.keyword' => 'MERGED']],
+                                ['terms' => ['id' => $chunk]],
+                            ],
+                        ],
+                    ],
+                ],
+            ]);
+
+            foreach ($response['hits']['hits'] ?? [] as $hit) {
+                $source = $hit['_source'] ?? [];
+                if (! isset($source['id'])) {
+                    continue;
+                }
+
+                $merged[$source['id']] = [
+                    'impact' => LeaderboardScorer::impactFromSize(
+                        (int) ($source['additions'] ?? 0),
+                        (int) ($source['deletions'] ?? 0),
+                        $impactMin,
+                        $impactMax,
+                    ),
+                    'author' => $source['author'] ?? null,
+                ];
+            }
+        }
+
+        return $merged;
     }
 
     /**
@@ -129,12 +337,15 @@ class ScoredEventReader
      */
     private function botFilters(): array
     {
-        return [
-            ['wildcard' => ['author.keyword' => 'engcom-*']],
-            ['term' => ['author.keyword' => 'dependabot[bot]']],
-            ['term' => ['author.keyword' => 'github-actions[bot]']],
-            ['term' => ['author.keyword' => 'm2-assistant']],
-        ];
+        return $this->botFiltersFor('author.keyword');
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function botFiltersFor(string $field): array
+    {
+        return BotFilter::mustNot($field);
     }
 
     /**

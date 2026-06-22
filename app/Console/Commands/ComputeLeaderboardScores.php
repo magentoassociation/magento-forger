@@ -11,7 +11,9 @@ namespace App\Console\Commands;
 use App\DataTransferObjects\Leaderboard\Board;
 use App\Models\GithubUserStat;
 use App\Models\LeaderboardEntry;
+use App\Services\Leaderboard\ClaimRecordReader;
 use App\Services\Leaderboard\LeaderboardScorer;
+use App\Services\Leaderboard\ReviewLatencyAnalyzer;
 use App\Services\Leaderboard\ScoredEventReader;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
@@ -23,7 +25,7 @@ class ComputeLeaderboardScores extends Command implements Isolatable
 
     protected $description = 'Compute weighted contributor/maintainer scores and engagement signals from OpenSearch into the leaderboard tables.';
 
-    public function handle(ScoredEventReader $reader): int
+    public function handle(ScoredEventReader $reader, ClaimRecordReader $claimReader, ReviewLatencyAnalyzer $analyzer): int
     {
         $now = Carbon::now();
         $windowDays = (int) config('leaderboard.recency.window_days', 365);
@@ -31,6 +33,10 @@ class ComputeLeaderboardScores extends Command implements Isolatable
 
         $this->info("Reading scored events since {$from->toDateString()} ...");
         $events = $reader->read($from, $now);
+
+        $latency = $analyzer->analyze($claimReader->read($from, $now));
+        $events = array_merge($events, $latency['events']);
+        $latencyStats = $latency['stats'];
         $this->info(count($events).' scored events read.');
 
         $summary = LeaderboardScorer::fromConfig()->summarize($events, $now);
@@ -54,6 +60,9 @@ class ComputeLeaderboardScores extends Command implements Isolatable
                 'maintainer_score' => $data['maintainer_score'],
                 'contributor_score_prev' => $previousContributor[$login] ?? 0,
                 'maintainer_score_prev' => $previousMaintainer[$login] ?? 0,
+                'median_time_to_review_hours' => $latencyStats[$login]['median_time_to_review_hours'] ?? null,
+                'median_time_to_claim_days' => $latencyStats[$login]['median_time_to_claim_days'] ?? null,
+                'reviews_in_window' => $latencyStats[$login]['reviews_in_window'] ?? 0,
                 'computed_at' => $now,
             ];
 
@@ -73,7 +82,8 @@ class ComputeLeaderboardScores extends Command implements Isolatable
             GithubUserStat::upsert($statRows, ['login'], [
                 'first_contribution_at', 'last_contribution_at', 'current_gap_days',
                 'current_streak_weeks', 'longest_streak_weeks', 'contributor_score',
-                'maintainer_score', 'contributor_score_prev', 'maintainer_score_prev', 'computed_at',
+                'maintainer_score', 'contributor_score_prev', 'maintainer_score_prev',
+                'median_time_to_review_hours', 'median_time_to_claim_days', 'reviews_in_window', 'computed_at',
             ]);
         }
 

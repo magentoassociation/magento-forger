@@ -32,9 +32,10 @@ A maintainer who also authors PRs accrues a Contributor Score *and* a Maintainer
 | 5 | Maintainer | Review approved | `github-pr-reviews` | `submitted_at`, `state=APPROVED` | ✅ exists |
 | 6 | Maintainer | Review rejected | `github-pr-reviews` | `submitted_at`, `state=CHANGES_REQUESTED` | ✅ exists |
 | 7 | Maintainer | Review commented | `github-pr-reviews` | `submitted_at`, `state=COMMENTED` | ✅ exists |
-| 8 | Maintainer | **Approved PR later merged** (approver bonus) | join reviews → PR `merged_at` | derivable | ⚙️ compute-side join |
-| 9 | Maintainer | Label applied | — timeline events | — | ⛔ not event-sourced (deferred) |
+| 8 | Maintainer | **Approved PR later merged** (approver bonus) | join reviews → PR `merged_at` | derivable | ✅ `ScoredEventReader::approvedThenMergedEvents()` (impact-weighted, self-review guarded) |
+| 9 | Maintainer | **Label applied** (triage) | `github-events` + `github-pr-timeline` | event date | ✅ `labelAppliedEvents()` (deduped per actor/target/label; excludes configured labels) |
 | 10 | Contributor | Comment on issue/PR | `github-interactions` (`type=comment`) | `created_at` | ✅ available — optional, see caveat |
+| 11 | Maintainer | **Claimed & reviewed a pending-review PR** (staleness bonus) | `github-pr-timeline` + `github-pr-reviews` | claim `created_at` | ✅ `ReviewLatencyAnalyzer` (impact grows with time-to-claim; only credited if the claim is reviewed) |
 
 > **Comment scoring caveat:** comments are now available (the interactions index is live), but they are the easiest signal to farm with low-value chatter. If scored at all, give them a low base weight and cap points per thread/day. Recommended: leave comments *out* of the Score initially and revisit, rather than incentivize noise on `magento/magento2`.
 
@@ -161,7 +162,8 @@ github_user_stats
   longest_streak_weeks,
   contributor_score_prev,      # prior window, for "Rising" delta
   maintainer_score_prev,
-  median_review_latency_hours, # maintainers only
+  median_time_to_review_hours, # maintainers: responsiveness after claiming
+  median_time_to_claim_days,   # maintainers: how stale the PRs they pick up are
   reviews_in_window,
   computed_at
 ```
@@ -171,10 +173,10 @@ github_user_stats
 | First / last contribution | min/max event date across all scored actions | existing indexes |
 | Current gap | days since `last_contribution_at` — drives lapse detection | derived |
 | Streak | consecutive weeks with ≥1 contribution | derived |
-| Time-to-review (maintainer-controlled) | median hours from reviewer **self-assignment** to that maintainer's first `submitted_at` | ⛔ needs assignment timeline event — **deferred** |
-| Responsiveness | share of self-assigned PRs reviewed within N days | ⛔ same dependency — **deferred** |
+| Time-to-review (maintainer-controlled) | median hours from reviewer **self-assignment** to that maintainer's first `submitted_at` | ✅ `ReviewLatencyAnalyzer` |
+| Time-to-claim | median days a claimed PR sat in the review pool before pickup | ✅ `ReviewLatencyAnalyzer` (also drives the `pr_claimed` bonus) |
 
-### Review workflow (Magento-specific) and why latency is deferred
+### Review workflow (Magento-specific) and the claim incentive
 
 Contributors do **not** request reviews. The flow is:
 
@@ -184,10 +186,10 @@ Contributors do **not** request reviews. The flow is:
 
 This produces two different clocks:
 
-- **Time-to-claim** (`Progress: pending review` applied → self-assignment): a *backlog / project-health* metric, **not** attributable to any individual maintainer. Do not put this on a maintainer board.
-- **Time-to-review** (self-assignment → first review submitted): the only span a maintainer controls, so the only fair per-maintainer responsiveness signal.
+- **Time-to-claim** (`Progress: pending review` applied → self-assignment): how long the PR sat before this maintainer picked it up. Rather than treat it as untracked backlog noise, it **rewards** the claimer — the `pr_claimed` event's impact grows with this age, to encourage clearing stale PRs. The bonus is only credited once the maintainer actually reviews the PR, so claiming without follow-through earns nothing (and can't be farmed).
+- **Time-to-review** (self-assignment → first review submitted): the span a maintainer controls after claiming — stored as the `median_time_to_review_hours` responsiveness stat.
 
-Both require event-sourced timing that the current sync lacks — `labels[]` is only a snapshot and reviewer assignment isn't captured at all. **Review latency, responsiveness, "issues triaged", and label-applied scoring (#9) are all deferred until a timeline-events index lands** — scoped in [GitHub Timeline-Events Sync](github-timeline-events.md). Until then, maintainer signals use review submissions (approve/reject/comment) only. `created_at` is *not* an acceptable proxy — a PR can sit unclaimed for months before any maintainer is responsible for it.
+These are computed from the `github-pr-timeline` index by `ClaimRecordReader` (assembling claim, pending-review-label, and first-review timings) and `ReviewLatencyAnalyzer` (the pure scoring + median math). Label-applied / "issues triaged" scoring (#9) remains deferred — it needs per-label event scoring, see [GitHub Timeline-Events Sync](github-timeline-events.md).
 
 Lapse detection is just a query: `last_contribution_at` older than a threshold (e.g. 90 days) among users with a meaningful prior score. This is the hook for the retention loop in phase 6 (nudges, "we miss you" surfacing).
 

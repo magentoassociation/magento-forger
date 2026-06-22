@@ -21,7 +21,7 @@ class LeaderboardScorerTest extends TestCase
         return new LeaderboardScorer(
             weights: [
                 'contributor' => ['pr_opened' => 3, 'pr_merged' => 10],
-                'maintainer' => ['review_approved' => 3],
+                'maintainer' => ['review_approved' => 3, 'approved_then_merged' => 6],
             ],
             impactMin: 1.0,
             impactMax: 5.0,
@@ -36,6 +36,15 @@ class LeaderboardScorerTest extends TestCase
         $event = new ScoredEvent('jane', Board::CONTRIBUTOR, 'pr_opened', $now);
 
         $this->assertSame(3.0, $this->scorer()->points($event, $now));
+    }
+
+    public function test_approved_then_merged_bonus_applies_impact(): void
+    {
+        $now = Carbon::parse('2026-06-01T00:00:00Z');
+        $event = new ScoredEvent('maintainer1', Board::MAINTAINER, 'approved_then_merged', $now, 2.0);
+
+        // base 6 × impact 2.0 × full recency 1.0
+        $this->assertSame(12.0, $this->scorer()->points($event, $now));
     }
 
     public function test_unknown_action_scores_zero(): void

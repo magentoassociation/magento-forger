@@ -10,9 +10,9 @@ Living checklist for the weighted contributor/maintainer leaderboard. Source-of-
 
 ### Scoring & metrics
 
-- [ ] **`approved_then_merged` maintainer bonus** — needs a review→PR-merge join (review in window, PR merged any time).
-- [ ] **Review latency / responsiveness** — compute `pending_review_at` / `claimed_at` / `first_review_at` from `github-pr-timeline` into `github_user_stats`. Time-to-claim is backlog health (not a maintainer board); Time-to-review is per maintainer.
-- [ ] **Label / triage scoring** — `label_name` is captured; scoring logic (scored event #9, "issues triaged") not built.
+- [x] **`approved_then_merged` maintainer bonus** — ✅ done: `ScoredEventReader` collects approved reviews in-window, looks up which of those PRs merged (any time) with their size, and emits an impact-weighted maintainer bonus dated at the review's `submitted_at`; self-reviews (reviewer == PR author) are skipped. Weight in `config/leaderboard.php`. The review→PR lookup is OpenSearch I/O — verify on first real run.
+- [x] **Review latency / responsiveness** — ✅ done: `ClaimRecordReader` + `ReviewLatencyAnalyzer` compute pending-review/claim/first-review timings from `github-pr-timeline`, storing `median_time_to_review_hours` / `median_time_to_claim_days` / `reviews_in_window` on `github_user_stats`. Time-to-claim also drives a `pr_claimed` scoring bonus that grows with how long a PR sat — rewarding maintainers for clearing stale PRs, credited only once the claim is actually reviewed (no farming by claiming alone). (OpenSearch reads — verify on first real run.)
+- [x] **Label / triage scoring** — ✅ done: `ScoredEventReader::labelAppliedEvents()` scores `label_applied` from issue (`github-events`) and PR (`github-pr-timeline`) label events, deduped per (actor, target, label) so add/remove churn can't farm; `triage.excluded_labels` config drops Adobe's pending-review label. (OpenSearch reads — verify on first real run.)
 - [ ] **All-time `first_contribution_at`** — currently "first within the rolling window"; add an all-time min pass if true first-contribution is needed.
 - [ ] **(Optional) Action enum** — action strings (`pr_opened`, `review_approved`, …) are bare strings; a typo silently scores 0. `Board` is already enum-safe; actions could follow.
 
@@ -45,6 +45,8 @@ Living checklist for the weighted contributor/maintainer leaderboard. Source-of-
 
 ## Re-sync & index operations
 
+> Pre-deployment: there's no production data, so this is just the initial sync, and there's nothing to "backfill." The drop steps below only matter if your dev OpenSearch already holds documents written before these schema changes; on a clean cluster, skip the drops and run the syncs.
+
 - [ ] Drop `github-events` and `github-interactions` before re-syncing (content-hash IDs → adding `label_name` duplicates label events).
 - [ ] Drop the orphaned `points` index (`ProcessGitHubInteractions` deleted).
 - [ ] Re-sync PRs (`sync:github:prs`) to backfill `github-pr-timeline` + `additions`/`deletions`/`changed_files`/`author_company` — clean upsert, no drop.
@@ -58,4 +60,4 @@ Living checklist for the weighted contributor/maintainer leaderboard. Source-of-
 - **`current_streak_weeks`**: anchored to now with a 1-week grace; remove the grace for strict behavior.
 - **Comments** are intentionally **not** scored (gaming risk) — open decision.
 - **`author_company`** is free-text GitHub profile data (unreliable) — a seed for org resolution, not a key; manual mapping is the intended source of truth.
-- **Bot list** (`engcom-*`, `dependabot[bot]`, `github-actions[bot]`, `m2-assistant`) is duplicated in `ScoredEventReader` and the raw-count queries — keep in sync.
+- **Bot list** lives in one place — `config('leaderboard.bots')` (`exact` + `prefixes`), consumed everywhere via `App\Support\BotFilter` (`mustNot($field)` for OpenSearch, `isBot($login)` for PHP). Add a bot there and it applies to every board and scorer.
