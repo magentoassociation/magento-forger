@@ -26,7 +26,7 @@ return [
      */
     'bots' => [
         'exact' => ['dependabot[bot]', 'github-actions[bot]', 'm2-assistant'],
-        'prefixes' => ['engcom-', 'github-', 'ct-prd-projects', 'copilot-pull-request-reviewer'],
+        'prefixes' => ['engcom-', 'magento-automated', 'm2-community', 'github-', 'ct-prd-projects', 'copilot-pull-request-reviewer'],
     ],
 
     /*
