@@ -157,7 +157,7 @@ github_user_stats
   id, github_user_id,
   first_contribution_at, last_contribution_at,
   current_gap_days,            # now - last_contribution_at
-  current_streak_weeks,        # consecutive weeks with ≥1 contribution
+  current_streak_weeks,        # consecutive active weeks ending at now (0 if inactive; 1-week grace)
   longest_streak_weeks,
   contributor_score_prev,      # prior window, for "Rising" delta
   maintainer_score_prev,
@@ -209,13 +209,6 @@ All segments reuse the existing Calendar Period selector and the same decayed Sc
 
 PHPUnit feature tests, using factories, covering: scoring math against fixtures, decay boundaries (364 vs 366 days), point-in-time attribution across a mid-history job change, bot + `excluded` filtering, and org rollup including "Independent / Unknown". Run with `php artisan test --compact --filter=...`.
 
-## Build phases
+## Status & remaining work
 
-1. **Sync** — ✅ done: PR size fields (`additions`/`deletions`/`changed_files`) and `author_company` (PR + issue) captured. Remaining: backfill via re-sync.
-2. **Org model** — tables, resolution pipeline, Filament admin.
-3. **Scoring engine** — `config/leaderboard.php`, compute job → individual score boards.
-4. **Company rollup** — point-in-time org aggregation → company board.
-5. **Engagement signals** — `github_user_stats` (first/last contribution, streak, gap, review latency) computed in the same job.
-6. **Segmented boards** — New contributor spotlight, Rising, Recently active; all-time demoted to opt-in.
-7. **Transparency UI** — breakdown expansion + abuse tooling.
-8. **(Separate spec, recommended next)** retention loop — good-first-issue queue from triage labels, lapse nudges driven by `current_gap_days`.
+This spec is the design reference (how and why). For current status and what's left to build — in priority order — see [Leaderboard Rollout — Backlog & Caveats](leaderboard-rollout.md).

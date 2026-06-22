@@ -13,6 +13,7 @@ use App\Services\GitHub\GitHubInteractionService;
 use App\Services\GitHub\GitHubIssueService;
 use App\Services\GitHub\GitHubSyncer;
 use App\Services\Search\OpenSearchService;
+use Illuminate\Support\Facades\Log;
 use RuntimeException;
 use Tests\TestCase;
 
@@ -22,6 +23,7 @@ class SyncGitHubEventsTest extends TestCase
     {
         parent::setUp();
         config()->set('github.repo', 'owner/repo');
+        Log::spy();
     }
 
     public function test_invalid_since_returns_error_and_exits_with_code_1(): void

@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Console\Commands;
 
 use App\Console\Commands\Concerns\SyncsWithGitHub;
+use App\Exceptions\InvalidSyncCutoffException;
 use App\Services\GitHub\GitHubInteractionService;
 use App\Services\GitHub\GitHubIssueService;
 use App\Services\GitHub\GitHubSyncer;
@@ -55,9 +56,11 @@ class SyncGitHubEvents extends Command implements Isolatable
             $maxPages = (int) $maxPagesOption;
         }
 
-        $cutoff = $this->parseCutoff('Filtering events for issues updated since');
+        try {
+            $cutoff = $this->parseCutoff('Filtering events for issues updated since');
+        } catch (InvalidSyncCutoffException $e) {
+            $this->error($e->getMessage());
 
-        if ($cutoff === false) {
             return 1;
         }
 

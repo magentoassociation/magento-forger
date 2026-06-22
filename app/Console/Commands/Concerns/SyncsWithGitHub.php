@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Console\Commands\Concerns;
 
 use App\Exceptions\GitHubGraphQLException;
+use App\Exceptions\InvalidSyncCutoffException;
 use Carbon\Carbon;
 use Closure;
 use Throwable;
@@ -37,9 +38,11 @@ trait SyncsWithGitHub
     /**
      * Parses the --since option into a Carbon cutoff.
      *
-     * @return Carbon|false|null Carbon on success, null when --since not given, false when invalid (caller returns 1)
+     * @return Carbon|null Carbon on success, null when --since was not given.
+     *
+     * @throws InvalidSyncCutoffException when --since is present but cannot be parsed.
      */
-    protected function parseCutoff(string $filteringLabel): Carbon|false|null
+    protected function parseCutoff(string $filteringLabel): ?Carbon
     {
         $since = $this->option('since');
 
@@ -51,10 +54,8 @@ trait SyncsWithGitHub
 
         try {
             $cutoff = Carbon::parse($since);
-        } catch (Throwable) {
-            $this->error("Invalid date format for --since option: $since");
-
-            return false;
+        } catch (Throwable $e) {
+            throw new InvalidSyncCutoffException("Invalid date format for --since option: $since", 0, $e);
         }
 
         $this->info($filteringLabel.': '.$cutoff->toDateTimeString());

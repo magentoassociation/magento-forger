@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Console\Commands;
 
 use App\Console\Commands\Concerns\SyncsWithGitHub;
+use App\Exceptions\InvalidSyncCutoffException;
 use App\Services\GitHub\GitHubPullRequestService;
 use App\Services\GitHub\GitHubSyncer;
 use App\Services\Search\OpenSearchService;
@@ -35,9 +36,11 @@ class SyncGitHubPRs extends Command implements Isolatable
 
         [$owner, $name] = $parts;
         $cursor = $this->option('cursor');
-        $cutoff = $this->parseCutoff('Filtering PRs updated since');
+        try {
+            $cutoff = $this->parseCutoff('Filtering PRs updated since');
+        } catch (InvalidSyncCutoffException $e) {
+            $this->error($e->getMessage());
 
-        if ($cutoff === false) {
             return 1;
         }
 

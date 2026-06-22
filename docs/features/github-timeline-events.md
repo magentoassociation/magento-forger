@@ -107,12 +107,9 @@ Computed in the leaderboard compute job, per PR and per maintainer:
 
 The `github-events` and `github-interactions` indexes are **live** — restored and expanded with paginated comments and timeline items, sync commands (`SyncGitHubEvents`, `SyncGitHubInteractions`), and an enlarged `GitHubInteractionService`. Issue triage scoring (phase 3) extends that path; `label { name }` is now captured (see above), leaving only the scoring logic. The `github-pr-timeline` index here is PR-specific and independent of those.
 
-## Build phases
+## Status & remaining work
 
-1. **PR timeline sync** — ✅ done: `timelineItems` added to the PR query and written to `github-pr-timeline` via `OpenSearchService::indexPullRequestTimeline()`. Remaining: backfill (re-sync PRs).
-2. **Latency metrics** — compute `pending_review_at` / `claimed_at` / `first_review_at` → `github_user_stats` (Time-to-review, Responsiveness).
-3. **Label/triage scoring** — ✅ `label_name` now captured and persisted. Remaining: score label application (scored event #9 in the scoring spec) and "issues triaged"; add a keyword mapping for `label_name` if exact-match label filtering is required.
-4. **UI** — surface Time-to-review on maintainer views; expose Time-to-claim as a project-health (not ranked) stat.
+This spec is the design reference (how and why). For current status and what's left to build, see [Leaderboard Rollout — Backlog & Caveats](leaderboard-rollout.md).
 
 ## Testing (per CLAUDE.md)
 
