@@ -165,6 +165,7 @@ class GitHubInteractionService
                 'type' => strtolower(str_replace('Event', '', $event['__typename'])),
                 'actor' => $event['actor']['login'] ?? 'unknown',
                 'created_at' => $event['createdAt'],
+                'label' => $event['label']['name'] ?? null,
             ];
         }
 
@@ -236,6 +237,7 @@ class GitHubInteractionService
                 'author' => $event['actor']['login'] ?? 'unknown',
                 'type' => strtolower(str_replace('Event', '', $event['__typename'])),
                 'date' => $event['createdAt'],
+                'label' => $event['label']['name'] ?? null,
             ];
         }
 

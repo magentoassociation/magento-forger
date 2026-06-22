@@ -1,4 +1,5 @@
 <?php
+
 /*
  * @copyright Copyright (c) 2026 The Magento Association
  * @license https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
@@ -37,8 +38,8 @@ class GitHubPullRequestServiceTest extends TestCase
             new Response(200, [], json_encode([
                 'data' => [
                     'repository' => [
-                        'pullRequests'       => ['totalCount' => 20],
-                        'openPullRequests'   => ['totalCount' => 5],
+                        'pullRequests' => ['totalCount' => 20],
+                        'openPullRequests' => ['totalCount' => 5],
                         'mergedPullRequests' => ['totalCount' => 10],
                         'closedPullRequests' => ['totalCount' => 5],
                     ],
@@ -99,10 +100,10 @@ class GitHubPullRequestServiceTest extends TestCase
         $mock = new MockHandler([
             new Response(200, [], json_encode([
                 'data' => [
-                    'rateLimit'  => ['remaining' => 4800],
+                    'rateLimit' => ['remaining' => 4800],
                     'repository' => [
                         'pullRequests' => [
-                            'nodes'    => $nodes,
+                            'nodes' => $nodes,
                             'pageInfo' => ['hasNextPage' => false, 'endCursor' => null],
                         ],
                     ],
@@ -125,7 +126,7 @@ class GitHubPullRequestServiceTest extends TestCase
                 'data' => [
                     'repository' => [
                         'pullRequests' => [
-                            'nodes'    => [],
+                            'nodes' => [],
                             'pageInfo' => ['hasNextPage' => false, 'endCursor' => null],
                         ],
                     ],
@@ -148,7 +149,7 @@ class GitHubPullRequestServiceTest extends TestCase
                 'data' => [
                     'repository' => [
                         'pullRequests' => [
-                            'nodes'    => $nodes,
+                            'nodes' => $nodes,
                             'pageInfo' => ['hasNextPage' => false, 'endCursor' => 'end-cursor'],
                         ],
                     ],
@@ -188,5 +189,120 @@ class GitHubPullRequestServiceTest extends TestCase
         ]);
 
         $this->createService($mock)->fetchPullRequests('owner', 'repo');
+    }
+
+    // -------------------------------------------------------------------------
+    // expandTimelineItems
+    // -------------------------------------------------------------------------
+
+    public function test_expand_timeline_items_returns_pr_unchanged_when_no_next_page(): void
+    {
+        $pr = [
+            'number' => 42,
+            'timelineItems' => [
+                'pageInfo' => ['hasNextPage' => false, 'endCursor' => null],
+                'nodes' => [['id' => 'event-1', '__typename' => 'LabeledEvent']],
+            ],
+        ];
+
+        $mock = new MockHandler([]);
+        $result = $this->createService($mock)->expandTimelineItems($pr, 'owner', 'repo');
+
+        $this->assertSame($pr, $result);
+    }
+
+    public function test_expand_timeline_items_fetches_additional_pages_and_merges_nodes(): void
+    {
+        $pr = [
+            'number' => 42,
+            'timelineItems' => [
+                'pageInfo' => ['hasNextPage' => true, 'endCursor' => 'cursor-1'],
+                'nodes' => [['id' => 'event-1', '__typename' => 'LabeledEvent']],
+            ],
+        ];
+
+        $mock = new MockHandler([
+            new Response(200, [], json_encode([
+                'data' => [
+                    'repository' => [
+                        'pullRequest' => [
+                            'timelineItems' => [
+                                'pageInfo' => ['hasNextPage' => false, 'endCursor' => null],
+                                'nodes' => [['id' => 'event-2', '__typename' => 'UnlabeledEvent']],
+                            ],
+                        ],
+                    ],
+                ],
+            ], JSON_THROW_ON_ERROR)),
+        ]);
+
+        $result = $this->createService($mock)->expandTimelineItems($pr, 'owner', 'repo');
+
+        $this->assertCount(2, $result['timelineItems']['nodes']);
+        $this->assertSame('event-1', $result['timelineItems']['nodes'][0]['id']);
+        $this->assertSame('event-2', $result['timelineItems']['nodes'][1]['id']);
+    }
+
+    public function test_expand_timeline_items_handles_multiple_extra_pages(): void
+    {
+        $pr = [
+            'number' => 42,
+            'timelineItems' => [
+                'pageInfo' => ['hasNextPage' => true, 'endCursor' => 'cursor-1'],
+                'nodes' => [['id' => 'event-1', '__typename' => 'LabeledEvent']],
+            ],
+        ];
+
+        $mock = new MockHandler([
+            new Response(200, [], json_encode([
+                'data' => [
+                    'repository' => [
+                        'pullRequest' => [
+                            'timelineItems' => [
+                                'pageInfo' => ['hasNextPage' => true, 'endCursor' => 'cursor-2'],
+                                'nodes' => [['id' => 'event-2', '__typename' => 'UnlabeledEvent']],
+                            ],
+                        ],
+                    ],
+                ],
+            ], JSON_THROW_ON_ERROR)),
+            new Response(200, [], json_encode([
+                'data' => [
+                    'repository' => [
+                        'pullRequest' => [
+                            'timelineItems' => [
+                                'pageInfo' => ['hasNextPage' => false, 'endCursor' => null],
+                                'nodes' => [['id' => 'event-3', '__typename' => 'ReviewRequestedEvent']],
+                            ],
+                        ],
+                    ],
+                ],
+            ], JSON_THROW_ON_ERROR)),
+        ]);
+
+        $result = $this->createService($mock)->expandTimelineItems($pr, 'owner', 'repo');
+
+        $this->assertCount(3, $result['timelineItems']['nodes']);
+        $this->assertSame(['event-1', 'event-2', 'event-3'], array_column($result['timelineItems']['nodes'], 'id'));
+    }
+
+    public function test_expand_timeline_items_handles_null_data_response(): void
+    {
+        $pr = [
+            'number' => 42,
+            'timelineItems' => [
+                'pageInfo' => ['hasNextPage' => true, 'endCursor' => 'cursor-1'],
+                'nodes' => [['id' => 'event-1', '__typename' => 'LabeledEvent']],
+            ],
+        ];
+
+        $mock = new MockHandler([
+            new Response(200, [], json_encode(['data' => null], JSON_THROW_ON_ERROR)),
+        ]);
+
+        $result = $this->createService($mock)->expandTimelineItems($pr, 'owner', 'repo');
+
+        $this->assertCount(1, $result['timelineItems']['nodes']);
+        $this->assertSame('event-1', $result['timelineItems']['nodes'][0]['id']);
     }
 }

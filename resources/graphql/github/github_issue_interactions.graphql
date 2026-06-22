@@ -27,10 +27,12 @@ query($owner: String!, $name: String!, $number: Int!, $commentsCursor: String, $
                         ... on LabeledEvent {
                             actor { login }
                             createdAt
+                            label { name }
                         }
                         ... on UnlabeledEvent {
                             actor { login }
                             createdAt
+                            label { name }
                         }
                     }
                 }

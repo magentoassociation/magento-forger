@@ -8,6 +8,8 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
+use App\Console\Commands\Concerns\SyncsWithGitHub;
+use App\Exceptions\InvalidSyncCutoffException;
 use App\Services\GitHub\GitHubInteractionService;
 use App\Services\GitHub\GitHubIssueService;
 use App\Services\GitHub\GitHubSyncer;
@@ -24,6 +26,8 @@ use Throwable;
  */
 class SyncGitHubInteractions extends Command implements Isolatable
 {
+    use SyncsWithGitHub;
+
     protected $signature = 'sync:github:interactions
                             {--cursor= : Optional endCursor to resume pagination}
                             {--since= : Only import issues updated since this date (e.g. "2 weeks", "5 days")}
@@ -37,48 +41,39 @@ class SyncGitHubInteractions extends Command implements Isolatable
         GitHubSyncer $syncer,
         OpenSearchService $openSearch
     ): int {
-        $repo = config('github.repo');
-
-        $parts = explode('/', (string) $repo);
-        if (count($parts) !== 2 || $parts[0] === '' || $parts[1] === '') {
-            $this->error('Missing or invalid repository. Set it in config/github.php');
-
+        if (($parts = $this->resolveRepository()) === null) {
             return 1;
         }
 
         [$owner, $name] = $parts;
         $cursor = $this->option('cursor');
-        $since = $this->option('since');
         $maxPagesOption = $this->option('max-pages');
         $maxPages = null;
+
         if ($maxPagesOption !== null) {
             if (! is_numeric($maxPagesOption) || (int) $maxPagesOption <= 0) {
                 $this->error('--max-pages must be a positive integer.');
 
                 return 1;
             }
+
             $maxPages = (int) $maxPagesOption;
         }
-        $cutoff = null;
 
-        if ($since) {
-            try {
-                $cutoff = Carbon::parse($since);
-            } catch (Throwable) {
-                $this->error("Invalid date format for --since option: $since");
+        try {
+            $cutoff = $this->parseCutoff('Filtering interactions updated since');
+        } catch (InvalidSyncCutoffException $e) {
+            $this->error($e->getMessage());
 
-                return 1;
-            }
-            $this->info('Filtering interactions updated since: '.$cutoff->toDateTimeString());
-        } else {
-            $this->info('No date filter applied');
+            return 1;
         }
 
         $totalPages = null;
+
         if ($cutoff === null) {
             try {
                 $totalCounts = $gitHubIssueService->fetchIssueCount($owner, $name);
-                $this->info("Syncing interactions for $repo. ({$totalCounts->summary()})");
+                $this->info("Syncing interactions for {$owner}/{$name}. ({$totalCounts->summary()})");
                 $totalPages = (int) ceil($totalCounts->total / 25);
                 if ($maxPages !== null) {
                     $totalPages = min($totalPages, $maxPages);
@@ -89,11 +84,10 @@ class SyncGitHubInteractions extends Command implements Isolatable
             }
         }
 
-        if ($cursor) {
-            $this->info("Resuming from cursor: $cursor");
-        }
+        $this->reportCursorResume($cursor);
 
         $pagesProcessed = 0;
+        $errorOccurred = false;
 
         $result = $syncer->sync(
             fetchPage: function (?string $c) use ($gitHubIssueService, $owner, $name, $maxPages, &$pagesProcessed) {
@@ -110,12 +104,16 @@ class SyncGitHubInteractions extends Command implements Isolatable
                 foreach ($nodes as $issue) {
                     $issueId = $issue['number'];
                     foreach ($github->fetchAllInteractionsFromIssue($issue, $owner, $name) as $interaction) {
-                        $interactions[] = [
+                        $interactionDocument = [
                             'github_account_name' => $interaction['author'] ?? 'unknown',
                             'interaction_name' => $interaction['type'],
                             'issues-id' => $issueId,
                             'interaction_date' => Carbon::parse($interaction['date'])->toIso8601String(),
                         ];
+                        if (! empty($interaction['label'])) {
+                            $interactionDocument['label_name'] = $interaction['label'];
+                        }
+                        $interactions[] = $interactionDocument;
                     }
                 }
                 if (! empty($interactions)) {
@@ -127,21 +125,16 @@ class SyncGitHubInteractions extends Command implements Isolatable
             },
             cutoff: $cutoff,
             cursor: $cursor,
-            onPage: function (int $page, ?string $c) use ($totalPages) {
-                $this->info('Page '.$page.($totalPages ? ' of '.$totalPages : '').' done. Cursor: '.$c);
-            },
-            onNode: fn ($issue) => $this->line("#{$issue['number']}: {$issue['title']} ({$issue['state']})"),
-            onError: function (Throwable $e, int $page) {
-                $this->warn("Could not fetch interactions for page $page");
-                Log::warning('GitHub interaction sync failed', ['exception' => $e]);
-            },
+            onPage: $this->makeOnPageCallback($totalPages),
+            onNode: $this->makeOnNodeCallback(),
+            onError: $this->makeOnErrorCallback(
+                $errorOccurred,
+                fn ($e, $page) => Log::warning('GitHub interaction sync failed', ['exception' => $e]),
+            ),
         );
 
-        if ($result['cutoffReached'] && $cutoff !== null) {
-            $this->info('Last issue is older than given cutoff ('.$cutoff->toDateTimeString().'), stopping sync.');
-        }
-
-        $this->info('Done syncing interactions.');
+        $this->reportCutoffReached($result, $cutoff, 'issue');
+        $this->reportDone($errorOccurred, 'Done syncing interactions.');
 
         return 0;
     }

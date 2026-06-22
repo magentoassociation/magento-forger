@@ -11,7 +11,7 @@ A dashboard and tooling application for the Magento Association to track and sur
 - [Label Management](docs/features/label-management.md) — Label views, missing-component detection, bulk spreadsheet upload
 - [Authentication](docs/features/authentication.md) — GitHub OAuth login, admin role, rate limiting
 - [Analytics](docs/features/analytics.md) — Homepage counts, issues/PRs by month, chart API, universe bar
-- [Admin Panel](docs/features/admin-panel.md) — Filament user management, GitHubStats widget
+- [Admin Panel](docs/features/admin-panel.md) — Filament user management
 
 ## Language
 
@@ -40,35 +40,34 @@ _Avoid_: contributor, member
 ### Leaderboards
 
 **Contributor Leaderboard**:
-A ranked list of the top 100 Contributors by a single contribution metric within a Calendar Period. Each metric has its own leaderboard (e.g., PRs merged, issues opened). Multiple leaderboards are shown as separate views, not combined into one table.
-_Avoid_: points leaderboard, company leaderboard
+Ranks Contributors two ways: the raw-count per-metric boards (top 100 by a single metric within a Calendar Period — e.g. PRs merged, issues opened — each its own view, kept for transparency) and a weighted **Contributor Score** that reflects impact rather than raw volume. See [ADR 0001](docs/adr/0001-contributor-leaderboard.md) and [Weighted Scoring](docs/features/leaderboard-scoring.md).
+
+**Score**:
+A weighted sum of a Contributor's (or Maintainer's) scored events, with impact weighting and a recency half-life. Contributor and Maintainer Scores are always kept separate, never merged into one number. Weights are versioned in `config/leaderboard.php`; every board row exposes its breakdown so the weighting stays transparent.
 
 **Company Leaderboard**:
-The former points-based ranking of companies. Removed in favour of Contributor Leaderboards. Do not reintroduce.
-_Avoid_: (deprecated — do not use)
+Ranks organizations by the **point-in-time** sum of their members' scores — each contribution credited to the org the contributor belonged to *when the work was done* (for a merge bonus, the PR's `created_at`). Unresolved contributors roll up to "Independent / Unknown". See [ADR 0001](docs/adr/0001-contributor-leaderboard.md).
 
 **Metric**:
-A single countable contribution signal used as the basis for one Contributor Leaderboard. Each metric filters on its own event date field (e.g., PRs merged filters on `merged_at`, not `created_at`).
-_Avoid_: score, points, stat
+A single countable contribution signal used as the basis for one raw-count Contributor Leaderboard. Each metric filters on its own event date field (e.g., PRs merged filters on `merged_at`, not `created_at`). Distinct from a Score, which combines weighted events.
 
 **Calendar Period**:
-A date range defined by calendar boundaries, not rolling windows. Presets: last month (first–last day of previous month), last quarter (Q1–Q4 of current year), last year (Jan 1–Dec 31 of previous year), or a custom from/to range.
-_Avoid_: rolling window, time window
+A date range defined by calendar boundaries. Presets: last month (first–last day of previous month), last quarter (Q1–Q4 of current year), last year (Jan 1–Dec 31 of previous year), or a custom from/to range. Used by the raw-count boards and the period-scoped Score views. The Score also has a default **rolling-12-month** window with decay (see Score), used by the Recently active and Rising segments.
 
 **Maintainer Leaderboard**:
-A set of Contributor Leaderboards for review-based metrics: PRs approved (review state `APPROVED`) and PRs rejected (review state `CHANGES_REQUESTED`). Sourced from the `github-pr-reviews` index, one document per review, upserted by GitHub review node ID. Populated as a side effect of the PR sync. See [Maintainer Leaderboards](docs/features/maintainer-leaderboards.md).
+Ranks Maintainers by review activity — both raw-count boards (PRs approved = review state `APPROVED`, PRs rejected = `CHANGES_REQUESTED`, sourced from the `github-pr-reviews` index) and a weighted **Maintainer Score** that adds an impact-weighted bonus when an approved PR is later merged. Review latency and label/triage scoring are deferred pending a timeline-events index. See [ADR 0002](docs/adr/0002-maintainer-leaderboard.md) and [Maintainer Leaderboards](docs/features/maintainer-leaderboards.md).
 
 ---
 
 ## Example dialogue
 
-> **Dev**: Should I show the "unclaimed" contributors on the leaderboard like the old points view did?
+> **Dev**: Should I show contributors without a linked User account on the leaderboard?
 >
-> **Domain expert**: No — Contributor Leaderboards show all Contributors, including those without a linked User account. Just leave the company column blank if there's no match. "Unclaimed" was a points-system concept.
+> **Domain expert**: Yes — the raw-count boards show all Contributors. Leave the company column blank if there's no match. On the Company Leaderboard, contributors whose org can't be resolved roll up to "Independent / Unknown" rather than being hidden.
 >
-> **Dev**: What if someone wants to see totals across all metrics for a Contributor?
+> **Dev**: What if someone wants a single total across all metrics for a Contributor?
 >
-> **Domain expert**: That's not what Contributor Leaderboards are. Each leaderboard answers one question: "who merged the most PRs?" Combining metrics into a total score is what the old points system did — we moved away from that.
+> **Domain expert**: That's the Score — a weighted, impact-aware sum, separate from the raw-count boards. Keep the per-metric boards too; they answer "who merged the most PRs?" transparently, and the Score row links back to that breakdown. The Contributor Score and Maintainer Score stay separate from each other.
 >
 > **Dev**: The `engcom-` accounts are creating hundreds of issues. Should they count?
 >

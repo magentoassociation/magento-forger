@@ -1,6 +1,6 @@
 # GitHub Timeline-Events Sync
 
-> **Status:** Build spec. Prerequisite for three features deferred in [Weighted Scoring](leaderboard-scoring.md): **review latency**, **maintainer responsiveness**, and **label / triage scoring**. Until this lands, those use review submissions only.
+> **Status:** Partially implemented. The PR timeline sync (`github-pr-timeline` index) and issue `label { name }` capture are built; the derived latency metrics and the scoring compute are not. Prerequisite for three features deferred in [Weighted Scoring](leaderboard-scoring.md): **review latency**, **maintainer responsiveness**, and **label / triage scoring**.
 
 ## Why
 
@@ -16,16 +16,16 @@ None of steps 1–2 are captured today.
 
 | Need | Current state |
 |---|---|
-| When `Progress: pending review` was applied | ⛔ PR query has no `timelineItems`; only a current `labels[]` snapshot |
-| When a maintainer self-assigned as reviewer | ⛔ not captured anywhere |
-| Which label a `LabeledEvent` was for | ⛔ `github_issues_with_events.graphql` fetches `LabeledEvent` but omits `label { name }` |
+| When `Progress: pending review` was applied | ✅ PR `timelineItems` → `github-pr-timeline` (`label_name`) |
+| When a maintainer self-assigned as reviewer | ✅ `ReviewRequestedEvent` → `github-pr-timeline` (`requested_reviewer`) |
+| Which label a `LabeledEvent` was for | ✅ `label { name }` now captured in all four issue queries and persisted as `label_name` |
 | When a maintainer first reviewed | ✅ `github-pr-reviews.submitted_at` (exists) |
 
 ## GraphQL additions
 
-### `github_pull_requests.graphql` — add a filtered timeline
+### `github_pull_requests.graphql` — filtered timeline (implemented)
 
-Add `timelineItems` to the PR node, scoped to only the event types we score (keep it narrow — magento2 timelines are long and node cost / secondary rate limits are real):
+`timelineItems` is now on the PR node, scoped to only the event types we score (kept narrow — magento2 timelines are long and node cost / secondary rate limits are real):
 
 ```graphql
 timelineItems(first: 100, itemTypes: [
@@ -42,11 +42,18 @@ timelineItems(first: 100, itemTypes: [
 }
 ```
 
-Note `id` on every node (used as the OpenSearch `_id`, same upsert pattern as reviews) and `label { name }` (the existing issue query's missing piece).
+Note `id` on every node (used as the OpenSearch `_id`, same upsert pattern as reviews) and `label { name }` (the existing issue query's missing piece). `OpenSearchService::indexPullRequestTimeline()` writes these to `github-pr-timeline` as a side effect of the PR sync; the `type` field stores the GraphQL `__typename` (`LabeledEvent`, `UnlabeledEvent`, `ReviewRequestedEvent`, `ReviewRequestRemovedEvent`).
 
-### `github_issues_with_events.graphql` — add label name
+### Issue queries — label name (done)
 
-If issue triage scoring is wanted, add `label { name }` to its `LabeledEvent`/`UnlabeledEvent` fragments. Without it the event is unattributable to a specific label.
+`label { name }` is now captured on the `LabeledEvent`/`UnlabeledEvent` fragments in all four issue queries:
+
+- `resources/graphql/github/github_issue_timeline_items.graphql`
+- `resources/graphql/github/github_issues_with_events.graphql`
+- `resources/graphql/github/github_issue_interactions.graphql`
+- `resources/graphql/github/github_issues_with_interactions.graphql`
+
+`GitHubInteractionService` surfaces it as a `label` key on each event/interaction record (null for non-label events), and `SyncGitHubEvents` / `SyncGitHubInteractions` write it as `label_name` on the `github-events` / `github-interactions` documents (only when present). What remains for triage scoring is the scoring logic itself, plus a keyword mapping if exact-match filtering on label strings is needed (see below). These four queries still overlap heavily; worth consolidating later.
 
 ### Confirmed
 
@@ -65,7 +72,7 @@ One document per timeline event, upserted by GitHub event node `id` (mirrors `in
 ```json
 {
   "pr_number": 12345,
-  "type": "LABELED_EVENT",
+  "type": "LabeledEvent",
   "actor": "adobe-bot-or-user",
   "created_at": "2026-01-15T10:00:00Z",
   "label_name": "Progress: pending review",   // null for review-request events
@@ -81,8 +88,8 @@ Computed in the leaderboard compute job, per PR and per maintainer:
 
 | Metric | Definition | Attribution |
 |---|---|---|
-| `pending_review_at` | `created_at` of the most recent `LABELED_EVENT` with `label_name = Progress: pending review` **preceding** the maintainer's claim | per PR |
-| `claimed_at` | `created_at` of the `REVIEW_REQUESTED_EVENT` where `requested_reviewer = maintainer` (self-assign: `actor == requested_reviewer`) | per maintainer |
+| `pending_review_at` | `created_at` of the most recent `LabeledEvent` with `label_name = Progress: pending review` **preceding** the maintainer's claim | per PR |
+| `claimed_at` | `created_at` of the `ReviewRequestedEvent` where `requested_reviewer = maintainer` (self-assign: `actor == requested_reviewer`) | per maintainer |
 | `first_review_at` | min `submitted_at` in `github-pr-reviews` for that maintainer on that PR | per maintainer |
 | **Time-to-claim** | `claimed_at − pending_review_at` | **project/backlog health — NOT a maintainer board** |
 | **Time-to-review** | `first_review_at − claimed_at` | per-maintainer responsiveness (the only span they control) |
@@ -91,21 +98,18 @@ Computed in the leaderboard compute job, per PR and per maintainer:
 ## Edge cases
 
 - **Label removed & re-applied** → multiple `pending_review_at`; use the most recent one before the maintainer's claim.
-- **Reviewer requested, removed, re-requested** → use the first claim that precedes the maintainer's first review; ignore `REVIEW_REQUEST_REMOVED_EVENT` except to detect churn.
+- **Reviewer requested, removed, re-requested** → use the first claim that precedes the maintainer's first review; ignore `ReviewRequestRemovedEvent` except to detect churn.
 - **Reviewed without a recorded self-assign** (data gaps, pre-timeline PRs) → `claimed_at` null → exclude from Time-to-review rather than charging queue time to the reviewer.
 - **Multiple maintainers on one PR** → each gets their own `claimed_at` / `first_review_at`; metrics are per maintainer.
 - **Bot actors** (`engcom-*`, `dependabot[bot]`, `github-actions[bot]`, `m2-assistant`) excluded, same as elsewhere.
 
 ## Relationship to the events / interactions indexes
 
-The `github-events` and `github-interactions` indexes and `github_issues_with_events.graphql` are **live** (restored). Issue triage scoring (phase 3) extends that existing path — it needs `label { name }` added to the `LabeledEvent`/`UnlabeledEvent` fragments. The `github-pr-timeline` index here is PR-specific and independent of those.
+The `github-events` and `github-interactions` indexes are **live** — restored and expanded with paginated comments and timeline items, sync commands (`SyncGitHubEvents`, `SyncGitHubInteractions`), and an enlarged `GitHubInteractionService`. Issue triage scoring (phase 3) extends that path; `label { name }` is now captured (see above), leaving only the scoring logic. The `github-pr-timeline` index here is PR-specific and independent of those.
 
-## Build phases
+## Status & remaining work
 
-1. **PR timeline sync** — add `timelineItems` to the PR query, write `github-pr-timeline` in the PR indexer; backfill.
-2. **Latency metrics** — compute `pending_review_at` / `claimed_at` / `first_review_at` → `github_user_stats` (Time-to-review, Responsiveness).
-3. **Label/triage scoring** — add `label { name }` to the issue events query; score label application (scored event #9 in the scoring spec) and "issues triaged".
-4. **UI** — surface Time-to-review on maintainer views; expose Time-to-claim as a project-health (not ranked) stat.
+This spec is the design reference (how and why). For current status and what's left to build, see [Leaderboard Rollout — Backlog & Caveats](leaderboard-rollout.md).
 
 ## Testing (per CLAUDE.md)
 

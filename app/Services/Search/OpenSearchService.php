@@ -19,6 +19,8 @@ class OpenSearchService
 
     public const OPENSEARCH_GITHUB_PR_REVIEWS_INDEX = 'github-pr-reviews';
 
+    public const OPENSEARCH_GITHUB_PR_TIMELINE_INDEX = 'github-pr-timeline';
+
     public const OPENSEARCH_GITHUB_INTERACTIONS_INDEX = 'github-interactions';
 
     public const OPENSEARCH_GITHUB_EVENTS_INDEX = 'github-events';
@@ -84,6 +86,55 @@ class OpenSearchService
         $this->client->bulk(['body' => $body]);
         $this->flagIssuesClosedByMergedPRs($pullRequests);
         $this->indexPullRequestReviews($pullRequests);
+        $this->indexPullRequestTimeline($pullRequests);
+    }
+
+    protected function indexPullRequestTimeline(array $pullRequests): void
+    {
+        $indexName = self::getIndexWithPrefix(self::OPENSEARCH_GITHUB_PR_TIMELINE_INDEX);
+        $body = [];
+
+        foreach ($pullRequests as $pr) {
+            foreach ($this->toPullRequestTimelineDocuments($pr) as $document) {
+                $body[] = ['index' => ['_index' => $indexName, '_id' => $document['id']]];
+                $body[] = $document['body'];
+            }
+        }
+
+        if (! empty($body)) {
+            $this->client->bulk(['body' => $body]);
+        }
+    }
+
+    /**
+     * Map a pull request's timeline nodes into upsertable documents keyed by GitHub node ID.
+     *
+     * @param  array<string, mixed>  $pr
+     * @return list<array{id: string, body: array<string, mixed>}>
+     */
+    protected function toPullRequestTimelineDocuments(array $pr): array
+    {
+        $documents = [];
+
+        foreach ($pr['timelineItems']['nodes'] ?? [] as $event) {
+            if (empty($event['id'])) {
+                continue;
+            }
+
+            $documents[] = [
+                'id' => $event['id'],
+                'body' => [
+                    'pr_number' => $pr['number'] ?? null,
+                    'type' => $event['__typename'] ?? null,
+                    'actor' => $event['actor']['login'] ?? null,
+                    'created_at' => $event['createdAt'] ?? null,
+                    'label_name' => $event['label']['name'] ?? null,
+                    'requested_reviewer' => $event['requestedReviewer']['login'] ?? null,
+                ],
+            ];
+        }
+
+        return $documents;
     }
 
     protected function indexPullRequestReviews(array $pullRequests): void
@@ -147,6 +198,10 @@ class OpenSearchService
             'merged_at' => $pr['mergedAt'] ?? null,
             'closed_at' => $pr['closedAt'] ?? null,
             'author' => $pr['author']['login'] ?? null,
+            'author_company' => $pr['author']['company'] ?? null,
+            'additions' => $pr['additions'] ?? null,
+            'deletions' => $pr['deletions'] ?? null,
+            'changed_files' => $pr['changedFiles'] ?? null,
             'comments_count' => $pr['comments']['totalCount'] ?? 0,
             'reviews_count' => $pr['reviews']['totalCount'] ?? 0,
         ];
@@ -183,6 +238,7 @@ class OpenSearchService
             'updated_at' => $issue['updatedAt'],
             'closed_at' => $issue['closedAt'] ?? null,
             'author' => $issue['author']['login'] ?? null,
+            'author_company' => $issue['author']['company'] ?? null,
             'comments_count' => $issue['comments']['totalCount'] ?? 0,
         ];
 

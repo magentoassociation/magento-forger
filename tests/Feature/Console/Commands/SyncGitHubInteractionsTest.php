@@ -8,10 +8,13 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Console\Commands;
 
+use App\Exceptions\GitHubGraphQLException;
 use App\Services\GitHub\GitHubInteractionService;
 use App\Services\GitHub\GitHubIssueService;
 use App\Services\GitHub\GitHubSyncer;
 use App\Services\Search\OpenSearchService;
+use Illuminate\Support\Facades\Log;
+use RuntimeException;
 use Tests\TestCase;
 
 class SyncGitHubInteractionsTest extends TestCase
@@ -20,6 +23,7 @@ class SyncGitHubInteractionsTest extends TestCase
     {
         parent::setUp();
         config()->set('github.repo', 'owner/repo');
+        Log::spy();
     }
 
     public function test_invalid_since_returns_error_and_exits_with_code_1(): void
@@ -95,6 +99,55 @@ class SyncGitHubInteractionsTest extends TestCase
         $this->artisan('sync:github:interactions', ['--since' => '1 week ago'])
             ->assertExitCode(0)
             ->expectsOutputToContain('Last issue is older than given cutoff');
+    }
+
+    public function test_successful_sync_shows_done_message(): void
+    {
+        $this->mockSyncerReturnsEmpty();
+
+        $this->artisan('sync:github:interactions')
+            ->assertExitCode(0)
+            ->expectsOutputToContain('Done syncing interactions.');
+    }
+
+    public function test_page_error_shows_error_message_and_suppresses_done_message(): void
+    {
+        $this->mock(GitHubInteractionService::class);
+        $this->mock(GitHubIssueService::class);
+        $this->mock(OpenSearchService::class);
+        $this->mock(GitHubSyncer::class)
+            ->shouldReceive('sync')
+            ->andReturnUsing(function (callable $fetchPage, callable $index, $cutoff, $cursor, $onPage, $onNode, $onError) {
+                $onError(new RuntimeException('Connection refused'), 3);
+
+                return ['pages' => 3, 'cutoffReached' => false];
+            });
+
+        $this->artisan('sync:github:interactions')
+            ->assertExitCode(0)
+            ->expectsOutputToContain('Page 3 failed: Connection refused')
+            ->doesntExpectOutputToContain('Done syncing interactions.');
+    }
+
+    public function test_graphql_error_shows_individual_errors(): void
+    {
+        $this->mock(GitHubInteractionService::class);
+        $this->mock(GitHubIssueService::class);
+        $this->mock(OpenSearchService::class);
+        $this->mock(GitHubSyncer::class)
+            ->shouldReceive('sync')
+            ->andReturnUsing(function (callable $fetchPage, callable $index, $cutoff, $cursor, $onPage, $onNode, $onError) {
+                $onError(new GitHubGraphQLException('GitHub GraphQL API error', [
+                    'errors' => [['message' => 'Could not resolve to a Repository']],
+                ]), 2);
+
+                return ['pages' => 2, 'cutoffReached' => false];
+            });
+
+        $this->artisan('sync:github:interactions')
+            ->assertExitCode(0)
+            ->expectsOutputToContain('Page 2 failed: GitHub GraphQL API error')
+            ->expectsOutputToContain('GraphQL error: Could not resolve to a Repository');
     }
 
     private function mockSyncerReturnsEmpty(): void
