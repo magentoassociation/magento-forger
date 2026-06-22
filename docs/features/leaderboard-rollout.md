@@ -8,17 +8,31 @@ Living checklist for the weighted contributor/maintainer leaderboard. Source-of-
 
 ## Outstanding work
 
-- [ ] **`assignRanks` test** — sqlite-backed feature test for `ComputeLeaderboardScores::assignRanks()`: seed `leaderboard_entries` with known per-board scores, run ranking, assert order, `id` tiebreak, and per-board partitioning (contributor vs maintainer independent). The batch-upsert path currently has no automated coverage.
+### Scoring & metrics
+
 - [ ] **`approved_then_merged` maintainer bonus** — needs a review→PR-merge join (review in window, PR merged any time).
 - [ ] **Review latency / responsiveness** — compute `pending_review_at` / `claimed_at` / `first_review_at` from `github-pr-timeline` into `github_user_stats`. Time-to-claim is backlog health (not a maintainer board); Time-to-review is per maintainer.
 - [ ] **Label / triage scoring** — `label_name` is captured; scoring logic (scored event #9, "issues triaged") not built.
-- [ ] **Company rollup** — create `organizations` / `user_org_memberships` tables, point-in-time resolution pipeline, and the company board.
-- [ ] **Score boards UI** — contributor / maintainer / company boards (controllers + Blade), with per-row breakdown expansion.
-- [ ] **Segmented boards** — New contributor spotlight, Rising, Recently active; all-time as opt-in only.
-- [ ] **Retention loop** — good-first-issue queue from triage labels; lapse nudges driven by `current_gap_days`.
-- [ ] **Schedule `leaderboard:compute`** — add to `routes/console.php` (e.g. hourly); relies on `schedule:run`.
 - [ ] **All-time `first_contribution_at`** — currently "first within the rolling window"; add an all-time min pass if true first-contribution is needed.
 - [ ] **(Optional) Action enum** — action strings (`pr_opened`, `review_approved`, …) are bare strings; a typo silently scores 0. `Board` is already enum-safe; actions could follow.
+
+### Company attribution
+
+- [ ] **Company rollup** — create `organizations` / `user_org_memberships` tables, point-in-time resolution pipeline, and the company board.
+
+### UI & surfacing
+
+- [ ] **Score boards UI** — contributor / maintainer / company boards (controllers + Blade), with per-row breakdown expansion.
+- [ ] **Segmented boards** — New contributor spotlight, Rising, Recently active; all-time as opt-in only.
+
+### Retention
+
+- [ ] **Retention loop** — good-first-issue queue from triage labels; lapse nudges driven by `current_gap_days`.
+
+### Hardening & operations
+
+- [ ] **`assignRanks` test** — sqlite-backed feature test for `ComputeLeaderboardScores::assignRanks()`: seed `leaderboard_entries` with known per-board scores, run ranking, assert order, `id` tiebreak, and per-board partitioning (contributor vs maintainer independent). The batch-upsert path currently has no automated coverage.
+- [ ] **Schedule `leaderboard:compute`** — add to `routes/console.php` (e.g. hourly); relies on `schedule:run`.
 - [ ] **(Scale) Chunk the rank upsert** — `assignRanks` builds one upsert per board; chunk at tens of thousands of rows.
 
 ## Pre-ship verification

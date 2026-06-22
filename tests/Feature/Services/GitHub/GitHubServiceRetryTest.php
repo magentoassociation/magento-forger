@@ -27,6 +27,7 @@ class GitHubServiceRetryTest extends TestCase
             new GitHubConnection(
                 graphQlHandler: HandlerStack::create($mock),
                 retryDelayOverride: $retryDelay ?? fn () => 0,
+                nonJsonRetryDelay: fn (int $ms) => null,
             )
         );
     }
@@ -154,6 +155,42 @@ class GitHubServiceRetryTest extends TestCase
         $result = $service->fetchIssues('laravel', 'framework');
 
         $this->assertIsArray($result);
+    }
+
+    public function test_retries_on_non_json_200_and_succeeds(): void
+    {
+        $successBody = json_encode([
+            'data' => [
+                'rateLimit' => ['remaining' => 5000, 'resetAt' => date('c', time() + 3600)],
+                'repository' => ['issues' => ['nodes' => [], 'pageInfo' => []]],
+            ],
+        ], JSON_THROW_ON_ERROR);
+
+        $mock = new MockHandler([
+            new Response(200, [], '<html>Bad Gateway</html>'),
+            new Response(200, [], $successBody),
+        ]);
+
+        $service = $this->createServiceWithMockHandler($mock);
+        $result = $service->fetchIssues('laravel', 'framework');
+
+        $this->assertIsArray($result);
+        $this->assertArrayHasKey('nodes', $result);
+    }
+
+    public function test_throws_json_exception_after_max_non_json_retries(): void
+    {
+        $this->expectException(\JsonException::class);
+
+        $mock = new MockHandler([
+            new Response(200, [], '<html>error</html>'),
+            new Response(200, [], '<html>error</html>'),
+            new Response(200, [], '<html>error</html>'),
+            new Response(200, [], '<html>error</html>'),
+        ]);
+
+        $service = $this->createServiceWithMockHandler($mock);
+        $service->fetchIssues('laravel', 'framework');
     }
 
     public function test_successful_request_without_retries(): void

@@ -31,6 +31,7 @@ class GitHubConnection
         ?HandlerStack $graphQlHandler = null,
         private readonly int $maxRetries = 3,
         private readonly ?\Closure $retryDelayOverride = null,
+        private readonly ?\Closure $nonJsonRetryDelay = null,
     ) {
         $token = null;
 
@@ -48,29 +49,43 @@ class GitHubConnection
      */
     public function executeGraphQL(string $query, array $variables = [], array $options = []): ?array
     {
-        $response = $this->graphQlClient->post('', [
+        $payload = [
             'json' => [
                 'query' => $query,
                 'variables' => $variables,
             ],
             'timeout' => $options['timeout'] ?? 60,
             'connect_timeout' => $options['connect_timeout'] ?? 10,
-        ]);
+        ];
 
-        $body = $response->getBody()->getContents();
+        $attempt = 0;
+        $json = null;
 
-        try {
-            $json = json_decode($body, true, 512, JSON_THROW_ON_ERROR);
-        } catch (JsonException $e) {
-            throw new JsonException(
-                sprintf(
-                    'GitHub returned non-JSON (HTTP %d): %s',
-                    $response->getStatusCode(),
-                    mb_substr($body, 0, 500),
-                ),
-                $e->getCode(),
-                $e,
-            );
+        while (true) {
+            $attempt++;
+            $response = $this->graphQlClient->post('', $payload);
+            $body = $response->getBody()->getContents();
+
+            try {
+                $json = json_decode($body, true, 512, JSON_THROW_ON_ERROR);
+                break;
+            } catch (JsonException $e) {
+                if ($attempt > $this->maxRetries) {
+                    throw new JsonException(
+                        sprintf(
+                            'GitHub returned non-JSON (HTTP %d): %s',
+                            $response->getStatusCode(),
+                            mb_substr($body, 0, 500),
+                        ),
+                        $e->getCode(),
+                        $e,
+                    );
+                }
+
+                $delayMs = (2 ** $attempt) * 1000;
+                Log::warning("GitHub returned non-JSON on attempt {$attempt}, retrying in {$delayMs}ms...");
+                ($this->nonJsonRetryDelay ?? fn (int $ms) => usleep($ms * 1000))($delayMs);
+            }
         }
 
         $this->handleRateLimit($json);
