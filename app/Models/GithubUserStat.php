@@ -28,6 +28,7 @@ class GithubUserStat extends Model
             'median_time_to_review_hours' => 'float',
             'median_time_to_claim_days' => 'float',
             'reviews_in_window' => 'integer',
+            'returned_after_days' => 'integer',
             'contributor_score' => 'float',
             'maintainer_score' => 'float',
             'contributor_score_prev' => 'float',

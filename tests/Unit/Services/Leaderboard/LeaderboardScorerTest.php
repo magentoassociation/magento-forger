@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services\Leaderboard;
 
+use App\DataTransferObjects\Leaderboard\Action;
 use App\DataTransferObjects\Leaderboard\Board;
 use App\DataTransferObjects\Leaderboard\ScoredEvent;
 use App\Services\Leaderboard\LeaderboardScorer;
@@ -33,7 +34,7 @@ class LeaderboardScorerTest extends TestCase
     public function test_points_apply_weight_with_full_recency_for_today(): void
     {
         $now = Carbon::parse('2026-06-01T00:00:00Z');
-        $event = new ScoredEvent('jane', Board::CONTRIBUTOR, 'pr_opened', $now);
+        $event = new ScoredEvent('jane', Board::CONTRIBUTOR, Action::PR_OPENED, $now);
 
         $this->assertSame(3.0, $this->scorer()->points($event, $now));
     }
@@ -41,7 +42,7 @@ class LeaderboardScorerTest extends TestCase
     public function test_approved_then_merged_bonus_applies_impact(): void
     {
         $now = Carbon::parse('2026-06-01T00:00:00Z');
-        $event = new ScoredEvent('maintainer1', Board::MAINTAINER, 'approved_then_merged', $now, 2.0);
+        $event = new ScoredEvent('maintainer1', Board::MAINTAINER, Action::APPROVED_THEN_MERGED, $now, 2.0);
 
         // base 6 × impact 2.0 × full recency 1.0
         $this->assertSame(12.0, $this->scorer()->points($event, $now));
@@ -50,7 +51,7 @@ class LeaderboardScorerTest extends TestCase
     public function test_unknown_action_scores_zero(): void
     {
         $now = Carbon::parse('2026-06-01T00:00:00Z');
-        $event = new ScoredEvent('jane', Board::CONTRIBUTOR, 'mystery', $now);
+        $event = new ScoredEvent('jane', Board::CONTRIBUTOR, Action::ISSUE_OPENED, $now);
 
         $this->assertSame(0.0, $this->scorer()->points($event, $now));
     }
@@ -94,8 +95,8 @@ class LeaderboardScorerTest extends TestCase
     {
         $now = Carbon::parse('2026-06-01T00:00:00Z');
         $summary = $this->scorer()->summarize([
-            new ScoredEvent('jane', Board::CONTRIBUTOR, 'pr_opened', $now),
-            new ScoredEvent('jane', Board::MAINTAINER, 'review_approved', $now),
+            new ScoredEvent('jane', Board::CONTRIBUTOR, Action::PR_OPENED, $now),
+            new ScoredEvent('jane', Board::MAINTAINER, Action::REVIEW_APPROVED, $now),
         ], $now);
 
         $this->assertSame(3.0, $summary['jane']['contributor_score']);
@@ -108,9 +109,9 @@ class LeaderboardScorerTest extends TestCase
     {
         $now = Carbon::parse('2026-06-01T00:00:00Z');
         $summary = $this->scorer()->summarize([
-            new ScoredEvent('jane', Board::CONTRIBUTOR, 'pr_opened', $now),
-            new ScoredEvent('jane', Board::CONTRIBUTOR, 'pr_opened', $now->copy()->subWeeks(1)),
-            new ScoredEvent('jane', Board::CONTRIBUTOR, 'pr_opened', $now->copy()->subWeeks(2)),
+            new ScoredEvent('jane', Board::CONTRIBUTOR, Action::PR_OPENED, $now),
+            new ScoredEvent('jane', Board::CONTRIBUTOR, Action::PR_OPENED, $now->copy()->subWeeks(1)),
+            new ScoredEvent('jane', Board::CONTRIBUTOR, Action::PR_OPENED, $now->copy()->subWeeks(2)),
         ], $now);
 
         $this->assertSame(3, $summary['jane']['current_streak_weeks']);
@@ -123,8 +124,8 @@ class LeaderboardScorerTest extends TestCase
     {
         $now = Carbon::parse('2026-06-01T00:00:00Z');
         $summary = $this->scorer()->summarize([
-            new ScoredEvent('rip', Board::CONTRIBUTOR, 'pr_opened', $now->copy()->subWeeks(26)),
-            new ScoredEvent('rip', Board::CONTRIBUTOR, 'pr_opened', $now->copy()->subWeeks(27)),
+            new ScoredEvent('rip', Board::CONTRIBUTOR, Action::PR_OPENED, $now->copy()->subWeeks(26)),
+            new ScoredEvent('rip', Board::CONTRIBUTOR, Action::PR_OPENED, $now->copy()->subWeeks(27)),
         ], $now);
 
         $this->assertSame(0, $summary['rip']['current_streak_weeks']);
@@ -135,7 +136,7 @@ class LeaderboardScorerTest extends TestCase
     {
         $now = Carbon::parse('2026-06-01T00:00:00Z');
         $summary = $this->scorer()->summarize([
-            new ScoredEvent('mid', Board::CONTRIBUTOR, 'pr_opened', $now->copy()->subWeeks(1)),
+            new ScoredEvent('mid', Board::CONTRIBUTOR, Action::PR_OPENED, $now->copy()->subWeeks(1)),
         ], $now);
 
         $this->assertSame(1, $summary['mid']['current_streak_weeks']);

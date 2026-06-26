@@ -78,4 +78,34 @@ return [
             'Progress: pending review',
         ],
     ],
+
+    /*
+     * A "comeback" is a contribution that follows a long silence. If a returning
+     * contributor's gap (last contribution before the window → their return in the
+     * window) is at least this many days, it's recorded as returned_after_days.
+     */
+    'comeback' => [
+        'min_gap_days' => 365,
+    ],
+
+    /*
+     * Confidence assigned to memberships auto-suggested from a contributor's
+     * GitHub profile company (leaderboard:suggest-memberships). Low, because the
+     * field is free text; manual memberships are the source of truth.
+     */
+    'suggestions' => [
+        'confidence' => 30,
+    ],
+
+    /*
+     * GitHub teams (under the repo owner org) whose members may earn maintainer
+     * points: the maintainer team and the community-council committee (who hold
+     * maintainer rights). Synced by sync:github:teams into role_eligibilities as
+     * roles `maintainer` and `community-council`. Contributor points are open to
+     * everyone. If both rosters are empty, gating is disabled and everyone counts.
+     */
+    'teams' => [
+        'maintainers' => 'community-council-ma',
+        'council' => 'community-council',
+    ],
 ];

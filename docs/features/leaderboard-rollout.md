@@ -8,22 +8,10 @@ Living checklist for the weighted contributor/maintainer leaderboard. Source-of-
 
 ## Outstanding work
 
-### Scoring & metrics
-
-- [x] **`approved_then_merged` maintainer bonus** — ✅ done: `ScoredEventReader` collects approved reviews in-window, looks up which of those PRs merged (any time) with their size, and emits an impact-weighted maintainer bonus dated at the review's `submitted_at`; self-reviews (reviewer == PR author) are skipped. Weight in `config/leaderboard.php`. The review→PR lookup is OpenSearch I/O — verify on first real run.
-- [x] **Review latency / responsiveness** — ✅ done: `ClaimRecordReader` + `ReviewLatencyAnalyzer` compute pending-review/claim/first-review timings from `github-pr-timeline`, storing `median_time_to_review_hours` / `median_time_to_claim_days` / `reviews_in_window` on `github_user_stats`. Time-to-claim also drives a `pr_claimed` scoring bonus that grows with how long a PR sat — rewarding maintainers for clearing stale PRs, credited only once the claim is actually reviewed (no farming by claiming alone). (OpenSearch reads — verify on first real run.)
-- [x] **Label / triage scoring** — ✅ done: `ScoredEventReader::labelAppliedEvents()` scores `label_applied` from issue (`github-events`) and PR (`github-pr-timeline`) label events, deduped per (actor, target, label) so add/remove churn can't farm; `triage.excluded_labels` config drops Adobe's pending-review label. (OpenSearch reads — verify on first real run.)
-- [ ] **All-time `first_contribution_at`** — currently "first within the rolling window"; add an all-time min pass if true first-contribution is needed.
-- [ ] **(Optional) Action enum** — action strings (`pr_opened`, `review_approved`, …) are bare strings; a typo silently scores 0. `Board` is already enum-safe; actions could follow.
-
-### Company attribution
-
-- [ ] **Company rollup** — create `organizations` / `user_org_memberships` tables, point-in-time resolution pipeline, and the company board.
-
 ### UI & surfacing
 
-- [ ] **Score boards UI** — contributor / maintainer / company boards (controllers + Blade), with per-row breakdown expansion.
-- [ ] **Segmented boards** — New contributor spotlight, Rising, Recently active; all-time as opt-in only.
+- [ ] **Link score boards in nav** — `scores/*` routes exist but aren't in the dynamic `MainMenu`.
+- [ ] **Internal-only maintainer stats** — expose review-latency / responsiveness signals (`median_time_to_review_hours`, `median_time_to_claim_days`, `reviews_in_window`), and council-only maintainers, to maintainers / community-council / admins only — not on the public board.
 
 ### Retention
 
@@ -35,10 +23,26 @@ Living checklist for the weighted contributor/maintainer leaderboard. Source-of-
 - [ ] **Schedule `leaderboard:compute`** — add to `routes/console.php` (e.g. hourly); relies on `schedule:run`.
 - [ ] **(Scale) Chunk the rank upsert** — `assignRanks` builds one upsert per board; chunk at tens of thousands of rows.
 
+## Completed
+
+- **`approved_then_merged` maintainer bonus** — impact-weighted approver bonus when an approved PR merges; self-reviews skipped.
+- **Review latency / responsiveness** — `median_time_to_review_hours` / `median_time_to_claim_days` / `reviews_in_window`, plus the `pr_claimed` staleness bonus (credited only when the claim is reviewed).
+- **Label / triage scoring** — `label_applied`, deduped per (actor, target, label); excluded labels via config.
+- **All-time `first_contribution_at`** — earliest issue/PR/review across all time (composite agg).
+- **Action enum** — scored actions are a backed `Action` enum; an invalid action can't be constructed (no silent zero-scores from typos).
+- **Comeback metric** — `returned_after_days` records the silence a returning contributor bridged (stat, not a score).
+- **Company rollup (engine)** — `organizations` / `user_org_memberships` / `org_leaderboard_entries` tables; `MembershipResolver` (point-in-time) + `CompanyScoreAggregator` write per-org scores, unresolved → Unknown.
+- **Membership suggestions** — `leaderboard:suggest-memberships` seeds low-confidence `profile` memberships from `author_company` (skips bots, never overwrites manual). Manual entry / a Filament review UI is still the gap for high-confidence org mapping.
+- **Score boards UI** — `scores/{board}`: contributor & maintainer boards (with per-row breakdown expansion) and a merged company board, reading the precomputed SQL tables. `ScoreLeaderboardController` + Blade. Not yet linked in the dynamic nav.
+- **Segmented boards (Highlights)** — `scores/highlights`: New contributor spotlight, Rising (score delta), Comebacks, Recently active — all from `github_user_stats`. Shared tabs partial; all-time intentionally omitted.
+- **Per-user score drill-down** — `scores/{board}/user/{login}` lists the actual PRs/issues/reviews behind a score, re-derived on demand (`ContributionDetailReader`), linked as "Items" on each board row. Authored items + reviews are itemized; derived bonuses (claim/label/merge-approval) count toward the score but aren't line-itemized.
+- **Self-review exclusion + team eligibility** — reviews on one's own PR no longer score (all review actions). Maintainer points require maintainer-rights membership — the `maintainer` team **or** the `community-council` committee — via `role_eligibilities` → `EligibilityGate` (empty roster = allow all, opt-in until populated); contributor points are open to everyone. The public maintainer board lists only the `maintainer` roster (council-only members are gated in for scoring but hidden from it). Rosters come from `sync:github:teams` (both teams; needs org Members:read) or `leaderboard:import-eligibility <csv>`.
+
 ## Pre-ship verification
 
 - [ ] Run `vendor/bin/pint --dirty --format agent` and the full test suite (nothing was executed in the build environment).
-- [ ] Run migrations (`leaderboard_entries`, `github_user_stats`).
+- [ ] Run migrations (`leaderboard_entries`, `github_user_stats`, org tables, `role_eligibilities`).
+- [ ] Populate eligibility, then re-run `leaderboard:compute`: `sync:github:teams` (token needs org **Members: read**) **or** `leaderboard:import-eligibility <csv>` (`login,role`) when the token can't read org membership. Until populated, everyone counts.
 - [ ] First real `leaderboard:compute`: validate `ScoredEventReader` field assumptions — `state.keyword`, `author.keyword`, boolean `closed_by_merged_pr`.
 - [ ] First PR sync after timeline change: confirm `github-pr-timeline` populates and node `id` exists on all four event types.
 - [ ] Add keyword mappings (or query `.keyword`) for `label_name`, `requested_reviewer`, and timeline `type` if exact-match filtering is needed.

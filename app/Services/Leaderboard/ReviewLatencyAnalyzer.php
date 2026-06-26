@@ -8,10 +8,10 @@ declare(strict_types=1);
 
 namespace App\Services\Leaderboard;
 
+use App\DataTransferObjects\Leaderboard\Action;
 use App\DataTransferObjects\Leaderboard\Board;
 use App\DataTransferObjects\Leaderboard\ClaimRecord;
 use App\DataTransferObjects\Leaderboard\ScoredEvent;
-use Carbon\CarbonInterface;
 
 /**
  * Pure analysis of review-claim timing. Produces:
@@ -55,7 +55,7 @@ class ReviewLatencyAnalyzer
                 $staleness = $this->stalenessFromDays($days);
             }
 
-            $events[] = new ScoredEvent($claim->maintainer, Board::MAINTAINER, 'pr_claimed', $claim->claimedAt, $staleness);
+            $events[] = new ScoredEvent($claim->maintainer, Board::MAINTAINER, Action::PR_CLAIMED, $claim->claimedAt, $staleness);
 
             $bucket['ttr'][] = max(0.0, abs($claim->claimedAt->diffInHours($claim->firstReviewAt, true)));
             $bucket['reviews']++;

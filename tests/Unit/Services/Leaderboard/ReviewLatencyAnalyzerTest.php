@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services\Leaderboard;
 
+use App\DataTransferObjects\Leaderboard\Action;
 use App\DataTransferObjects\Leaderboard\Board;
 use App\DataTransferObjects\Leaderboard\ClaimRecord;
 use App\Services\Leaderboard\ReviewLatencyAnalyzer;
@@ -26,7 +27,7 @@ class ReviewLatencyAnalyzerTest extends TestCase
         ]);
 
         $event = $result['events'][0];
-        $this->assertSame('pr_claimed', $event->action);
+        $this->assertSame(Action::PR_CLAIMED, $event->action);
         $this->assertSame(Board::MAINTAINER, $event->board);
         $this->assertEqualsWithDelta(3.0, $event->impact, 0.05); // 1 + log10(100)
         $this->assertEqualsWithDelta(100.0, $result['stats']['maint']['median_time_to_claim_days'], 0.1);

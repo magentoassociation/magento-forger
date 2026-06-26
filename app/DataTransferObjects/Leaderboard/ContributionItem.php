@@ -10,13 +10,18 @@ namespace App\DataTransferObjects\Leaderboard;
 
 use Carbon\CarbonInterface;
 
-final class ScoredEvent
+/**
+ * A single scorable contribution with display detail (title + GitHub URL), for
+ * the per-user score drill-down. Points are computed from board/action/impact/date.
+ */
+final class ContributionItem
 {
     public function __construct(
-        public readonly string $login,
         public readonly Board $board,
         public readonly Action $action,
         public readonly CarbonInterface $date,
-        public readonly float $impact = 1.0,
+        public readonly float $impact,
+        public readonly string $title,
+        public readonly string $url,
     ) {}
 }

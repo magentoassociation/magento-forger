@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services\Leaderboard;
 
+use App\DataTransferObjects\Leaderboard\Action;
 use App\DataTransferObjects\Leaderboard\Board;
 use App\Services\Leaderboard\ScoredEventReader;
 use Carbon\Carbon;
@@ -40,7 +41,7 @@ class ScoredEventReaderTest extends TestCase
         ]);
 
         $this->assertCount(1, $events);
-        $this->assertSame('label_applied', $events[0]->action);
+        $this->assertSame(Action::LABEL_APPLIED, $events[0]->action);
         $this->assertSame(Board::MAINTAINER, $events[0]->board);
         $this->assertTrue($events[0]->date->equalTo($early));
     }

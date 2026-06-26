@@ -46,7 +46,7 @@ Ranks Contributors two ways: the raw-count per-metric boards (top 100 by a singl
 A weighted sum of a Contributor's (or Maintainer's) scored events, with impact weighting and a recency half-life. Contributor and Maintainer Scores are always kept separate, never merged into one number. Weights are versioned in `config/leaderboard.php`; every board row exposes its breakdown so the weighting stays transparent.
 
 **Company Leaderboard**:
-Ranks organizations by the **point-in-time** sum of their members' scores — each contribution credited to the org the contributor belonged to *when the work was done* (for a merge bonus, the PR's `created_at`). Unresolved contributors roll up to "Independent / Unknown". See [ADR 0001](docs/adr/0001-contributor-leaderboard.md).
+Ranks organizations by the **point-in-time** sum of their members' scores — each contribution credited to the org the contributor belonged to *when the work was done* (for a merge bonus, the PR's `created_at`). Unresolved contributors roll up to "Unknown". See [ADR 0001](docs/adr/0001-contributor-leaderboard.md).
 
 **Metric**:
 A single countable contribution signal used as the basis for one raw-count Contributor Leaderboard. Each metric filters on its own event date field (e.g., PRs merged filters on `merged_at`, not `created_at`). Distinct from a Score, which combines weighted events.
@@ -63,7 +63,7 @@ Ranks Maintainers by review activity — both raw-count boards (PRs approved = r
 
 > **Dev**: Should I show contributors without a linked User account on the leaderboard?
 >
-> **Domain expert**: Yes — the raw-count boards show all Contributors. Leave the company column blank if there's no match. On the Company Leaderboard, contributors whose org can't be resolved roll up to "Independent / Unknown" rather than being hidden.
+> **Domain expert**: Yes — the raw-count boards show all Contributors. Leave the company column blank if there's no match. On the Company Leaderboard, contributors whose org can't be resolved roll up to "Unknown" rather than being hidden.
 >
 > **Dev**: What if someone wants a single total across all metrics for a Contributor?
 >

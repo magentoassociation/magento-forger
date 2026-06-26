@@ -68,7 +68,7 @@ class LeaderboardScorer
 
     public function points(ScoredEvent $event, CarbonInterface $now): float
     {
-        $base = (float) ($this->weights[$event->board->value][$event->action] ?? 0);
+        $base = (float) ($this->weights[$event->board->value][$event->action->value] ?? 0);
 
         if ($base === 0.0) {
             return 0.0;
@@ -103,13 +103,14 @@ class LeaderboardScorer
             }
 
             $board = $event->board->value;
+            $action = $event->action->value;
             $points = $this->points($event, $now);
             $users[$login][$board.'_score'] += $points;
 
-            $bucket = $users[$login]['breakdown'][$board][$event->action] ?? ['count' => 0, 'points' => 0.0];
+            $bucket = $users[$login]['breakdown'][$board][$action] ?? ['count' => 0, 'points' => 0.0];
             $bucket['count']++;
             $bucket['points'] = round($bucket['points'] + $points, 4);
-            $users[$login]['breakdown'][$board][$event->action] = $bucket;
+            $users[$login]['breakdown'][$board][$action] = $bucket;
 
             $users[$login]['dates'][] = $event->date;
         }

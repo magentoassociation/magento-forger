@@ -21,6 +21,10 @@ Recognize *impact*, not just volume, and give lapsed contributors a reason to re
 
 A maintainer who also authors PRs accrues a Contributor Score *and* a Maintainer Score independently.
 
+**Eligibility.** Maintainer points are limited to people with maintainer rights: the **maintainer** team plus the **community-council** committee (who hold the same rights but don't actively maintain). Contributor points are open to anyone. Both rosters populate `role_eligibilities` (roles `maintainer` and `community-council`) via `sync:github:teams` (token needs org Members:read) or `leaderboard:import-eligibility <csv>`. `EligibilityGate` lets *either* role earn maintainer points. The **public maintainer board lists only the `maintainer` roster** — council-only members are excluded from it (they'll surface in the planned internal-only stats). If both rosters are empty, gating is disabled and everyone counts.
+
+**Self-reviews don't count.** A review on one's own PR (reviewer == PR author) earns nothing — for *all* review actions, not just the merge bonus. This is why commenting on your own PR no longer awards maintainer points.
+
 ## Scored events (grounded in current indexes)
 
 | # | Role | Action | Index | Date field | Status |
@@ -84,6 +88,8 @@ recency      = age_days > 365 ? 0 : 0.5 ** (age_days / 182)
 
 ## Point-in-time company attribution
 
+> **Implemented.** `MembershipResolver` (point-in-time, reads `user_org_memberships`) + `CompanyScoreAggregator` (reuses `LeaderboardScorer` for points) roll events up per org in `ComputeLeaderboardScores`, writing `org_leaderboard_entries`. Unresolved contributors bucket into an auto-created **Unknown** organization. The `user_org_memberships` table is keyed by login (no separate `github_users` table); membership population (the resolution pipeline below) is still manual until a Filament admin exists.
+
 Each scored event is attributed to the org the actor belonged to **on the contribution date**:
 
 | Event | Attribution date |
@@ -98,7 +104,9 @@ Each scored event is attributed to the org the actor belonged to **on the contri
 
 ### Org resolution pipeline
 
-Candidate org from, in order: (1) email domain → `organizations.domains`, (2) normalized GitHub profile company, (3) registered `User.company`. **Manual override in Filament is the source of truth.** Each membership carries a `source` and `confidence`; low-confidence rows land in a needs-review queue. Unresolved actors roll up to **"Independent / Unknown"** rather than being hidden.
+Candidate org from, in order: (1) email domain → `organizations.domains`, (2) normalized GitHub profile company, (3) registered `User.company`. **Manual override is the source of truth.** Each membership carries a `source` and `confidence`; low-confidence rows land in a needs-review queue. Unresolved actors roll up to **"Unknown"** rather than being hidden.
+
+`leaderboard:suggest-memberships` (`SuggestOrgMemberships` + `AuthorCompanyReader`) implements (2): it harvests each non-bot author's `author_company` and creates low-confidence `source=profile` memberships, never overwriting `source=manual` rows. Re-running refreshes the profile suggestions. Domain/User.company seeding (1, 3) and a Filament review UI are not built yet.
 
 ## New data model
 
@@ -142,7 +150,8 @@ org_leaderboard_entries               # precomputed company scores
 - Bot exclusion reuses the existing list (`engcom-*`, `dependabot[bot]`, `github-actions[bot]`, `m2-assistant`), applied in the compute job.
 - Decay stops anyone (or any org) camping the top after going quiet.
 - `github_users.excluded` flag (set in Filament, Drupal-style) removes bad actors from all score boards.
-- Guard `author == reviewer` so self-review can't earn the approver bonus.
+- Guard `author == reviewer` so self-reviews earn nothing (all review actions, not just the approver bonus).
+- Team eligibility (`EligibilityGate`): maintainer points require `maintainer` or `community-council` membership; contributor points are open.
 
 ## UI
 
@@ -165,12 +174,15 @@ github_user_stats
   median_time_to_review_hours, # maintainers: responsiveness after claiming
   median_time_to_claim_days,   # maintainers: how stale the PRs they pick up are
   reviews_in_window,
+  returned_after_days,         # comeback: days of silence bridged by a return (null if not a comeback)
   computed_at
 ```
 
 | Signal | Definition | Source |
 |---|---|---|
-| First / last contribution | min/max event date across all scored actions | existing indexes |
+| First contribution | all-time earliest issue/PR opened or review submitted (`FirstContributionReader`, composite agg, not window-bound) | issues/PRs/reviews indexes |
+| Last contribution | most recent scored event in the window | derived |
+| Comeback (`returned_after_days`) | days between the last contribution before the window and the return inside it, when ≥ `comeback.min_gap_days` (else null) | `FirstContributionReader` |
 | Current gap | days since `last_contribution_at` — drives lapse detection | derived |
 | Streak | consecutive weeks with ≥1 contribution | derived |
 | Time-to-review (maintainer-controlled) | median hours from reviewer **self-assignment** to that maintainer's first `submitted_at` | ✅ `ReviewLatencyAnalyzer` |
@@ -202,6 +214,7 @@ A single all-time board entrenches the top 3 and tells everyone else they don't 
 | **New contributor spotlight** | `first_contribution_at` within the current period | Celebrates entry, where motivation is most fragile |
 | **Rising** | largest positive delta `score − score_prev` | Lets newcomers rank without beating veterans |
 | **Recently active** | ranked within the rolling-12 window (decayed) | Refreshes constantly; not permanently owned by incumbents |
+| **Comebacks** | `returned_after_days` is set, ordered by gap length | Welcomes back long-dormant contributors — directly serves re-engagement |
 | **This month / quarter / year** | score over the Calendar Period | Time-boxed competition with a clear reset |
 | **All-time** | *intentionally omitted as a default* | Entrenches incumbents; available only as an opt-in deep view |
 
@@ -209,7 +222,7 @@ All segments reuse the existing Calendar Period selector and the same decayed Sc
 
 ## Testing (per CLAUDE.md)
 
-PHPUnit feature tests, using factories, covering: scoring math against fixtures, decay boundaries (364 vs 366 days), point-in-time attribution across a mid-history job change, bot + `excluded` filtering, and org rollup including "Independent / Unknown". Run with `php artisan test --compact --filter=...`.
+PHPUnit feature tests, using factories, covering: scoring math against fixtures, decay boundaries (364 vs 366 days), point-in-time attribution across a mid-history job change, bot + `excluded` filtering, and org rollup including "Unknown". Run with `php artisan test --compact --filter=...`.
 
 ## Status & remaining work
 

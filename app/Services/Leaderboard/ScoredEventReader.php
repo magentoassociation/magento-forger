@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Services\Leaderboard;
 
+use App\DataTransferObjects\Leaderboard\Action;
 use App\DataTransferObjects\Leaderboard\Board;
 use App\DataTransferObjects\Leaderboard\ScoredEvent;
 use App\Services\Search\OpenSearchService;
@@ -40,7 +41,7 @@ class ScoredEventReader
             ['author', 'created_at'],
             function (array $source) use (&$events): void {
                 if (! empty($source['author']) && ! empty($source['created_at'])) {
-                    $events[] = new ScoredEvent($source['author'], Board::CONTRIBUTOR, 'pr_opened', Carbon::parse($source['created_at']));
+                    $events[] = new ScoredEvent($source['author'], Board::CONTRIBUTOR, Action::PR_OPENED, Carbon::parse($source['created_at']));
                 }
             }
         );
@@ -58,7 +59,7 @@ class ScoredEventReader
                         $impactMin,
                         $impactMax,
                     );
-                    $events[] = new ScoredEvent($source['author'], Board::CONTRIBUTOR, 'pr_merged', Carbon::parse($source['merged_at']), $impact);
+                    $events[] = new ScoredEvent($source['author'], Board::CONTRIBUTOR, Action::PR_MERGED, Carbon::parse($source['merged_at']), $impact);
                 }
             }
         );
@@ -70,7 +71,7 @@ class ScoredEventReader
             ['author', 'created_at'],
             function (array $source) use (&$events): void {
                 if (! empty($source['author']) && ! empty($source['created_at'])) {
-                    $events[] = new ScoredEvent($source['author'], Board::CONTRIBUTOR, 'issue_opened', Carbon::parse($source['created_at']));
+                    $events[] = new ScoredEvent($source['author'], Board::CONTRIBUTOR, Action::ISSUE_OPENED, Carbon::parse($source['created_at']));
                 }
             }
         );
@@ -82,42 +83,39 @@ class ScoredEventReader
             ['author', 'closed_at'],
             function (array $source) use (&$events): void {
                 if (! empty($source['author']) && ! empty($source['closed_at'])) {
-                    $events[] = new ScoredEvent($source['author'], Board::CONTRIBUTOR, 'issue_resolved_by_merge', Carbon::parse($source['closed_at']));
+                    $events[] = new ScoredEvent($source['author'], Board::CONTRIBUTOR, Action::ISSUE_RESOLVED_BY_MERGE, Carbon::parse($source['closed_at']));
                 }
             }
         );
 
-        // Maintainer: reviews
+        // Maintainer: reviews — collect, then resolve each PR's author to drop
+        // self-reviews (e.g. commenting on your own PR) before scoring.
         $stateAction = [
-            'APPROVED' => 'review_approved',
-            'CHANGES_REQUESTED' => 'review_rejected',
-            'COMMENTED' => 'review_commented',
+            'APPROVED' => Action::REVIEW_APPROVED,
+            'CHANGES_REQUESTED' => Action::REVIEW_REJECTED,
+            'COMMENTED' => Action::REVIEW_COMMENTED,
         ];
-        $approvedReviews = [];
+        $reviews = [];
         $this->scroll(
             OpenSearchService::OPENSEARCH_GITHUB_PR_REVIEWS_INDEX,
             $this->rangeQuery('submitted_at', $from, $to),
             ['author', 'state', 'submitted_at', 'pr_number'],
-            function (array $source) use (&$events, &$approvedReviews, $stateAction): void {
+            function (array $source) use (&$reviews, $stateAction): void {
                 $action = $stateAction[$source['state'] ?? ''] ?? null;
-                if ($action === null || empty($source['author']) || empty($source['submitted_at'])) {
+                if ($action === null || empty($source['author']) || empty($source['submitted_at']) || empty($source['pr_number'])) {
                     return;
                 }
-
-                $events[] = new ScoredEvent($source['author'], Board::MAINTAINER, $action, Carbon::parse($source['submitted_at']));
-
-                if ($source['state'] === 'APPROVED' && ! empty($source['pr_number'])) {
-                    $approvedReviews[] = [
-                        'pr_number' => $source['pr_number'],
-                        'author' => $source['author'],
-                        'submitted_at' => $source['submitted_at'],
-                    ];
-                }
+                $reviews[] = [
+                    'pr_number' => $source['pr_number'],
+                    'author' => $source['author'],
+                    'action' => $action,
+                    'state' => $source['state'],
+                    'submitted_at' => $source['submitted_at'],
+                ];
             }
         );
 
-        // Maintainer: approved PR later merged (impact-weighted approver bonus)
-        $events = array_merge($events, $this->approvedThenMergedEvents($approvedReviews, $impactMin, $impactMax));
+        $events = array_merge($events, $this->reviewEvents($reviews, $impactMin, $impactMax));
 
         // Maintainer: triage (labels applied to issues and PRs)
         $events = array_merge($events, $this->labelAppliedEvents($from, $to));
@@ -223,74 +221,64 @@ class ScoredEventReader
 
         $events = [];
         foreach ($byKey as $entry) {
-            $events[] = new ScoredEvent($entry['actor'], Board::MAINTAINER, 'label_applied', $entry['date']);
+            $events[] = new ScoredEvent($entry['actor'], Board::MAINTAINER, Action::LABEL_APPLIED, $entry['date']);
         }
 
         return $events;
     }
 
     /**
-     * Emit an impact-weighted maintainer bonus for each approved review whose PR
-     * was eventually merged (merge can fall outside the window). Attributed to the
-     * review's submitted_at. Self-reviews (reviewer == PR author) are skipped.
+     * Score reviews, skipping self-reviews (reviewer == PR author). An approved
+     * review whose PR later merged earns an additional impact-weighted bonus.
      *
-     * @param  list<array{pr_number: int|string, author: string, submitted_at: string}>  $approvedReviews
+     * @param  list<array{pr_number: int|string, author: string, action: Action, state: string, submitted_at: string}>  $reviews
      * @return list<ScoredEvent>
      */
-    private function approvedThenMergedEvents(array $approvedReviews, float $impactMin, float $impactMax): array
+    private function reviewEvents(array $reviews, float $impactMin, float $impactMax): array
     {
-        if ($approvedReviews === []) {
+        if ($reviews === []) {
             return [];
         }
 
-        $prNumbers = array_values(array_unique(array_column($approvedReviews, 'pr_number')));
-        $mergedPrs = $this->mergedPullRequests($prNumbers, $impactMin, $impactMax);
+        $prNumbers = array_values(array_unique(array_column($reviews, 'pr_number')));
+        $prs = $this->pullRequestsInfo($prNumbers, $impactMin, $impactMax);
 
         $events = [];
-        foreach ($approvedReviews as $review) {
-            $pr = $mergedPrs[$review['pr_number']] ?? null;
+        foreach ($reviews as $review) {
+            $pr = $prs[$review['pr_number']] ?? null;
 
-            if ($pr === null || $pr['author'] === $review['author']) {
+            // A maintainer doesn't earn points reviewing their own PR.
+            if ($pr !== null && $pr['author'] === $review['author']) {
                 continue;
             }
 
-            $events[] = new ScoredEvent(
-                $review['author'],
-                Board::MAINTAINER,
-                'approved_then_merged',
-                Carbon::parse($review['submitted_at']),
-                $pr['impact'],
-            );
+            $events[] = new ScoredEvent($review['author'], Board::MAINTAINER, $review['action'], Carbon::parse($review['submitted_at']));
+
+            if ($review['state'] === 'APPROVED' && $pr !== null && $pr['merged']) {
+                $events[] = new ScoredEvent($review['author'], Board::MAINTAINER, Action::APPROVED_THEN_MERGED, Carbon::parse($review['submitted_at']), $pr['impact']);
+            }
         }
 
         return $events;
     }
 
     /**
-     * Look up merged PRs among the given numbers, returning impact + author keyed
-     * by PR number. Non-merged PRs are omitted.
+     * Author, merge status and impact for the given PRs, keyed by PR number.
      *
      * @param  list<int|string>  $prNumbers
-     * @return array<int|string, array{impact: float, author: string|null}>
+     * @return array<int|string, array{author: string|null, merged: bool, impact: float}>
      */
-    private function mergedPullRequests(array $prNumbers, float $impactMin, float $impactMax): array
+    private function pullRequestsInfo(array $prNumbers, float $impactMin, float $impactMax): array
     {
-        $merged = [];
+        $info = [];
 
         foreach (array_chunk($prNumbers, 1000) as $chunk) {
             $response = $this->client->search([
                 'index' => OpenSearchService::getIndexWithPrefix(OpenSearchService::OPENSEARCH_GITHUB_PULL_REQUESTS_INDEX),
                 'body' => [
                     'size' => count($chunk),
-                    '_source' => ['id', 'author', 'additions', 'deletions'],
-                    'query' => [
-                        'bool' => [
-                            'filter' => [
-                                ['term' => ['state.keyword' => 'MERGED']],
-                                ['terms' => ['id' => $chunk]],
-                            ],
-                        ],
-                    ],
+                    '_source' => ['id', 'author', 'state', 'additions', 'deletions'],
+                    'query' => ['bool' => ['filter' => [['terms' => ['id' => $chunk]]]]],
                 ],
             ]);
 
@@ -300,19 +288,20 @@ class ScoredEventReader
                     continue;
                 }
 
-                $merged[$source['id']] = [
+                $info[$source['id']] = [
+                    'author' => $source['author'] ?? null,
+                    'merged' => ($source['state'] ?? null) === 'MERGED',
                     'impact' => LeaderboardScorer::impactFromSize(
                         (int) ($source['additions'] ?? 0),
                         (int) ($source['deletions'] ?? 0),
                         $impactMin,
                         $impactMax,
                     ),
-                    'author' => $source['author'] ?? null,
                 ];
             }
         }
 
-        return $merged;
+        return $info;
     }
 
     /**
