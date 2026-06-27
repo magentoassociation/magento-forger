@@ -10,7 +10,9 @@ namespace Tests\Feature\Console\Commands;
 
 use App\DataTransferObjects\Leaderboard\Action;
 use App\DataTransferObjects\Leaderboard\Board;
+use App\DataTransferObjects\Leaderboard\ContributionItem;
 use App\DataTransferObjects\Leaderboard\ScoredEvent;
+use App\Models\GithubScoreSnapshot;
 use App\Models\GithubUserStat;
 use App\Models\LeaderboardEntry;
 use App\Models\Organization;
@@ -18,6 +20,7 @@ use App\Models\OrgLeaderboardEntry;
 use App\Models\RoleEligibility;
 use App\Models\UserOrgMembership;
 use App\Services\Leaderboard\ClaimRecordReader;
+use App\Services\Leaderboard\ContributionDetailReader;
 use App\Services\Leaderboard\FirstContributionReader;
 use App\Services\Leaderboard\ScoredEventReader;
 use Carbon\Carbon;
@@ -49,6 +52,10 @@ class ComputeLeaderboardScoresTest extends TestCase
         $firstContribution = $this->mock(FirstContributionReader::class);
         $firstContribution->shouldReceive('read')->andReturn([]);
         $firstContribution->shouldReceive('lastContributionBefore')->andReturn([]);
+
+        $this->mock(ContributionDetailReader::class)
+            ->shouldReceive('readForLogin')
+            ->andReturn([]);
     }
 
     public function test_command_exits_successfully_with_no_events(): void
@@ -158,6 +165,53 @@ class ComputeLeaderboardScoresTest extends TestCase
         $this->assertSame(15.0, $stat->contributor_score_prev);
     }
 
+    public function test_rising_baseline_comes_from_snapshot_at_window_start(): void
+    {
+        config()->set('leaderboard.rising.window_days', 7);
+
+        $now = Carbon::now();
+
+        // A snapshot from before the rising window — the baseline jane should be
+        // measured against. A newer (in-window) snapshot must be ignored.
+        GithubScoreSnapshot::create(['login' => 'jane', 'contributor_score' => 2.0, 'captured_at' => $now->copy()->subDays(8)]);
+        GithubScoreSnapshot::create(['login' => 'jane', 'contributor_score' => 99.0, 'captured_at' => $now->copy()->subDays(1)]);
+
+        $this->mock(ScoredEventReader::class)
+            ->shouldReceive('read')
+            ->andReturn([
+                new ScoredEvent('jane', Board::CONTRIBUTOR, Action::PR_OPENED, $now),
+            ]);
+
+        $this->artisan('leaderboard:compute')->assertExitCode(0);
+
+        $stat = GithubUserStat::where('login', 'jane')->first();
+        $this->assertSame(2.0, $stat->rising_baseline_score);
+
+        // Today's run records a fresh snapshot for the next window.
+        $this->assertDatabaseHas(GithubScoreSnapshot::class, ['login' => 'jane']);
+        $this->assertSame(3, GithubScoreSnapshot::where('login', 'jane')->count());
+    }
+
+    public function test_command_prunes_snapshots_past_retention(): void
+    {
+        config()->set('leaderboard.rising.retention_days', 60);
+
+        $now = Carbon::now();
+
+        GithubScoreSnapshot::create(['login' => 'jane', 'contributor_score' => 1.0, 'captured_at' => $now->copy()->subDays(90)]);
+
+        $this->mock(ScoredEventReader::class)
+            ->shouldReceive('read')
+            ->andReturn([
+                new ScoredEvent('jane', Board::CONTRIBUTOR, Action::PR_OPENED, $now),
+            ]);
+
+        $this->artisan('leaderboard:compute')->assertExitCode(0);
+
+        // The 90-day-old row is gone; only today's fresh snapshot remains.
+        $this->assertSame(1, GithubScoreSnapshot::where('login', 'jane')->count());
+    }
+
     public function test_command_evicts_stale_rolling12_entries_for_inactive_users(): void
     {
         $now = Carbon::now();
@@ -198,11 +252,73 @@ class ComputeLeaderboardScoresTest extends TestCase
             'jane' => $now->copy()->subYears(3),
         ]);
 
+        $this->mock(ContributionDetailReader::class)
+            ->shouldReceive('readForLogin')
+            ->andReturn([
+                new ContributionItem(Board::CONTRIBUTOR, Action::PR_OPENED, $now, 1.0, 'Welcome back PR', 'https://github.com/magento/magento2/pull/999'),
+            ]);
+
         $this->artisan('leaderboard:compute')->assertExitCode(0);
 
         $stat = GithubUserStat::where('login', 'jane')->first();
         $this->assertNotNull($stat->returned_after_days);
         $this->assertGreaterThanOrEqual(365, $stat->returned_after_days);
+        $this->assertSame('https://github.com/magento/magento2/pull/999', $stat->comeback_url);
+    }
+
+    public function test_command_links_new_contributor_to_first_contribution(): void
+    {
+        config()->set('leaderboard.spotlight.window_days', 30);
+
+        $now = Carbon::now();
+
+        $this->mock(ScoredEventReader::class)
+            ->shouldReceive('read')
+            ->andReturn([
+                new ScoredEvent('newbie', Board::CONTRIBUTOR, Action::PR_OPENED, $now),
+            ]);
+
+        $firstContribution = $this->mock(FirstContributionReader::class);
+        $firstContribution->shouldReceive('read')->andReturn(['newbie' => $now->copy()->subDays(3)]);
+        $firstContribution->shouldReceive('lastContributionBefore')->andReturn([]);
+
+        $this->mock(ContributionDetailReader::class)
+            ->shouldReceive('readForLogin')
+            ->andReturn([
+                new ContributionItem(Board::CONTRIBUTOR, Action::PR_OPENED, $now->copy()->subDays(3), 1.0, 'My first PR', 'https://github.com/magento/magento2/pull/1'),
+            ]);
+
+        $this->artisan('leaderboard:compute')->assertExitCode(0);
+
+        $stat = GithubUserStat::where('login', 'newbie')->first();
+        $this->assertSame('https://github.com/magento/magento2/pull/1', $stat->first_contribution_url);
+        $this->assertSame('My first PR', $stat->first_contribution_title);
+    }
+
+    public function test_established_contributor_has_no_first_contribution_link(): void
+    {
+        config()->set('leaderboard.spotlight.window_days', 30);
+
+        $now = Carbon::now();
+
+        $this->mock(ScoredEventReader::class)
+            ->shouldReceive('read')
+            ->andReturn([
+                new ScoredEvent('veteran', Board::CONTRIBUTOR, Action::PR_OPENED, $now),
+            ]);
+
+        // First contribution is years old → not a newcomer → no link captured.
+        $firstContribution = $this->mock(FirstContributionReader::class);
+        $firstContribution->shouldReceive('read')->andReturn(['veteran' => $now->copy()->subYears(2)]);
+        $firstContribution->shouldReceive('lastContributionBefore')->andReturn([]);
+
+        $this->mock(ContributionDetailReader::class)
+            ->shouldReceive('readForLogin')
+            ->andReturn([]);
+
+        $this->artisan('leaderboard:compute')->assertExitCode(0);
+
+        $this->assertNull(GithubUserStat::where('login', 'veteran')->first()->first_contribution_url);
     }
 
     public function test_recent_contributor_is_not_flagged_as_comeback(): void

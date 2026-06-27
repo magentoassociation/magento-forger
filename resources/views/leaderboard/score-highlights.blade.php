@@ -1,15 +1,24 @@
 @extends('layouts.app')
 
 @php
-    $githubLink = fn (string $login) => '<a href="https://github.com/'.e($login).'" target="_blank" rel="noopener noreferrer" class="text-decoration-none fw-medium">'.e($login).'</a>';
+    $userLink = function (string $login) use ($profiles) {
+        $profile = $profiles->get($login);
+        $avatar = $profile?->avatar_url ?: 'https://github.com/'.$login.'.png?size=48';
+        $label = $profile?->name
+            ? e($profile->name).' <span class="text-muted small">@'.e($login).'</span>'
+            : e($login);
+
+        return '<a href="https://github.com/'.e($login).'" target="_blank" rel="noopener noreferrer" class="text-decoration-none fw-medium">'
+            .'<img src="'.e($avatar).'" alt="" width="20" height="20" class="rounded-circle me-2" loading="lazy" onerror="this.style.display=\'none\'">'
+            .$label.'</a>';
+    };
 @endphp
 
 @section('content')
     <div class="container">
         <div class="row mb-3">
             <div class="col-12">
-                <h2>Highlights</h2>
-                <p class="text-muted">Segments that surface entry, momentum, and re-engagement — not just the all-time top.</p>
+                <p class="text-muted">A closer look at newcomers, fast risers, returning contributors, and who's active right now — not just the all-time leaders.</p>
             </div>
         </div>
 
@@ -26,13 +35,21 @@
                     <div class="card h-100">
                         <div class="card-header">
                             <strong>New contributor spotlight</strong>
-                            <div class="small text-muted">First contribution in the last 30 days</div>
+                            <div class="small text-muted">People whose first-ever contribution to the project landed in the last 30 days, ranked by contributor score.</div>
                         </div>
                         <ul class="list-group list-group-flush">
                             @forelse ($newContributors as $stat)
                                 <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    {!! $githubLink($stat->login) !!}
-                                    <span class="badge text-bg-success rounded-pill">{{ number_format($stat->contributor_score, 1) }}</span>
+                                    {!! $userLink($stat->login) !!}
+                                    <span class="d-flex align-items-center gap-2">
+                                        @if ($stat->first_contribution_url)
+                                            <a href="{{ $stat->first_contribution_url }}" target="_blank" rel="noopener noreferrer"
+                                               class="text-muted small text-decoration-none text-end" title="{{ $stat->first_contribution_title }}">
+                                                first contribution &rarr;
+                                            </a>
+                                        @endif
+                                        <span class="badge text-bg-success rounded-pill">{{ number_format($stat->contributor_score, 1) }}</span>
+                                    </span>
                                 </li>
                             @empty
                                 <li class="list-group-item text-muted">Nobody new yet.</li>
@@ -46,13 +63,13 @@
                     <div class="card h-100">
                         <div class="card-header">
                             <strong>Rising</strong>
-                            <div class="small text-muted">Biggest score gain since the last run</div>
+                            <div class="small text-muted">Biggest gain in contributor score over the past {{ config('leaderboard.rising.window_days', 7) }} days (the badge shows the increase).</div>
                         </div>
                         <ul class="list-group list-group-flush">
                             @forelse ($rising as $stat)
                                 <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    {!! $githubLink($stat->login) !!}
-                                    <span class="badge text-bg-primary rounded-pill">+{{ number_format($stat->contributor_score - $stat->contributor_score_prev, 1) }}</span>
+                                    {!! $userLink($stat->login) !!}
+                                    <span class="badge text-bg-primary rounded-pill">+{{ number_format($stat->contributor_score - $stat->rising_baseline_score, 1) }}</span>
                                 </li>
                             @empty
                                 <li class="list-group-item text-muted">No movement yet.</li>
@@ -66,13 +83,20 @@
                     <div class="card h-100">
                         <div class="card-header">
                             <strong>Comebacks</strong>
-                            <div class="small text-muted">Returned after a long silence</div>
+                            <div class="small text-muted">Contributors back after a long gap; the count is days of silence.</div>
                         </div>
                         <ul class="list-group list-group-flush">
                             @forelse ($comebacks as $stat)
                                 <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    {!! $githubLink($stat->login) !!}
-                                    <span class="text-muted small">back after {{ number_format($stat->returned_after_days) }} days</span>
+                                    {!! $userLink($stat->login) !!}
+                                    @if ($stat->comeback_url)
+                                        <a href="{{ $stat->comeback_url }}" target="_blank" rel="noopener noreferrer"
+                                           class="text-muted small text-decoration-none text-end" title="{{ $stat->comeback_title }}">
+                                            back after {{ number_format($stat->returned_after_days) }} days &rarr;
+                                        </a>
+                                    @else
+                                        <span class="text-muted small">back after {{ number_format($stat->returned_after_days) }} days</span>
+                                    @endif
                                 </li>
                             @empty
                                 <li class="list-group-item text-muted">No comebacks yet.</li>
@@ -86,12 +110,12 @@
                     <div class="card h-100">
                         <div class="card-header">
                             <strong>Recently active</strong>
-                            <div class="small text-muted">Active in the last 14 days, by score</div>
+                            <div class="small text-muted">Opened a PR, had a PR merged, or opened an issue in the last 14 days, ranked by contributor score.</div>
                         </div>
                         <ul class="list-group list-group-flush">
                             @forelse ($recentlyActive as $stat)
                                 <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    {!! $githubLink($stat->login) !!}
+                                    {!! $userLink($stat->login) !!}
                                     <span class="badge text-bg-success rounded-pill">{{ number_format($stat->contributor_score, 1) }}</span>
                                 </li>
                             @empty

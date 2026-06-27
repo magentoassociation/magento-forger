@@ -80,12 +80,32 @@ return [
     ],
 
     /*
+     * "New contributor spotlight" lists people whose first-ever contribution
+     * landed within this many days. Shared by the compute job (to capture the
+     * first contribution's link) and the Highlights query.
+     */
+    'spotlight' => [
+        'window_days' => 30,
+    ],
+
+    /*
      * A "comeback" is a contribution that follows a long silence. If a returning
      * contributor's gap (last contribution before the window → their return in the
      * window) is at least this many days, it's recorded as returned_after_days.
      */
     'comeback' => [
         'min_gap_days' => 365,
+    ],
+
+    /*
+     * "Rising" compares each contributor's current score against their score as
+     * of window_days ago (read from github_score_snapshots), so the board can
+     * promise a real timeframe instead of "since the last compute run". Snapshots
+     * are retained for retention_days.
+     */
+    'rising' => [
+        'window_days' => 7,
+        'retention_days' => 60,
     ],
 
     /*

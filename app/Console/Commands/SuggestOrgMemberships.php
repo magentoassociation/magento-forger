@@ -25,7 +25,8 @@ class SuggestOrgMemberships extends Command implements Isolatable
 {
     protected $signature = 'leaderboard:suggest-memberships';
 
-    protected $description = 'Suggest org memberships from contributors\' GitHub profile company (low confidence; never overwrites manual memberships).';
+    protected $description = 'Suggest org memberships from contributors\' GitHub profile company '
+        .'(low confidence; never overwrites manual memberships).';
 
     public function handle(AuthorCompanyReader $reader): int
     {

@@ -39,6 +39,29 @@ class LeaderboardScorerTest extends TestCase
         $this->assertSame(3.0, $this->scorer()->points($event, $now));
     }
 
+    public function test_last_contributor_at_ignores_maintainer_activity(): void
+    {
+        $now = Carbon::parse('2026-06-01T00:00:00Z');
+
+        $summary = $this->scorer()->summarize([
+            new ScoredEvent('jane', Board::CONTRIBUTOR, Action::PR_OPENED, $now->copy()->subDays(5)),
+            new ScoredEvent('jane', Board::MAINTAINER, Action::REVIEW_APPROVED, $now), // newer, but maintainer
+        ], $now);
+
+        $this->assertTrue($summary['jane']['last_contributor_at']->equalTo($now->copy()->subDays(5)));
+    }
+
+    public function test_last_contributor_at_is_null_without_contributor_activity(): void
+    {
+        $now = Carbon::parse('2026-06-01T00:00:00Z');
+
+        $summary = $this->scorer()->summarize([
+            new ScoredEvent('mod', Board::MAINTAINER, Action::REVIEW_APPROVED, $now),
+        ], $now);
+
+        $this->assertNull($summary['mod']['last_contributor_at']);
+    }
+
     public function test_approved_then_merged_bonus_applies_impact(): void
     {
         $now = Carbon::parse('2026-06-01T00:00:00Z');

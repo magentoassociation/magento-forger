@@ -12,7 +12,7 @@ The tracked repo is `magento/magento2`. Contributors open PRs and issues and com
 
 - **Contributor Score** = weighted sum of scored events with a recency half-life (see the feature spec for weights and the formula). Scored contributor events: issue opened, PR opened, PR merged (impact-weighted author bonus), issue resolved by a merged PR (author bonus). A merged PR's impact weight scales by `additions + deletions`, capped, so PR-splitting does not pay.
 - **Point-in-time company attribution**: every event is credited to the org the contributor belonged to on the contribution date (for the merge bonus, the PR's `created_at`, not `merged_at`). Org membership is a date-ranged table; manual override is the source of truth.
-- **Segmented boards** instead of one global ranking: New contributor spotlight, Rising (largest score delta), Recently active (rolling-12 with decay), and Calendar-Period boards. All-time is demoted to an opt-in deep view because it entrenches incumbents.
+- **Segmented boards** instead of one global ranking: New contributor spotlight, Rising (score gain over a fixed window — see the feature spec), Recently active (recent *contributor* activity), Comebacks, and Calendar-Period boards. All-time is demoted to an opt-in deep view because it entrenches incumbents.
 - **Engagement signals** (first/last contribution, streak, gap) are computed per user to drive lapse detection and the retention loop.
 - The existing raw-count per-metric boards remain, reading OpenSearch directly, so every weighted row can be traced back to transparent counts.
 

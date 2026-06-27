@@ -4,7 +4,14 @@
     <div class="container">
         <div class="row mb-3">
             <div class="col-12">
-                <h2>{{ $login }} <small class="text-muted">— {{ $boards[$board] }} score detail</small></h2>
+                <h2>
+                    <img src="{{ $profile?->avatar_url ?: 'https://github.com/'.$login.'.png?size=96' }}"
+                         alt="" width="36" height="36" class="rounded-circle me-2 align-middle" onerror="this.style.display='none'">
+                    {{ $profile?->name ?: $login }}
+                    @if ($profile?->name)
+                        <span class="text-muted fs-6">{{ '@'.$login }}</span>
+                    @endif
+                </h2>
                 <p class="text-muted">
                     Contributions in the last 12 months behind this score &mdash;
                     <strong>{{ number_format($total, 1) }}</strong> pts itemized.
@@ -38,7 +45,7 @@
                     <tbody>
                         @foreach ($rows as $row)
                             <tr>
-                                <td><code>{{ $row->action }}</code></td>
+                                <td>{{ $row->action }}</td>
                                 <td>
                                     @if ($row->url)
                                         <a href="{{ $row->url }}" target="_blank" rel="noopener noreferrer" class="text-decoration-none">

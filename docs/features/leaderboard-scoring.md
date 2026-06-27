@@ -155,7 +155,7 @@ org_leaderboard_entries               # precomputed company scores
 
 ## UI
 
-- **Public:** new "Contributor Score", "Maintainer Score", and "Company" boards, defaulting to the rolling-12 window and reusing the Calendar Period selector. Each row is **expandable to show its breakdown** (action counts → weighted points) so the score stays transparent — this directly answers ADR 0001's "opaque weights" objection.
+- **Public:** new "Contributor Score", "Maintainer Score", and "Company" boards, defaulting to the rolling-12 window and reusing the Calendar Period selector. Each row is **expandable to show its breakdown** (action counts → weighted points) so the score stays transparent — this directly answers ADR 0001's "opaque weights" objection. The board subtitle lists, in plain language, which actions earn points (derived from the same configured weights, so it can't drift). A **"How are scores tallied?" modal** on each board lists the configured base points per action (read live from `config('leaderboard.weights.{board}')`) plus the impact, recency, and (maintainer) staleness multipliers, so the point values shown always match config. Modal data is assembled in `ScoreLeaderboardController::scoringExplainer()` and passed to the view as `$scoring` — not built inside a Blade `@php` block (a Blade `@php`/`@endphp` block pairs with any earlier inline `@php(...)` and breaks the template). Human-readable action names (board breakdown rows, drill-down items, modal, subtitle) all come from one place — `Action::label()` / `Action::labelFor()` on the `Action` enum — so raw keys like `pr_opened` never reach the UI.
 - **Filament admin:** `Organizations` resource; `Memberships` resource with a point-in-time editor and a needs-review filter; a read-only scoring-weights view (with version); an exclusions/abuse tool.
 
 ## Engagement signals (re-engagement layer)
@@ -166,22 +166,29 @@ Scores rank impact; these signals power *getting lapsed contributors back* — t
 github_user_stats
   id, github_user_id,
   first_contribution_at, last_contribution_at,
+  first_contribution_url, first_contribution_title, # newcomer's first PR/issue (set only within the spotlight window)
   current_gap_days,            # now - last_contribution_at
   current_streak_weeks,        # consecutive active weeks ending at now (0 if inactive; 1-week grace)
   longest_streak_weeks,
-  contributor_score_prev,      # prior window, for "Rising" delta
+  contributor_score_prev,      # score at the previous compute run (per-run delta, reference only)
   maintainer_score_prev,
+  rising_baseline_score,       # contributor score as of rising.window_days ago, for the "Rising" delta
   median_time_to_review_hours, # maintainers: responsiveness after claiming
   median_time_to_claim_days,   # maintainers: how stale the PRs they pick up are
   reviews_in_window,
   returned_after_days,         # comeback: days of silence bridged by a return (null if not a comeback)
+  comeback_url, comeback_title, # the PR/issue that ended the silence (the return contribution)
+  last_contributor_at,         # most recent *contributor* event (drives Recently active; excludes maintainer reviews)
   computed_at
 ```
+
+A companion `github_score_snapshots` table (`login`, `contributor_score`, `captured_at`) records one row per contributor on each `leaderboard:compute`. It backs the **Rising** window: the compute reads each contributor's score as of `rising.window_days` ago (the latest snapshot at or before the cutoff, via `ScoreSnapshotRepository::baselineAsOf()`) into `rising_baseline_score`, then writes today's snapshot and prunes rows older than `rising.retention_days`.
 
 | Signal | Definition | Source |
 |---|---|---|
 | First contribution | all-time earliest issue/PR opened or review submitted (`FirstContributionReader`, composite agg, not window-bound) | issues/PRs/reviews indexes |
-| Last contribution | most recent scored event in the window | derived |
+| Last contribution | most recent scored event in the window (any board) | derived |
+| Last contributor activity (`last_contributor_at`) | most recent *contributor* event only — drives Recently active, excludes maintainer reviews | derived |
 | Comeback (`returned_after_days`) | days between the last contribution before the window and the return inside it, when ≥ `comeback.min_gap_days` (else null) | `FirstContributionReader` |
 | Current gap | days since `last_contribution_at` — drives lapse detection | derived |
 | Streak | consecutive weeks with ≥1 contribution | derived |
@@ -211,10 +218,10 @@ A single all-time board entrenches the top 3 and tells everyone else they don't 
 
 | Board | Definition | Why it exists |
 |---|---|---|
-| **New contributor spotlight** | `first_contribution_at` within the current period | Celebrates entry, where motivation is most fragile |
-| **Rising** | largest positive delta `score − score_prev` | Lets newcomers rank without beating veterans |
-| **Recently active** | ranked within the rolling-12 window (decayed) | Refreshes constantly; not permanently owned by incumbents |
-| **Comebacks** | `returned_after_days` is set, ordered by gap length | Welcomes back long-dormant contributors — directly serves re-engagement |
+| **New contributor spotlight** | `first_contribution_at` within `spotlight.window_days` (default 30); links to their first PR/issue (`first_contribution_url`) | Celebrates entry, where motivation is most fragile |
+| **Rising** | largest positive delta `score − rising_baseline_score`, where the baseline is the contributor's score as of `rising.window_days` ago (default 7), read from `github_score_snapshots` | Lets newcomers rank without beating veterans; the window is a fixed timeframe, not "since the last compute run" |
+| **Recently active** | `last_contributor_at` within 14 days (contributor activity only — maintainer reviews don't count), by contributor score | Refreshes constantly; not permanently owned by incumbents |
+| **Comebacks** | `returned_after_days` is set, ordered by gap length; links to the return PR/issue (`comeback_url`) | Welcomes back long-dormant contributors — directly serves re-engagement |
 | **This month / quarter / year** | score over the Calendar Period | Time-boxed competition with a clear reset |
 | **All-time** | *intentionally omitted as a default* | Entrenches incumbents; available only as an opt-in deep view |
 

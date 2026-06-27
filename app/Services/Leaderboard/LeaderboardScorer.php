@@ -99,6 +99,7 @@ class LeaderboardScorer
                     'maintainer_score' => 0.0,
                     'breakdown' => [],
                     'dates' => [],
+                    'contributor_dates' => [],
                 ];
             }
 
@@ -113,13 +114,26 @@ class LeaderboardScorer
             $users[$login]['breakdown'][$board][$action] = $bucket;
 
             $users[$login]['dates'][] = $event->date;
+
+            if ($board === 'contributor') {
+                $users[$login]['contributor_dates'][] = $event->date;
+            }
         }
 
         foreach ($users as &$data) {
             $engagement = $this->engagement($data['dates'], $now);
-            unset($data['dates']);
+
+            $lastContributor = null;
+            foreach ($data['contributor_dates'] as $date) {
+                if ($lastContributor === null || $date->greaterThan($lastContributor)) {
+                    $lastContributor = $date;
+                }
+            }
+
+            unset($data['dates'], $data['contributor_dates']);
             $data['contributor_score'] = round($data['contributor_score'], 4);
             $data['maintainer_score'] = round($data['maintainer_score'], 4);
+            $data['last_contributor_at'] = $lastContributor;
             $data = array_merge($data, $engagement);
         }
         unset($data);

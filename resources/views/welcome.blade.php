@@ -6,7 +6,7 @@
         <h2 class="display-5 fw-bold mb-3">Help build Magento Open Source</h2>
         <p class="lead text-gray-600 mx-auto mb-4" style="max-width: 46rem;">
             Magento powers thousands of stores worldwide — and it's maintained in the open by
-            developers like you. Pick an issue, open a pull request, and ship a fix that real
+            developers like you. Pick an issue, open a PR, and ship a fix that real
             merchants will use.
         </p>
         <div class="d-flex gap-3 justify-content-center flex-wrap">
@@ -53,7 +53,7 @@
             <p class="text-gray-600 mb-4">Whatever your experience level, there's a way in.</p>
         @else
             <h3 class="text-2xl font-semibold mb-1">Start contributing</h3>
-            <p class="text-gray-600 mb-4">Pick up a confirmed, prioritized issue and open your first pull request.</p>
+            <p class="text-gray-600 mb-4">Pick up a confirmed, prioritized issue and open your first PR.</p>
         @endif
         <div class="row g-4">
             @foreach ($paths as $path)

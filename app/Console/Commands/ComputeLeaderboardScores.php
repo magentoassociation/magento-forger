@@ -16,12 +16,14 @@ use App\Models\Organization;
 use App\Models\OrgLeaderboardEntry;
 use App\Services\Leaderboard\ClaimRecordReader;
 use App\Services\Leaderboard\CompanyScoreAggregator;
+use App\Services\Leaderboard\ContributionDetailReader;
 use App\Services\Leaderboard\EligibilityGate;
 use App\Services\Leaderboard\FirstContributionReader;
 use App\Services\Leaderboard\LeaderboardScorer;
 use App\Services\Leaderboard\MembershipResolver;
 use App\Services\Leaderboard\ReviewLatencyAnalyzer;
 use App\Services\Leaderboard\ScoredEventReader;
+use App\Services\Leaderboard\ScoreSnapshotRepository;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Contracts\Console\Isolatable;
@@ -32,7 +34,7 @@ class ComputeLeaderboardScores extends Command implements Isolatable
 
     protected $description = 'Compute weighted contributor/maintainer scores and engagement signals from OpenSearch into the leaderboard tables.';
 
-    public function handle(ScoredEventReader $reader, ClaimRecordReader $claimReader, ReviewLatencyAnalyzer $analyzer, FirstContributionReader $firstContributionReader): int
+    public function handle(ScoredEventReader $reader, ClaimRecordReader $claimReader, ReviewLatencyAnalyzer $analyzer, FirstContributionReader $firstContributionReader, ContributionDetailReader $detailReader, ScoreSnapshotRepository $snapshots): int
     {
         $now = Carbon::now();
         $windowDays = (int) config('leaderboard.recency.window_days', 365);
@@ -61,26 +63,52 @@ class ComputeLeaderboardScores extends Command implements Isolatable
         $lastBeforeWindow = $firstContributionReader->lastContributionBefore($from);
         $comebackMinGap = (int) config('leaderboard.comeback.min_gap_days', 365);
 
-        // Preserve previous current scores so "Rising" can compute a delta.
+        // Preserve previous current scores (per-run delta, kept for reference).
         $previousContributor = GithubUserStat::query()->pluck('contributor_score', 'login')->all();
         $previousMaintainer = GithubUserStat::query()->pluck('maintainer_score', 'login')->all();
+
+        // "Rising" baseline: each contributor's score as of the start of the
+        // rising window, read from snapshots before today's snapshot is taken.
+        $risingWindowDays = (int) config('leaderboard.rising.window_days', 7);
+        $risingBaseline = $snapshots->baselineAsOf($now->copy()->subDays($risingWindowDays));
+
+        // New contributors: first-ever contribution within this window.
+        $spotlightCutoff = $now->copy()->subDays((int) config('leaderboard.spotlight.window_days', 30));
 
         $statRows = [];
         $entryRows = [];
 
         foreach ($summary as $login => $data) {
-            $returnedAfterDays = null;
-            if (isset($lastBeforeWindow[$login])) {
-                $gap = (int) abs($lastBeforeWindow[$login]->diffInDays($data['first_contribution_at']));
-                if ($gap >= $comebackMinGap) {
-                    $returnedAfterDays = $gap;
-                }
-            }
+            $firstContributionAt = $allTimeFirst[$login] ?? $data['first_contribution_at'];
+
+            $comebackGap = isset($lastBeforeWindow[$login])
+                ? (int) abs($lastBeforeWindow[$login]->diffInDays($data['first_contribution_at']))
+                : null;
+            $isComeback = $comebackGap !== null && $comebackGap >= $comebackMinGap;
+            $isNewContributor = $firstContributionAt !== null && $firstContributionAt->greaterThanOrEqualTo($spotlightCutoff);
+
+            // Earliest in-window item: the contribution that ended a comeback's
+            // silence and, for a newcomer, their first-ever contribution. Fetched
+            // once, only when a card actually needs the link.
+            $earliest = ($isComeback || $isNewContributor)
+                ? collect($detailReader->readForLogin($login, $from, $now))
+                    ->sortBy(fn ($item) => $item->date->getTimestamp())
+                    ->first()
+                : null;
+
+            $returnedAfterDays = $isComeback ? $comebackGap : null;
+            $comebackUrl = $isComeback ? $earliest?->url : null;
+            $comebackTitle = $isComeback ? $earliest?->title : null;
+            $firstContributionUrl = $isNewContributor ? $earliest?->url : null;
+            $firstContributionTitle = $isNewContributor ? $earliest?->title : null;
 
             $statRows[] = [
                 'login' => $login,
-                'first_contribution_at' => $allTimeFirst[$login] ?? $data['first_contribution_at'],
+                'first_contribution_at' => $firstContributionAt,
+                'first_contribution_url' => $firstContributionUrl,
+                'first_contribution_title' => $firstContributionTitle,
                 'last_contribution_at' => $data['last_contribution_at'],
+                'last_contributor_at' => $data['last_contributor_at'],
                 'current_gap_days' => $data['current_gap_days'],
                 'current_streak_weeks' => $data['current_streak_weeks'],
                 'longest_streak_weeks' => $data['longest_streak_weeks'],
@@ -88,10 +116,13 @@ class ComputeLeaderboardScores extends Command implements Isolatable
                 'maintainer_score' => $data['maintainer_score'],
                 'contributor_score_prev' => $previousContributor[$login] ?? 0,
                 'maintainer_score_prev' => $previousMaintainer[$login] ?? 0,
+                'rising_baseline_score' => $risingBaseline[$login] ?? 0,
                 'median_time_to_review_hours' => $latencyStats[$login]['median_time_to_review_hours'] ?? null,
                 'median_time_to_claim_days' => $latencyStats[$login]['median_time_to_claim_days'] ?? null,
                 'reviews_in_window' => $latencyStats[$login]['reviews_in_window'] ?? 0,
                 'returned_after_days' => $returnedAfterDays,
+                'comeback_url' => $comebackUrl,
+                'comeback_title' => $comebackTitle,
                 'computed_at' => $now,
             ];
 
@@ -109,12 +140,21 @@ class ComputeLeaderboardScores extends Command implements Isolatable
 
         if ($statRows !== []) {
             GithubUserStat::upsert($statRows, ['login'], [
-                'first_contribution_at', 'last_contribution_at', 'current_gap_days',
+                'first_contribution_at', 'first_contribution_url', 'first_contribution_title',
+                'last_contribution_at', 'last_contributor_at', 'current_gap_days',
                 'current_streak_weeks', 'longest_streak_weeks', 'contributor_score',
-                'maintainer_score', 'contributor_score_prev', 'maintainer_score_prev',
+                'maintainer_score', 'contributor_score_prev', 'maintainer_score_prev', 'rising_baseline_score',
                 'median_time_to_review_hours', 'median_time_to_claim_days', 'reviews_in_window',
-                'returned_after_days', 'computed_at',
+                'returned_after_days', 'comeback_url', 'comeback_title', 'computed_at',
             ]);
+
+            // Record today's snapshot so future runs can measure the rising
+            // window against it, then drop snapshots past the retention horizon.
+            $snapshots->record(
+                array_column($statRows, 'contributor_score', 'login'),
+                $now,
+            );
+            $snapshots->prune($now->copy()->subDays((int) config('leaderboard.rising.retention_days', 60)));
         }
 
         if ($entryRows !== []) {

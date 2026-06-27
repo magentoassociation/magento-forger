@@ -25,4 +25,31 @@ enum Action: string
     case APPROVED_THEN_MERGED = 'approved_then_merged';
     case PR_CLAIMED = 'pr_claimed';
     case LABEL_APPLIED = 'label_applied';
+
+    /**
+     * Human-readable label for display in the UI (board breakdowns, drill-down).
+     */
+    public function label(): string
+    {
+        return match ($this) {
+            self::ISSUE_OPENED => 'Opened an issue',
+            self::PR_OPENED => 'Opened a PR',
+            self::PR_MERGED => 'PR was merged',
+            self::ISSUE_RESOLVED_BY_MERGE => 'Issue resolved by a merged PR',
+            self::REVIEW_APPROVED => 'Approved a PR',
+            self::REVIEW_REJECTED => 'Requested changes on a PR',
+            self::REVIEW_COMMENTED => 'Commented on a review',
+            self::APPROVED_THEN_MERGED => 'Approved a PR that later merged',
+            self::PR_CLAIMED => 'Claimed a stale pending-review PR',
+            self::LABEL_APPLIED => 'Applied a triage label',
+        };
+    }
+
+    /**
+     * Label for a raw action key, falling back to a humanized key if unknown.
+     */
+    public static function labelFor(string $action): string
+    {
+        return self::tryFrom($action)?->label() ?? \Illuminate\Support\Str::headline($action);
+    }
 }

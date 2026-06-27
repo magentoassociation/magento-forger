@@ -4,10 +4,11 @@
     <div class="container">
         <div class="row mb-3">
             <div class="col-12">
-                <h2>Company Score</h2>
                 <p class="text-muted">
-                    Point-in-time organization attribution over the last 12 months.
-                    Contributors without a known organization roll up to &ldquo;Unknown&rdquo;.
+                    How organizations stack up over the past year, adding up the same work that earns
+                    individual points — opening and merging PRs, filing issues, reviews, and triage.
+                    Each contribution is credited to the company the person was with at the time; anyone
+                    whose company we don't know is grouped under &ldquo;Unknown&rdquo;.
                 </p>
             </div>
         </div>

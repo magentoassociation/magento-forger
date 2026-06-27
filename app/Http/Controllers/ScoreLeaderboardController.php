@@ -8,9 +8,11 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\DataTransferObjects\Leaderboard\Action;
 use App\DataTransferObjects\Leaderboard\Board;
 use App\DataTransferObjects\Leaderboard\ContributionItem;
 use App\DataTransferObjects\Leaderboard\ScoredEvent;
+use App\Models\GithubProfile;
 use App\Models\GithubUserStat;
 use App\Models\LeaderboardEntry;
 use App\Models\OrgLeaderboardEntry;
@@ -64,7 +66,68 @@ class ScoreLeaderboardController extends Controller
             'board' => $board,
             'boards' => self::BOARDS,
             'entries' => $entries,
+            'profiles' => $this->profilesFor($entries->pluck('login')),
+            'scoring' => $this->scoringExplainer($board),
         ]);
+    }
+
+    /**
+     * Data for the "How are scores tallied?" modal: the configured weights for
+     * this board plus the multipliers, so the modal stays in sync with config.
+     *
+     * @return array{weights: array<string, int|float>, impact: array<string, int|float>, recency: array<string, int>, labels: array<string, string>, impactActions: list<string>, scoredList: string}
+     */
+    private function scoringExplainer(string $board): array
+    {
+        $weights = (array) config('leaderboard.weights.'.$board, []);
+
+        // Short, lowercase gerund phrases for the inline "what gets scored" list,
+        // keyed the same as the weights so only configured actions are listed.
+        $phrases = [
+            'issue_opened' => 'opening issues',
+            'pr_opened' => 'opening PRs',
+            'pr_merged' => 'getting a PR merged',
+            'issue_resolved_by_merge' => 'closing an issue with a merged PR',
+            'review_approved' => 'approving PRs',
+            'review_rejected' => 'requesting changes on PRs',
+            'review_commented' => 'commenting on reviews',
+            'approved_then_merged' => 'approving PRs that later merge',
+            'pr_claimed' => 'picking up long-pending PRs',
+            'label_applied' => 'applying triage labels',
+        ];
+
+        $scored = array_map(
+            fn (string $action): string => $phrases[$action] ?? str_replace('_', ' ', $action),
+            array_keys($weights),
+        );
+
+        return [
+            'weights' => $weights,
+            'impact' => (array) config('leaderboard.impact', ['min' => 1, 'max' => 5]),
+            'recency' => (array) config('leaderboard.recency', ['window_days' => 365, 'half_life_days' => 182]),
+            'labels' => collect(Action::cases())
+                ->mapWithKeys(fn (Action $action): array => [$action->value => $action->label()])
+                ->all(),
+            'impactActions' => ['pr_merged', 'issue_resolved_by_merge', 'approved_then_merged'],
+            'scoredList' => $this->humanJoin($scored),
+        ];
+    }
+
+    /**
+     * Join phrases into a readable list: "a, b and c".
+     *
+     * @param  list<string>  $items
+     */
+    private function humanJoin(array $items): string
+    {
+        if (count($items) <= 1) {
+            return $items[0] ?? '';
+        }
+
+        $last = array_pop($items);
+        $separator = count($items) > 1 ? ', and ' : ' and ';
+
+        return implode(', ', $items).$separator.$last;
     }
 
     public function detail(string $board, string $login, ContributionDetailReader $reader): View
@@ -81,7 +144,7 @@ class ScoreLeaderboardController extends Controller
         $rows = collect($reader->readForLogin($login, $from, $now))
             ->filter(fn (ContributionItem $item): bool => $item->board === $boardEnum)
             ->map(fn (ContributionItem $item): object => (object) [
-                'action' => $item->action->value,
+                'action' => $item->action->label(),
                 'title' => $item->title,
                 'url' => $item->url,
                 'date' => $item->date,
@@ -94,6 +157,7 @@ class ScoreLeaderboardController extends Controller
             'board' => $board,
             'boards' => self::BOARDS,
             'login' => $login,
+            'profile' => GithubProfile::query()->where('login', $login)->first(),
             'rows' => $rows,
             'total' => round($rows->sum('points'), 1),
         ]);
@@ -101,33 +165,47 @@ class ScoreLeaderboardController extends Controller
 
     public function highlights(): View
     {
-        $newContributorCutoff = Carbon::now()->subDays(30);
+        $newContributorCutoff = Carbon::now()->subDays((int) config('leaderboard.spotlight.window_days', 30));
+
+        $newContributors = GithubUserStat::query()
+            ->whereNotNull('first_contribution_at')
+            ->where('first_contribution_at', '>=', $newContributorCutoff)
+            ->orderByDesc('contributor_score')
+            ->limit(20)
+            ->get();
+
+        $rising = GithubUserStat::query()
+            ->whereColumn('contributor_score', '>', 'rising_baseline_score')
+            ->orderByRaw('(contributor_score - rising_baseline_score) desc')
+            ->limit(20)
+            ->get();
+
+        $comebacks = GithubUserStat::query()
+            ->whereNotNull('returned_after_days')
+            ->orderByDesc('returned_after_days')
+            ->limit(20)
+            ->get();
+
+        $recentlyActive = GithubUserStat::query()
+            ->where('last_contributor_at', '>=', Carbon::now()->subDays(14))
+            ->where('contributor_score', '>', 0)
+            ->orderByDesc('contributor_score')
+            ->limit(20)
+            ->get();
+
+        $logins = $newContributors->pluck('login')
+            ->merge($rising->pluck('login'))
+            ->merge($comebacks->pluck('login'))
+            ->merge($recentlyActive->pluck('login'));
 
         return view('leaderboard.score-highlights', [
             'board' => 'highlights',
             'boards' => self::BOARDS,
-            'newContributors' => GithubUserStat::query()
-                ->whereNotNull('first_contribution_at')
-                ->where('first_contribution_at', '>=', $newContributorCutoff)
-                ->orderByDesc('contributor_score')
-                ->limit(20)
-                ->get(),
-            'rising' => GithubUserStat::query()
-                ->whereColumn('contributor_score', '>', 'contributor_score_prev')
-                ->orderByRaw('(contributor_score - contributor_score_prev) desc')
-                ->limit(20)
-                ->get(),
-            'comebacks' => GithubUserStat::query()
-                ->whereNotNull('returned_after_days')
-                ->orderByDesc('returned_after_days')
-                ->limit(20)
-                ->get(),
-            'recentlyActive' => GithubUserStat::query()
-                ->where('current_gap_days', '<=', 14)
-                ->where('contributor_score', '>', 0)
-                ->orderByDesc('contributor_score')
-                ->limit(20)
-                ->get(),
+            'newContributors' => $newContributors,
+            'rising' => $rising,
+            'comebacks' => $comebacks,
+            'recentlyActive' => $recentlyActive,
+            'profiles' => $this->profilesFor($logins),
         ]);
     }
 
@@ -190,5 +268,19 @@ class ScoreLeaderboardController extends Controller
             ])
             ->sortByDesc('contributor_score')
             ->values();
+    }
+
+    /**
+     * Display profiles (name + avatar) keyed by login.
+     *
+     * @param  Collection<int, string>  $logins
+     * @return Collection<string, GithubProfile>
+     */
+    private function profilesFor(Collection $logins): Collection
+    {
+        return GithubProfile::query()
+            ->whereIn('login', $logins->all())
+            ->get()
+            ->keyBy('login');
     }
 }
