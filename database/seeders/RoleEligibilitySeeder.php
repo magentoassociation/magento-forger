@@ -10,6 +10,7 @@ namespace Database\Seeders;
 
 use App\Models\RoleEligibility;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 
 class RoleEligibilitySeeder extends Seeder
 {
@@ -65,12 +66,19 @@ class RoleEligibilitySeeder extends Seeder
 
     public function run(): void
     {
-        foreach ($this->maintainers as $login) {
-            RoleEligibility::updateOrCreate(['login' => $login, 'role' => 'maintainer']);
-        }
+        // Clear the roles this seeder owns first, so logins dropped from the
+        // rosters stop being eligible instead of lingering as stale rows. Wrapped
+        // in a transaction because EligibilityGate reads this table.
+        DB::transaction(function (): void {
+            RoleEligibility::query()->whereIn('role', ['maintainer', 'community-council'])->delete();
 
-        foreach ($this->council as $login) {
-            RoleEligibility::updateOrCreate(['login' => $login, 'role' => 'community-council']);
-        }
+            foreach ($this->maintainers as $login) {
+                RoleEligibility::updateOrCreate(['login' => $login, 'role' => 'maintainer']);
+            }
+
+            foreach ($this->council as $login) {
+                RoleEligibility::updateOrCreate(['login' => $login, 'role' => 'community-council']);
+            }
+        });
     }
 }

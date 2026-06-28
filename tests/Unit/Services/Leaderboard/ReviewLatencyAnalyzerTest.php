@@ -57,6 +57,20 @@ class ReviewLatencyAnalyzerTest extends TestCase
         $this->assertArrayNotHasKey('ghost', $result['stats']);
     }
 
+    public function test_review_before_claim_is_not_credited(): void
+    {
+        $claimed = Carbon::parse('2026-06-01T00:00:00Z');
+
+        $result = (new ReviewLatencyAnalyzer)->analyze([
+            // Review submitted 3h *before* the self-assignment — must be ignored,
+            // not scored as 3h of positive latency via abs().
+            new ClaimRecord(7, 'maint', $claimed, null, $claimed->copy()->subHours(3)),
+        ]);
+
+        $this->assertSame([], $result['events']);
+        $this->assertArrayNotHasKey('maint', $result['stats']);
+    }
+
     public function test_time_to_review_median_and_count(): void
     {
         $claimed = Carbon::parse('2026-06-01T00:00:00Z');

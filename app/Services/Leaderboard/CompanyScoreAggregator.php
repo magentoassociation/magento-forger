@@ -13,7 +13,8 @@ use Carbon\CarbonInterface;
 
 /**
  * Rolls per-event scores up to organizations, point-in-time: each event is
- * credited to the org the contributor belonged to on the event's date. Reuses
+ * credited to the org the contributor belonged to on the event's attribution
+ * date (the work date, which can predate merged_at/closed_at). Reuses
  * LeaderboardScorer so company scores use the same weight × impact × decay.
  * Events with no resolved org fall into the null ("Unknown") bucket.
  */
@@ -30,7 +31,7 @@ class CompanyScoreAggregator
         $buckets = [];
 
         foreach ($events as $event) {
-            $orgId = $resolver->resolve($event->login, $event->date);
+            $orgId = $resolver->resolve($event->login, $event->attributionDate());
             $key = $orgId === null ? '__unknown__' : (string) $orgId;
 
             if (! isset($buckets[$key])) {

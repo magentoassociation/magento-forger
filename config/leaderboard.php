@@ -6,6 +6,13 @@
  */
 declare(strict_types=1);
 
+/*
+ * The label Adobe applies when a PR enters the review pool. Defined once here so
+ * the claim-detection setting (pending_review_label) and the triage exclusion
+ * below can never drift apart.
+ */
+$pendingReviewLabel = 'Progress: pending review';
+
 return [
     /*
      * Bump when weights change so a recompute can be triggered. Stored alongside
@@ -17,7 +24,7 @@ return [
      * The label Adobe applies when a PR enters the review pool. Time a PR spends
      * with this label before a maintainer self-assigns drives the pr_claimed bonus.
      */
-    'pending_review_label' => 'Progress: pending review',
+    'pending_review_label' => $pendingReviewLabel,
 
     /*
      * Accounts excluded from every leaderboard (bots / automation). Single source
@@ -75,7 +82,7 @@ return [
      */
     'triage' => [
         'excluded_labels' => [
-            'Progress: pending review',
+            $pendingReviewLabel,
         ],
     ],
 

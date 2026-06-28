@@ -50,7 +50,7 @@ class ScoredEventReader
         $this->scroll(
             OpenSearchService::OPENSEARCH_GITHUB_PULL_REQUESTS_INDEX,
             $this->rangeQuery('merged_at', $from, $to, [['term' => ['state.keyword' => 'MERGED']]]),
-            ['author', 'merged_at', 'additions', 'deletions'],
+            ['author', 'merged_at', 'created_at', 'additions', 'deletions'],
             function (array $source) use (&$events, $impactMin, $impactMax): void {
                 if (! empty($source['author']) && ! empty($source['merged_at'])) {
                     $impact = LeaderboardScorer::impactFromSize(
@@ -59,7 +59,10 @@ class ScoredEventReader
                         $impactMin,
                         $impactMax,
                     );
-                    $events[] = new ScoredEvent($source['author'], Board::CONTRIBUTOR, Action::PR_MERGED, Carbon::parse($source['merged_at']), $impact);
+                    // Attribute org credit to the authoring date, not merged_at,
+                    // which can land months later under a different employer.
+                    $attributionDate = empty($source['created_at']) ? null : Carbon::parse($source['created_at']);
+                    $events[] = new ScoredEvent($source['author'], Board::CONTRIBUTOR, Action::PR_MERGED, Carbon::parse($source['merged_at']), $impact, $attributionDate);
                 }
             }
         );
@@ -80,10 +83,13 @@ class ScoredEventReader
         $this->scroll(
             OpenSearchService::OPENSEARCH_GITHUB_ISSUES_INDEX,
             $this->rangeQuery('closed_at', $from, $to, [['term' => ['closed_by_merged_pr' => true]]]),
-            ['author', 'closed_at'],
+            ['author', 'closed_at', 'created_at'],
             function (array $source) use (&$events): void {
                 if (! empty($source['author']) && ! empty($source['closed_at'])) {
-                    $events[] = new ScoredEvent($source['author'], Board::CONTRIBUTOR, Action::ISSUE_RESOLVED_BY_MERGE, Carbon::parse($source['closed_at']));
+                    // Attribute org credit to when the issue was opened, not its
+                    // close date, which can fall under a later employer.
+                    $attributionDate = empty($source['created_at']) ? null : Carbon::parse($source['created_at']);
+                    $events[] = new ScoredEvent($source['author'], Board::CONTRIBUTOR, Action::ISSUE_RESOLVED_BY_MERGE, Carbon::parse($source['closed_at']), 1.0, $attributionDate);
                 }
             }
         );

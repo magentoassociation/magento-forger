@@ -19,9 +19,39 @@ use Carbon\CarbonInterface;
 class MembershipResolver
 {
     /**
+     * @var array<string, list<array{org_id: int, from: CarbonInterface|null, to: CarbonInterface|null}>>
+     */
+    private readonly array $byLogin;
+
+    /**
      * @param  array<string, list<array{org_id: int, from: CarbonInterface|null, to: CarbonInterface|null}>>  $byLogin
      */
-    public function __construct(private readonly array $byLogin) {}
+    public function __construct(array $byLogin)
+    {
+        // Order each login's memberships so resolve()'s first covering match is
+        // the intended one when ranges overlap: most recent start first (an open
+        // `from` is the least specific, so it sorts last), tie-broken by the most
+        // recent end (an open `to` is the most current). This makes a dated range
+        // win over an open-ended profile suggestion without inspecting `source`.
+        foreach ($byLogin as $login => $memberships) {
+            usort($memberships, static function (array $a, array $b): int {
+                $aFrom = $a['from']?->getTimestamp() ?? PHP_INT_MIN;
+                $bFrom = $b['from']?->getTimestamp() ?? PHP_INT_MIN;
+                if ($aFrom !== $bFrom) {
+                    return $bFrom <=> $aFrom;
+                }
+
+                $aTo = $a['to']?->getTimestamp() ?? PHP_INT_MAX;
+                $bTo = $b['to']?->getTimestamp() ?? PHP_INT_MAX;
+
+                return $bTo <=> $aTo;
+            });
+
+            $byLogin[$login] = $memberships;
+        }
+
+        $this->byLogin = $byLogin;
+    }
 
     public static function fromDatabase(): self
     {

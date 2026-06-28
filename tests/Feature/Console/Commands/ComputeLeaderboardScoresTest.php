@@ -410,6 +410,30 @@ class ComputeLeaderboardScoresTest extends TestCase
         ]);
     }
 
+    public function test_command_clears_stale_org_entries_when_no_companies(): void
+    {
+        $org = Organization::create(['name' => 'Acme', 'slug' => 'acme', 'type' => 'agency']);
+        OrgLeaderboardEntry::create([
+            'organization_id' => $org->id,
+            'board' => 'contributor',
+            'window' => 'rolling12',
+            'score' => 42.0,
+            'member_count' => 1,
+            'computed_at' => Carbon::now()->subDay(),
+        ]);
+
+        $this->mock(ScoredEventReader::class)
+            ->shouldReceive('read')
+            ->andReturn([]);
+
+        $this->artisan('leaderboard:compute')->assertExitCode(0);
+
+        $this->assertDatabaseMissing(OrgLeaderboardEntry::class, [
+            'organization_id' => $org->id,
+            'window' => 'rolling12',
+        ]);
+    }
+
     public function test_command_outputs_contributor_count(): void
     {
         $now = Carbon::now();

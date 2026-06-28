@@ -96,6 +96,35 @@ class ScoreLeaderboardControllerTest extends TestCase
             ->assertDontSee('pr_merged');
     }
 
+    public function test_detail_anchors_recency_to_persisted_computed_at(): void
+    {
+        $computedAt = now()->subDays(30);
+        LeaderboardEntry::create([
+            'login' => 'jane',
+            'board' => 'contributor',
+            'window' => 'rolling12',
+            'score' => 10.0,
+            'rank' => 1,
+            'computed_at' => $computedAt,
+        ]);
+
+        $capturedTo = null;
+        $windowDays = (int) config('leaderboard.recency.window_days', 365);
+        $this->mock(ContributionDetailReader::class)
+            ->shouldReceive('readForLogin')
+            ->withArgs(function (string $login, $from, $to) use (&$capturedTo): bool {
+                $capturedTo = $to;
+
+                return true;
+            })
+            ->andReturn([]);
+
+        $this->get(route('scores.detail', ['board' => 'contributor', 'login' => 'jane']))->assertOk();
+
+        // The "as of" boundary must be the stored computation time, not now().
+        $this->assertSame($computedAt->toDateTimeString(), $capturedTo->toDateTimeString());
+    }
+
     public function test_detail_rejects_invalid_board(): void
     {
         $this->get('/scores/company/user/jane')->assertNotFound();

@@ -25,7 +25,7 @@ use OpenSearch\Client;
  */
 class ContributionDetailReader
 {
-    private const MAX_PER_TYPE = 500;
+    private const PAGE_SIZE = 500;
 
     public function __construct(private readonly Client $client) {}
 
@@ -86,23 +86,42 @@ class ContributionDetailReader
      */
     private function search(string $index, string $login, string $dateField, CarbonInterface $from, CarbonInterface $to, array $source, array $extraFilters = []): array
     {
-        $response = $this->client->search([
-            'index' => OpenSearchService::getIndexWithPrefix($index),
-            'body' => [
-                'size' => self::MAX_PER_TYPE,
-                '_source' => $source,
-                'sort' => [[$dateField => ['order' => 'desc']]],
-                'query' => [
-                    'bool' => [
-                        'filter' => array_merge([
-                            ['term' => ['author.keyword' => $login]],
-                            ['range' => [$dateField => ['gte' => $from->toIso8601String(), 'lte' => $to->toIso8601String()]]],
-                        ], $extraFilters),
-                    ],
-                ],
+        $query = [
+            'bool' => [
+                'filter' => array_merge([
+                    ['term' => ['author.keyword' => $login]],
+                    ['range' => [$dateField => ['gte' => $from->toIso8601String(), 'lte' => $to->toIso8601String()]]],
+                ], $extraFilters),
             ],
-        ]);
+        ];
 
-        return array_map(fn (array $hit): array => $hit['_source'] ?? [], $response['hits']['hits'] ?? []);
+        // Page through results rather than capping at a single request: a highly
+        // active contributor can have more than one page of a given type, and
+        // silently dropping the overflow would understate the itemized total.
+        $results = [];
+        $offset = 0;
+
+        do {
+            $response = $this->client->search([
+                'index' => OpenSearchService::getIndexWithPrefix($index),
+                'body' => [
+                    'from' => $offset,
+                    'size' => self::PAGE_SIZE,
+                    '_source' => $source,
+                    'sort' => [[$dateField => ['order' => 'desc']]],
+                    'query' => $query,
+                ],
+            ]);
+
+            $hits = $response['hits']['hits'] ?? [];
+            $pageCount = count($hits);
+            foreach ($hits as $hit) {
+                $results[] = $hit['_source'] ?? [];
+            }
+
+            $offset += self::PAGE_SIZE;
+        } while ($pageCount === self::PAGE_SIZE);
+
+        return $results;
     }
 }

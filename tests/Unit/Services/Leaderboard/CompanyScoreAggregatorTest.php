@@ -60,6 +60,29 @@ class CompanyScoreAggregatorTest extends TestCase
         $this->assertSame(3.0, $result[0]['contributor_score']);
     }
 
+    public function test_attribution_date_overrides_scoring_date_for_org_resolution(): void
+    {
+        $now = Carbon::parse('2026-06-01T00:00:00Z');
+        // Jane left org 5 at end of Feb; merged_at falls after, created_at before.
+        $resolver = new MembershipResolver([
+            'jane' => [['org_id' => 5, 'from' => Carbon::parse('2020-01-01'), 'to' => Carbon::parse('2026-02-28')]],
+        ]);
+
+        $result = $this->aggregator()->aggregate([
+            new ScoredEvent(
+                'jane',
+                Board::CONTRIBUTOR,
+                Action::PR_OPENED,
+                Carbon::parse('2026-05-01T00:00:00Z'),
+                1.0,
+                Carbon::parse('2026-01-15T00:00:00Z'),
+            ),
+        ], $now, $resolver);
+
+        // Without attribution date this would fall in the null bucket.
+        $this->assertSame(5, $result[0]['organization_id']);
+    }
+
     public function test_event_before_membership_start_is_unattributed(): void
     {
         $now = Carbon::parse('2026-06-01T00:00:00Z');

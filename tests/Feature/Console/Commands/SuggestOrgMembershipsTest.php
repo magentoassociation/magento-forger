@@ -66,6 +66,72 @@ class SuggestOrgMembershipsTest extends TestCase
         $this->assertSame(1, UserOrgMembership::where('login', 'jane')->where('source', 'profile')->count());
     }
 
+    public function test_clears_stale_profile_suggestion_when_login_now_skipped(): void
+    {
+        $org = Organization::create(['name' => 'Acme', 'slug' => 'acme', 'type' => 'agency']);
+        UserOrgMembership::create([
+            'login' => 'jane',
+            'organization_id' => $org->id,
+            'from_date' => null,
+            'to_date' => null,
+            'source' => 'profile',
+            'confidence' => 30,
+        ]);
+
+        // Jane still appears in the reader, but her company is now blank → skipped.
+        $this->mock(AuthorCompanyReader::class)
+            ->shouldReceive('read')
+            ->andReturn(['jane' => '']);
+
+        $this->artisan('leaderboard:suggest-memberships')->assertExitCode(0);
+
+        $this->assertDatabaseMissing('user_org_memberships', ['login' => 'jane', 'source' => 'profile']);
+    }
+
+    public function test_clears_stale_profile_suggestion_when_login_drops_out_of_reader(): void
+    {
+        $org = Organization::create(['name' => 'Acme', 'slug' => 'acme', 'type' => 'agency']);
+        UserOrgMembership::create([
+            'login' => 'jane',
+            'organization_id' => $org->id,
+            'from_date' => null,
+            'to_date' => null,
+            'source' => 'profile',
+            'confidence' => 30,
+        ]);
+
+        // Jane no longer appears in the reader at all (e.g. emptied her company).
+        $this->mock(AuthorCompanyReader::class)
+            ->shouldReceive('read')
+            ->andReturn(['bob' => 'Acme']);
+
+        $this->artisan('leaderboard:suggest-memberships')->assertExitCode(0);
+
+        $this->assertDatabaseMissing('user_org_memberships', ['login' => 'jane', 'source' => 'profile']);
+        $this->assertDatabaseHas('user_org_memberships', ['login' => 'bob', 'source' => 'profile']);
+    }
+
+    public function test_does_not_touch_manual_memberships_on_rebuild(): void
+    {
+        $org = Organization::create(['name' => 'Manual Co', 'slug' => 'manual-co', 'type' => 'agency']);
+        UserOrgMembership::create([
+            'login' => 'kim',
+            'organization_id' => $org->id,
+            'from_date' => null,
+            'to_date' => null,
+            'source' => 'manual',
+            'confidence' => 100,
+        ]);
+
+        $this->mock(AuthorCompanyReader::class)
+            ->shouldReceive('read')
+            ->andReturn(['jane' => 'Acme']);
+
+        $this->artisan('leaderboard:suggest-memberships')->assertExitCode(0);
+
+        $this->assertDatabaseHas('user_org_memberships', ['login' => 'kim', 'source' => 'manual']);
+    }
+
     public function test_normalizes_company_names(): void
     {
         $this->assertSame('Acme', SuggestOrgMemberships::normalizeCompanyName('@Acme'));

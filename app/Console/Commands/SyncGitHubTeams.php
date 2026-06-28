@@ -100,6 +100,7 @@ class SyncGitHubTeams extends Command implements Isolatable
                 'query' => ['per_page' => 100, 'page' => $page],
             ]);
             $members = json_decode($response->getBody()->getContents(), true, 512, JSON_THROW_ON_ERROR);
+            $memberCount = count($members);
 
             foreach ($members as $member) {
                 if (! empty($member['login'])) {
@@ -108,7 +109,7 @@ class SyncGitHubTeams extends Command implements Isolatable
             }
 
             $page++;
-        } while (count($members) === 100);
+        } while ($memberCount === 100);
 
         return array_values(array_unique($logins));
     }

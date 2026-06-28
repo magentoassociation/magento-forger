@@ -66,6 +66,19 @@ class ClaimRecordReader
             return [];
         }
 
+        // Collapse repeated self-assignments (assign → unassign → reassign) on the
+        // same PR to one claim per (pr, maintainer) pair — the same identity used
+        // in the reviewTimes lookup — keeping the earliest, so a maintainer can't
+        // farm claim credit by re-requesting review on a PR they already claimed.
+        $unique = [];
+        foreach ($claims as $claim) {
+            $key = $claim['pr'].'|'.$claim['maintainer'];
+            if (! isset($unique[$key]) || $claim['claimed_at']->lessThan($unique[$key]['claimed_at'])) {
+                $unique[$key] = $claim;
+            }
+        }
+        $claims = array_values($unique);
+
         $prNumbers = array_values(array_unique(array_column($claims, 'pr')));
         $maintainers = array_values(array_unique(array_column($claims, 'maintainer')));
 

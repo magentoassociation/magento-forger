@@ -14,6 +14,7 @@ use App\Services\Leaderboard\AuthorCompanyReader;
 use App\Support\BotFilter;
 use Illuminate\Console\Command;
 use Illuminate\Contracts\Console\Isolatable;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 /**
@@ -36,34 +37,40 @@ class SuggestOrgMemberships extends Command implements Isolatable
         $created = 0;
         $skipped = 0;
 
-        foreach ($reader->read() as $login => $rawCompany) {
-            $name = self::normalizeCompanyName($rawCompany);
+        // Rebuild the whole profile-suggestion set each run: wipe every
+        // source=profile row first, then recreate survivors. This also clears
+        // stale rows for logins that have dropped out of the reader entirely
+        // (e.g. emptied their GitHub company field). Wrapped in a transaction so
+        // consumers never observe the momentary empty state.
+        DB::transaction(function () use ($reader, $manualLogins, $confidence, &$created, &$skipped): void {
+            UserOrgMembership::query()->where('source', 'profile')->delete();
 
-            if (BotFilter::isBot($login) || $manualLogins->has($login) || $name === '' || Str::slug($name) === '') {
-                $skipped++;
+            foreach ($reader->read() as $login => $rawCompany) {
+                $name = self::normalizeCompanyName($rawCompany);
 
-                continue;
+                if (BotFilter::isBot($login) || $manualLogins->has($login) || $name === '' || Str::slug($name) === '') {
+                    $skipped++;
+
+                    continue;
+                }
+
+                $organization = Organization::firstOrCreate(
+                    ['slug' => Str::slug($name)],
+                    ['name' => $name, 'type' => 'unknown'],
+                );
+
+                UserOrgMembership::create([
+                    'login' => $login,
+                    'organization_id' => $organization->id,
+                    'from_date' => null,
+                    'to_date' => null,
+                    'source' => 'profile',
+                    'confidence' => $confidence,
+                ]);
+
+                $created++;
             }
-
-            $organization = Organization::firstOrCreate(
-                ['slug' => Str::slug($name)],
-                ['name' => $name, 'type' => 'unknown'],
-            );
-
-            // Replace any prior profile suggestion for this login (company may have changed).
-            UserOrgMembership::query()->where('login', $login)->where('source', 'profile')->delete();
-
-            UserOrgMembership::create([
-                'login' => $login,
-                'organization_id' => $organization->id,
-                'from_date' => null,
-                'to_date' => null,
-                'source' => 'profile',
-                'confidence' => $confidence,
-            ]);
-
-            $created++;
-        }
+        });
 
         $this->info("Suggested {$created} memberships ({$skipped} skipped).");
 

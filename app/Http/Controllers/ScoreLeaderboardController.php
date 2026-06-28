@@ -137,18 +137,29 @@ class ScoreLeaderboardController extends Controller
         }
 
         $boardEnum = $board === 'contributor' ? Board::CONTRIBUTOR : Board::MAINTAINER;
-        $now = Carbon::now();
-        $from = $now->copy()->subDays((int) config('leaderboard.recency.window_days', 365));
+
+        // Anchor recency decay to when the leaderboard was last computed, not the
+        // current request time. Using a fresh now() would let the decay factor
+        // drift past the persisted entry, so the detail total would no longer
+        // reconcile with the score shown on the board. Falls back to now() only
+        // when no entry has been persisted yet.
+        $entry = LeaderboardEntry::query()
+            ->where('login', $login)
+            ->where('board', $board)
+            ->where('window', 'rolling12')
+            ->first();
+        $asOf = $entry?->computed_at ?? Carbon::now();
+        $from = $asOf->copy()->subDays((int) config('leaderboard.recency.window_days', 365));
         $scorer = LeaderboardScorer::fromConfig();
 
-        $rows = collect($reader->readForLogin($login, $from, $now))
+        $rows = collect($reader->readForLogin($login, $from, $asOf))
             ->filter(fn (ContributionItem $item): bool => $item->board === $boardEnum)
             ->map(fn (ContributionItem $item): object => (object) [
                 'action' => $item->action->label(),
                 'title' => $item->title,
                 'url' => $item->url,
                 'date' => $item->date,
-                'points' => round($scorer->points(new ScoredEvent($login, $item->board, $item->action, $item->date, $item->impact), $now), 2),
+                'points' => round($scorer->points(new ScoredEvent($login, $item->board, $item->action, $item->date, $item->impact), $asOf), 2),
             ])
             ->sortByDesc('points')
             ->values();

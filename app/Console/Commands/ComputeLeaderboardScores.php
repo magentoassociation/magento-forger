@@ -223,6 +223,11 @@ class ComputeLeaderboardScores extends Command implements Isolatable
             ->aggregate($events, $now, MembershipResolver::fromDatabase());
 
         if ($companies === []) {
+            // No companies this run — clear stale org snapshot rather than
+            // leaving the previous run's entries in place. (An empty whereNotIn
+            // below would delete nothing, so handle it explicitly here.)
+            OrgLeaderboardEntry::query()->where('window', 'rolling12')->delete();
+
             return;
         }
 

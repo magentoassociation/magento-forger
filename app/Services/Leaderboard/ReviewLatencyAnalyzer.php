@@ -40,9 +40,12 @@ class ReviewLatencyAnalyzer
         $perMaintainer = [];
 
         foreach ($claims as $claim) {
-            // A claim is only credited once the maintainer actually reviews it, so
-            // self-assigning a pile of stale PRs without following through earns nothing.
-            if ($claim->firstReviewAt === null) {
+            // A claim is only credited once the maintainer reviews it *after*
+            // claiming it. No review — or one submitted before the claim — earns
+            // nothing, so self-assigning stale PRs (or back-dated reviews) can't
+            // score. Signed diffs keep pre-claim reviews out rather than abs()
+            // turning their negative latency into a positive score.
+            if ($claim->firstReviewAt === null || $claim->firstReviewAt->lessThan($claim->claimedAt)) {
                 continue;
             }
 
@@ -50,14 +53,14 @@ class ReviewLatencyAnalyzer
 
             $staleness = 1.0;
             if ($claim->pendingReviewAt !== null) {
-                $days = max(0.0, abs($claim->pendingReviewAt->diffInHours($claim->claimedAt, true)) / 24);
+                $days = max(0.0, $claim->pendingReviewAt->diffInHours($claim->claimedAt, false) / 24);
                 $bucket['ttc'][] = $days;
                 $staleness = $this->stalenessFromDays($days);
             }
 
             $events[] = new ScoredEvent($claim->maintainer, Board::MAINTAINER, Action::PR_CLAIMED, $claim->claimedAt, $staleness);
 
-            $bucket['ttr'][] = max(0.0, abs($claim->claimedAt->diffInHours($claim->firstReviewAt, true)));
+            $bucket['ttr'][] = $claim->claimedAt->diffInHours($claim->firstReviewAt, false);
             $bucket['reviews']++;
 
             $perMaintainer[$claim->maintainer] = $bucket;

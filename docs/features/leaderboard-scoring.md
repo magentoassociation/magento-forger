@@ -102,11 +102,15 @@ Each scored event is attributed to the org the actor belonged to **on the contri
 
 `Company Score` = Σ member event points, attributed point-in-time, with the same decay. A contributor who changes employer keeps their personal score; their *past* org keeps the credit for *past* work.
 
+The **scoring date and the attribution date are separate**: an event's points still decay from its scoring date (e.g. `merged_at`), but org credit is resolved against `ScoredEvent::attributionDate()` — the work date. `ScoredEventReader` sets that to `created_at` for PR-merged and issue-resolved-by-merge (both of which can land months later, under a different employer); for all other events it defaults to the scoring date. `CompanyScoreAggregator` resolves the org with `attributionDate()`.
+
 ### Org resolution pipeline
 
 Candidate org from, in order: (1) email domain → `organizations.domains`, (2) normalized GitHub profile company, (3) registered `User.company`. **Manual override is the source of truth.** Each membership carries a `source` and `confidence`; low-confidence rows land in a needs-review queue. Unresolved actors roll up to **"Unknown"** rather than being hidden.
 
-`leaderboard:suggest-memberships` (`SuggestOrgMemberships` + `AuthorCompanyReader`) implements (2): it harvests each non-bot author's `author_company` and creates low-confidence `source=profile` memberships, never overwriting `source=manual` rows. Re-running refreshes the profile suggestions. Domain/User.company seeding (1, 3) and a Filament review UI are not built yet.
+When a login has overlapping memberships, `MembershipResolver` returns the first range covering the attribution date after ordering them most-recent-start-first (an open `from` sorts last, tie-broken by most-recent end). This makes a dated manual range win over an open-ended `source=profile` suggestion without inspecting `source`.
+
+`leaderboard:suggest-memberships` (`SuggestOrgMemberships` + `AuthorCompanyReader`) implements (2): it harvests each non-bot author's `author_company` and creates low-confidence `source=profile` memberships, never overwriting `source=manual` rows. `AuthorCompanyReader` picks each author's company from the **most recently `updated_at`** PR/issue document (so a stale value can't shadow a newer one). Each run **rebuilds the whole `source=profile` set inside a transaction** — every `source=profile` row is deleted, then survivors recreated — so logins who clear their GitHub company field drop out cleanly; consumers never see the momentary empty state. Domain/User.company seeding (1, 3) and a Filament review UI are not built yet.
 
 ## New data model
 
@@ -205,7 +209,7 @@ Contributors do **not** request reviews. The flow is:
 
 This produces two different clocks:
 
-- **Time-to-claim** (`Progress: pending review` applied → self-assignment): how long the PR sat before this maintainer picked it up. Rather than treat it as untracked backlog noise, it **rewards** the claimer — the `pr_claimed` event's impact grows with this age, to encourage clearing stale PRs. The bonus is only credited once the maintainer actually reviews the PR, so claiming without follow-through earns nothing (and can't be farmed).
+- **Time-to-claim** (`Progress: pending review` applied → self-assignment): how long the PR sat before this maintainer picked it up. Rather than treat it as untracked backlog noise, it **rewards** the claimer — the `pr_claimed` event's impact grows with this age, to encourage clearing stale PRs. Anti-farming guards: the bonus is only credited once the maintainer reviews the PR, and only when that review is submitted **after** the claim (a pre-claim or back-dated review scores nothing — latencies are computed as signed diffs so a negative span can't be `abs()`-ed into points); and repeated self-assignments on the same PR (`ClaimRecordReader`) collapse to one claim per (PR, maintainer), keeping the earliest, so re-requesting review can't manufacture extra claim credit.
 - **Time-to-review** (self-assignment → first review submitted): the span a maintainer controls after claiming — stored as the `median_time_to_review_hours` responsiveness stat.
 
 These are computed from the `github-pr-timeline` index by `ClaimRecordReader` (assembling claim, pending-review-label, and first-review timings) and `ReviewLatencyAnalyzer` (the pure scoring + median math). Label-applied / "issues triaged" scoring (#9) remains deferred — it needs per-label event scoring, see [GitHub Timeline-Events Sync](github-timeline-events.md).
