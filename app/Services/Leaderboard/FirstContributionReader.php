@@ -74,7 +74,13 @@ class FirstContributionReader
      * @param  'min'|'max'  $metric
      * @param  array<string, CarbonInterface>  $result
      */
-    private function accumulate(string $index, string $dateField, string $metric, ?CarbonInterface $before, array &$result): void
+    private function accumulate(
+        string $index,
+        string $dateField,
+        string $metric,
+        ?CarbonInterface $before,
+        array &$result
+    ): void
     {
         $after = null;
 

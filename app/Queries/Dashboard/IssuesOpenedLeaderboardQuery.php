@@ -30,7 +30,10 @@ class IssuesOpenedLeaderboardQuery
                 'query' => [
                     'bool' => [
                         'filter' => [
-                            ['range' => ['created_at' => ['gte' => $from->toIso8601String(), 'lte' => $to->toIso8601String()]]],
+                            ['range' => ['created_at' => [
+                                'gte' => $from->toIso8601String(),
+                                'lte' => $to->toIso8601String(),
+                            ]]],
                         ],
                         'must_not' => $this->botFilters(),
                     ],

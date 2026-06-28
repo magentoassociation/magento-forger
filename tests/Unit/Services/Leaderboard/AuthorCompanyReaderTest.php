@@ -57,7 +57,7 @@ class AuthorCompanyReaderTest extends TestCase
         return new AuthorCompanyReader($client);
     }
 
-    public function test_newer_issue_company_overrides_older_pr_company(): void
+    public function testNewerIssueCompanyOverridesOlderPrCompany(): void
     {
         $reader = $this->reader(
             prDocs: ['jane' => ['company' => 'OldCo', 'updated_at' => '2026-01-01T00:00:00Z']],
@@ -67,7 +67,7 @@ class AuthorCompanyReaderTest extends TestCase
         $this->assertSame(['jane' => 'NewCo'], $reader->read());
     }
 
-    public function test_older_issue_company_does_not_override_newer_pr_company(): void
+    public function testOlderIssueCompanyDoesNotOverrideNewerPrCompany(): void
     {
         $reader = $this->reader(
             prDocs: ['jane' => ['company' => 'NewCo', 'updated_at' => '2026-05-01T00:00:00Z']],
@@ -77,7 +77,7 @@ class AuthorCompanyReaderTest extends TestCase
         $this->assertSame(['jane' => 'NewCo'], $reader->read());
     }
 
-    public function test_merges_authors_present_in_only_one_index(): void
+    public function testMergesAuthorsPresentInOnlyOneIndex(): void
     {
         $reader = $this->reader(
             prDocs: ['jane' => ['company' => 'Acme', 'updated_at' => '2026-01-01T00:00:00Z']],

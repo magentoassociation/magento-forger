@@ -32,10 +32,17 @@ class ComputeLeaderboardScores extends Command implements Isolatable
 {
     protected $signature = 'leaderboard:compute';
 
-    protected $description = 'Compute weighted contributor/maintainer scores and engagement signals from OpenSearch into the leaderboard tables.';
+    protected $description = 'Compute weighted contributor/maintainer scores and engagement signals '
+        .'from OpenSearch into the leaderboard tables.';
 
-    public function handle(ScoredEventReader $reader, ClaimRecordReader $claimReader, ReviewLatencyAnalyzer $analyzer, FirstContributionReader $firstContributionReader, ContributionDetailReader $detailReader, ScoreSnapshotRepository $snapshots): int
-    {
+    public function handle(
+        ScoredEventReader $reader,
+        ClaimRecordReader $claimReader,
+        ReviewLatencyAnalyzer $analyzer,
+        FirstContributionReader $firstContributionReader,
+        ContributionDetailReader $detailReader,
+        ScoreSnapshotRepository $snapshots,
+    ): int {
         $now = Carbon::now();
         $windowDays = (int) config('leaderboard.recency.window_days', 365);
         $from = $now->copy()->subDays($windowDays);
@@ -85,7 +92,8 @@ class ComputeLeaderboardScores extends Command implements Isolatable
                 ? (int) abs($lastBeforeWindow[$login]->diffInDays($data['first_contribution_at']))
                 : null;
             $isComeback = $comebackGap !== null && $comebackGap >= $comebackMinGap;
-            $isNewContributor = $firstContributionAt !== null && $firstContributionAt->greaterThanOrEqualTo($spotlightCutoff);
+            $isNewContributor = $firstContributionAt !== null
+                && $firstContributionAt->greaterThanOrEqualTo($spotlightCutoff);
 
             // Earliest in-window item: the contribution that ended a comeback's
             // silence and, for a newcomer, their first-ever contribution. Fetched

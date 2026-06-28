@@ -31,7 +31,11 @@ class ReviewLatencyAnalyzer
      * @param  list<ClaimRecord>  $claims
      * @return array{
      *     events: list<ScoredEvent>,
-     *     stats: array<string, array{median_time_to_review_hours: float|null, median_time_to_claim_days: float|null, reviews_in_window: int}>
+     *     stats: array<string, array{
+     *         median_time_to_review_hours: float|null,
+     *         median_time_to_claim_days: float|null,
+     *         reviews_in_window: int
+     *     }>
      * }
      */
     public function analyze(array $claims): array
@@ -58,7 +62,13 @@ class ReviewLatencyAnalyzer
                 $staleness = $this->stalenessFromDays($days);
             }
 
-            $events[] = new ScoredEvent($claim->maintainer, Board::MAINTAINER, Action::PR_CLAIMED, $claim->claimedAt, $staleness);
+            $events[] = new ScoredEvent(
+                $claim->maintainer,
+                Board::MAINTAINER,
+                Action::PR_CLAIMED,
+                $claim->claimedAt,
+                $staleness,
+            );
 
             $bucket['ttr'][] = $claim->claimedAt->diffInHours($claim->firstReviewAt, false);
             $bucket['reviews']++;

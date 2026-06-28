@@ -75,7 +75,14 @@ class ScoreLeaderboardController extends Controller
      * Data for the "How are scores tallied?" modal: the configured weights for
      * this board plus the multipliers, so the modal stays in sync with config.
      *
-     * @return array{weights: array<string, int|float>, impact: array<string, int|float>, recency: array<string, int>, labels: array<string, string>, impactActions: list<string>, scoredList: string}
+     * @return array{
+     *     weights: array<string, int|float>,
+     *     impact: array<string, int|float>,
+     *     recency: array<string, int>,
+     *     labels: array<string, string>,
+     *     impactActions: list<string>,
+     *     scoredList: string
+     * }
      */
     private function scoringExplainer(string $board): array
     {
@@ -159,7 +166,10 @@ class ScoreLeaderboardController extends Controller
                 'title' => $item->title,
                 'url' => $item->url,
                 'date' => $item->date,
-                'points' => round($scorer->points(new ScoredEvent($login, $item->board, $item->action, $item->date, $item->impact), $asOf), 2),
+                'points' => round($scorer->points(
+                    new ScoredEvent($login, $item->board, $item->action, $item->date, $item->impact),
+                    $asOf,
+                ), 2),
             ])
             ->sortByDesc('points')
             ->values();

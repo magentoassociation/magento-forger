@@ -19,7 +19,7 @@ class SuggestOrgMembershipsTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_creates_profile_memberships_and_respects_bots_and_manual(): void
+    public function testCreatesProfileMembershipsAndRespectsBotsAndManual(): void
     {
         $manualOrg = Organization::create(['name' => 'Manual Co', 'slug' => 'manual-co', 'type' => 'agency']);
         UserOrgMembership::create([
@@ -54,7 +54,7 @@ class SuggestOrgMembershipsTest extends TestCase
         $this->assertDatabaseMissing('user_org_memberships', ['login' => 'engcom-ci']);
     }
 
-    public function test_is_idempotent(): void
+    public function testIsIdempotent(): void
     {
         $this->mock(AuthorCompanyReader::class)
             ->shouldReceive('read')
@@ -66,7 +66,7 @@ class SuggestOrgMembershipsTest extends TestCase
         $this->assertSame(1, UserOrgMembership::where('login', 'jane')->where('source', 'profile')->count());
     }
 
-    public function test_clears_stale_profile_suggestion_when_login_now_skipped(): void
+    public function testClearsStaleProfileSuggestionWhenLoginNowSkipped(): void
     {
         $org = Organization::create(['name' => 'Acme', 'slug' => 'acme', 'type' => 'agency']);
         UserOrgMembership::create([
@@ -78,17 +78,18 @@ class SuggestOrgMembershipsTest extends TestCase
             'confidence' => 30,
         ]);
 
-        // Jane still appears in the reader, but her company is now blank → skipped.
+        // Jane still appears in the reader with a company the reader can actually
+        // return ('@' passes its non-empty filter), but it normalizes to blank → skipped.
         $this->mock(AuthorCompanyReader::class)
             ->shouldReceive('read')
-            ->andReturn(['jane' => '']);
+            ->andReturn(['jane' => '@']);
 
         $this->artisan('leaderboard:suggest-memberships')->assertExitCode(0);
 
         $this->assertDatabaseMissing('user_org_memberships', ['login' => 'jane', 'source' => 'profile']);
     }
 
-    public function test_clears_stale_profile_suggestion_when_login_drops_out_of_reader(): void
+    public function testClearsStaleProfileSuggestionWhenLoginDropsOutOfReader(): void
     {
         $org = Organization::create(['name' => 'Acme', 'slug' => 'acme', 'type' => 'agency']);
         UserOrgMembership::create([
@@ -111,7 +112,7 @@ class SuggestOrgMembershipsTest extends TestCase
         $this->assertDatabaseHas('user_org_memberships', ['login' => 'bob', 'source' => 'profile']);
     }
 
-    public function test_does_not_touch_manual_memberships_on_rebuild(): void
+    public function testDoesNotTouchManualMembershipsOnRebuild(): void
     {
         $org = Organization::create(['name' => 'Manual Co', 'slug' => 'manual-co', 'type' => 'agency']);
         UserOrgMembership::create([
@@ -132,7 +133,7 @@ class SuggestOrgMembershipsTest extends TestCase
         $this->assertDatabaseHas('user_org_memberships', ['login' => 'kim', 'source' => 'manual']);
     }
 
-    public function test_normalizes_company_names(): void
+    public function testNormalizesCompanyNames(): void
     {
         $this->assertSame('Acme', SuggestOrgMemberships::normalizeCompanyName('@Acme'));
         $this->assertSame('Acme Inc', SuggestOrgMemberships::normalizeCompanyName('  Acme   Inc '));

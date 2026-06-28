@@ -16,7 +16,10 @@ class GitHubSyncer
     /**
      * Run a paginated GitHub sync with optional cutoff, per-node callbacks, and error recovery.
      *
-     * @param  callable(?string $cursor): array{nodes: array, pageInfo: array{endCursor: ?string, hasNextPage: bool}}  $fetchPage
+     * @param  callable(?string $cursor): array{
+     *     nodes: array,
+     *     pageInfo: array{endCursor: ?string, hasNextPage: bool}
+     * }  $fetchPage
      * @param  callable(array $nodes): void  $index
      * @param  Carbon|null  $cutoff  Stop when the last node's updatedAt is older than this.
      * @param  string|null  $cursor  Resume from this cursor.

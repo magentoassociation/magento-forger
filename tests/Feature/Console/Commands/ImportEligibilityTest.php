@@ -16,7 +16,7 @@ class ImportEligibilityTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_imports_roles_and_replaces_existing_roster(): void
+    public function testImportsRolesAndReplacesExistingRoster(): void
     {
         RoleEligibility::create(['login' => 'old', 'role' => 'contributor']);
 
@@ -34,7 +34,7 @@ class ImportEligibilityTest extends TestCase
         $this->assertDatabaseMissing('role_eligibilities', ['login' => 'bad']);   // invalid role skipped
     }
 
-    public function test_missing_file_errors(): void
+    public function testMissingFileErrors(): void
     {
         $this->artisan('leaderboard:import-eligibility', ['path' => '/no/such/file.csv'])->assertExitCode(1);
     }

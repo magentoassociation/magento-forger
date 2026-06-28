@@ -37,7 +37,7 @@ class ContributionDetailReaderTest extends TestCase
         ]];
     }
 
-    public function test_pages_past_the_first_500_and_keeps_all_items(): void
+    public function testPagesPastTheFirst500AndKeepsAllItems(): void
     {
         $from = Carbon::parse('2025-06-01T00:00:00Z');
         $to = Carbon::parse('2026-06-01T00:00:00Z');
@@ -78,19 +78,27 @@ class ContributionDetailReaderTest extends TestCase
         $this->assertSame([0, 500], $offsets);
     }
 
-    public function test_single_short_page_issues_no_second_request(): void
+    public function testSingleShortPageIssuesNoSecondRequest(): void
     {
         $from = Carbon::parse('2025-06-01T00:00:00Z');
         $to = Carbon::parse('2026-06-01T00:00:00Z');
 
+        $response = ['hits' => ['hits' => [$this->prHit(1)]]];
+        $offsets = [];
         $client = Mockery::mock(Client::class);
         $client->shouldReceive('search')
-            ->andReturn(['hits' => ['hits' => [$this->prHit(1)]]]);
+            ->andReturnUsing(function (array $params) use (&$offsets, $response): array {
+                $offsets[] = $params['body']['from'];
+
+                return $response;
+            });
 
         $reader = new ContributionDetailReader($client);
         $items = $reader->readForLogin('jane', $from, $to);
 
-        // One hit per search type; no exception from over-paging.
         $this->assertNotEmpty($items);
+        // Each search type returned a short page (1 < PAGE_SIZE), so none paged
+        // past the first request: every offset is 0, never a second page at 500.
+        $this->assertSame([0], array_values(array_unique($offsets)));
     }
 }

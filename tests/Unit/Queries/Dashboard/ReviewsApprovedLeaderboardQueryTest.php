@@ -35,7 +35,7 @@ class ReviewsApprovedLeaderboardQueryTest extends TestCase
         parent::tearDown();
     }
 
-    public function test_returns_contributors_sorted_by_count(): void
+    public function testReturnsContributorsSortedByCount(): void
     {
         $this->client->shouldReceive('search')->once()->andReturn([
             'aggregations' => [
@@ -58,7 +58,7 @@ class ReviewsApprovedLeaderboardQueryTest extends TestCase
         $this->assertSame(3, $result[1]->count);
     }
 
-    public function test_returns_empty_array_when_no_buckets(): void
+    public function testReturnsEmptyArrayWhenNoBuckets(): void
     {
         $this->client->shouldReceive('search')->once()->andReturn([
             'aggregations' => ['by_contributor' => ['buckets' => []]],
@@ -69,7 +69,7 @@ class ReviewsApprovedLeaderboardQueryTest extends TestCase
         $this->assertSame([], $result);
     }
 
-    public function test_query_filters_on_approved_state_and_submitted_at(): void
+    public function testQueryFiltersOnApprovedStateAndSubmittedAt(): void
     {
         $capturedParams = null;
         $this->client->shouldReceive('search')->once()->withArgs(function (array $params) use (&$capturedParams) {
@@ -85,7 +85,7 @@ class ReviewsApprovedLeaderboardQueryTest extends TestCase
         $this->assertTrue(collect($filters)->contains(fn ($f) => isset($f['range']['submitted_at'])));
     }
 
-    public function test_query_targets_pr_reviews_index(): void
+    public function testQueryTargetsPrReviewsIndex(): void
     {
         $capturedParams = null;
         $this->client->shouldReceive('search')->once()->withArgs(function (array $params) use (&$capturedParams) {
@@ -99,7 +99,7 @@ class ReviewsApprovedLeaderboardQueryTest extends TestCase
         $this->assertStringContainsString('github-pr-reviews', $capturedParams['index']);
     }
 
-    public function test_query_excludes_bots(): void
+    public function testQueryExcludesBots(): void
     {
         $capturedParams = null;
         $this->client->shouldReceive('search')->once()->withArgs(function (array $params) use (&$capturedParams) {
@@ -111,7 +111,11 @@ class ReviewsApprovedLeaderboardQueryTest extends TestCase
         $this->query->execute(Carbon::parse('2026-01-01'), Carbon::parse('2026-01-31'));
 
         $mustNot = $capturedParams['body']['query']['bool']['must_not'];
-        $this->assertTrue(collect($mustNot)->contains(fn ($f) => ($f['wildcard']['author.keyword'] ?? null) === 'engcom-*'));
-        $this->assertTrue(collect($mustNot)->contains(fn ($f) => ($f['term']['author.keyword'] ?? null) === 'github-actions[bot]'));
+        $this->assertTrue(
+            collect($mustNot)->contains(fn ($f) => ($f['wildcard']['author.keyword'] ?? null) === 'engcom-*')
+        );
+        $this->assertTrue(
+            collect($mustNot)->contains(fn ($f) => ($f['term']['author.keyword'] ?? null) === 'github-actions[bot]')
+        );
     }
 }

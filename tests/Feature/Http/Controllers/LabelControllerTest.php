@@ -54,7 +54,7 @@ class LabelControllerTest extends TestCase
         parent::tearDown();
     }
 
-    public function test_list_all_labels_groups_labels_by_prefix_and_sorts_prefixes(): void
+    public function testListAllLabelsGroupsLabelsByPrefixAndSortsPrefixes(): void
     {
         $client = Mockery::mock(Client::class);
         $client->shouldReceive('search')->once()->with(Mockery::on(static function (array $params): bool {
@@ -91,7 +91,7 @@ class LabelControllerTest extends TestCase
         })($labels));
     }
 
-    public function test_list_prs_without_component_label_builds_monthly_ranges(): void
+    public function testListPrsWithoutComponentLabelBuildsMonthlyRanges(): void
     {
         $client = Mockery::mock(Client::class);
         $client->shouldReceive('search')->once()->with(Mockery::on(static function (array $params): bool {
@@ -142,7 +142,7 @@ class LabelControllerTest extends TestCase
         })($prs));
     }
 
-    public function test_list_prs_without_component_label_skips_invalid_month_dates(): void
+    public function testListPrsWithoutComponentLabelSkipsInvalidMonthDates(): void
     {
         Log::spy();
 
@@ -186,7 +186,7 @@ class LabelControllerTest extends TestCase
         );
     }
 
-    public function test_process_labels_page_is_available_to_admins(): void
+    public function testProcessLabelsPageIsAvailableToAdmins(): void
     {
         $adminUser = $this->createUser(true);
 
@@ -196,7 +196,7 @@ class LabelControllerTest extends TestCase
         $response->assertViewIs('labels.processLabels');
     }
 
-    public function test_process_labels_page_is_forbidden_to_non_admins(): void
+    public function testProcessLabelsPageIsForbiddenToNonAdmins(): void
     {
         $user = $this->createUser(false);
 
@@ -205,7 +205,7 @@ class LabelControllerTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_upload_labels_records_a_warning_when_create_returns_skipped(): void
+    public function testUploadLabelsRecordsAWarningWhenCreateReturnsSkipped(): void
     {
         Log::spy();
 
@@ -235,7 +235,11 @@ class LabelControllerTest extends TestCase
         $response->assertSessionHas('warning', function (array $flash): bool {
             return $flash['header'] === 'Labels were processed with skipped remaps.'
                 && $flash['created'] === 0
-                && in_array("Skipped creating label 'Area: Foo': Label 'Area: Foo' already exists.", $flash['skipped'], true)
+                && in_array(
+                    "Skipped creating label 'Area: Foo': Label 'Area: Foo' already exists.",
+                    $flash['skipped'],
+                    true
+                )
                 && $flash['errors'] === [];
         });
         $response->assertSessionMissing('success');
@@ -250,7 +254,7 @@ class LabelControllerTest extends TestCase
         );
     }
 
-    public function test_upload_labels_records_an_error_when_rename_returns_zero(): void
+    public function testUploadLabelsRecordsAnErrorWhenRenameReturnsZero(): void
     {
         Log::spy();
 
@@ -281,7 +285,11 @@ class LabelControllerTest extends TestCase
         $response->assertSessionHas('error', function (array $flash): bool {
             return $flash['header'] === 'Label processing failed.'
                 && $flash['renamed'] === 0
-                && in_array("Failed to rename 'Area: Old' to 'Area: New': GitHub rejected the rename request.", $flash['errors'], true);
+                && in_array(
+                    "Failed to rename 'Area: Old' to 'Area: New': GitHub rejected the rename request.",
+                    $flash['errors'],
+                    true
+                );
         });
         $response->assertSessionMissing('success');
         $response->assertSessionMissing('warning');
@@ -296,7 +304,7 @@ class LabelControllerTest extends TestCase
         );
     }
 
-    public function test_upload_labels_records_a_warning_when_processing_is_partially_successful(): void
+    public function testUploadLabelsRecordsAWarningWhenProcessingIsPartiallySuccessful(): void
     {
         Log::spy();
 
@@ -333,13 +341,17 @@ class LabelControllerTest extends TestCase
             return $flash['header'] === 'Labels were processed with some errors.'
                 && $flash['created'] === 1
                 && $flash['renamed'] === 0
-                && in_array("Failed to create label 'Area: Bad': GitHub rejected the create request.", $flash['errors'], true);
+                && in_array(
+                    "Failed to create label 'Area: Bad': GitHub rejected the create request.",
+                    $flash['errors'],
+                    true
+                );
         });
         $response->assertSessionMissing('success');
         $response->assertSessionMissing('error');
     }
 
-    public function test_upload_labels_records_success_when_creates_and_renames_succeed_across_tabs(): void
+    public function testUploadLabelsRecordsSuccessWhenCreatesAndRenamesSucceedAcrossTabs(): void
     {
         $adminUser = $this->createUser(true);
 
@@ -380,7 +392,7 @@ class LabelControllerTest extends TestCase
         $response->assertSessionMissing('error');
     }
 
-    public function test_upload_labels_records_a_warning_when_remaps_are_skipped(): void
+    public function testUploadLabelsRecordsAWarningWhenRemapsAreSkipped(): void
     {
         Log::spy();
 
@@ -407,8 +419,16 @@ class LabelControllerTest extends TestCase
                 && $flash['created'] === 0
                 && $flash['renamed'] === 0
                 && count($flash['skipped']) === 2
-                && in_array("Skipped remapping label 'Area: Old' to 'Area: New': remap not implemented.", $flash['skipped'], true)
-                && in_array("Skipped remapping label 'Component: Old' to 'Component: New': remap not implemented.", $flash['skipped'], true);
+                && in_array(
+                    "Skipped remapping label 'Area: Old' to 'Area: New': remap not implemented.",
+                    $flash['skipped'],
+                    true
+                )
+                && in_array(
+                    "Skipped remapping label 'Component: Old' to 'Component: New': remap not implemented.",
+                    $flash['skipped'],
+                    true
+                );
         });
         $response->assertSessionMissing('success');
         $response->assertSessionMissing('error');
@@ -432,7 +452,7 @@ class LabelControllerTest extends TestCase
         );
     }
 
-    public function test_upload_labels_is_forbidden_to_non_admins(): void
+    public function testUploadLabelsIsForbiddenToNonAdmins(): void
     {
         $user = $this->createUser(false);
 

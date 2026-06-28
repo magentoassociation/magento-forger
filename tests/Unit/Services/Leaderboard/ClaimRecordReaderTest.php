@@ -27,7 +27,7 @@ class ClaimRecordReaderTest extends TestCase
         return ['hits' => ['hits' => array_map(fn (array $s): array => ['_source' => $s], $hits)]];
     }
 
-    public function test_collapses_repeated_self_assignments_to_one_claim(): void
+    public function testCollapsesRepeatedSelfAssignmentsToOneClaim(): void
     {
         $timeline = OpenSearchService::getIndexWithPrefix(OpenSearchService::OPENSEARCH_GITHUB_PR_TIMELINE_INDEX);
 
@@ -39,9 +39,24 @@ class ClaimRecordReaderTest extends TestCase
                 if ($params['index'] === $timeline && $type === 'ReviewRequestedEvent') {
                     // jane self-assigns PR 10 twice (a reassignment), plus one real claim on PR 11.
                     return $this->hits([
-                        ['pr_number' => 10, 'actor' => 'jane', 'requested_reviewer' => 'jane', 'created_at' => '2026-03-10T00:00:00Z'],
-                        ['pr_number' => 10, 'actor' => 'jane', 'requested_reviewer' => 'jane', 'created_at' => '2026-03-01T00:00:00Z'],
-                        ['pr_number' => 11, 'actor' => 'jane', 'requested_reviewer' => 'jane', 'created_at' => '2026-03-05T00:00:00Z'],
+                        [
+                            'pr_number' => 10,
+                            'actor' => 'jane',
+                            'requested_reviewer' => 'jane',
+                            'created_at' => '2026-03-10T00:00:00Z',
+                        ],
+                        [
+                            'pr_number' => 10,
+                            'actor' => 'jane',
+                            'requested_reviewer' => 'jane',
+                            'created_at' => '2026-03-01T00:00:00Z',
+                        ],
+                        [
+                            'pr_number' => 11,
+                            'actor' => 'jane',
+                            'requested_reviewer' => 'jane',
+                            'created_at' => '2026-03-05T00:00:00Z',
+                        ],
                     ]);
                 }
 

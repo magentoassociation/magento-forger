@@ -143,7 +143,13 @@ class LeaderboardScorer
 
     /**
      * @param  list<CarbonInterface>  $dates
-     * @return array{first_contribution_at: CarbonInterface, last_contribution_at: CarbonInterface, current_gap_days: int, current_streak_weeks: int, longest_streak_weeks: int}
+     * @return array{
+     *     first_contribution_at: CarbonInterface,
+     *     last_contribution_at: CarbonInterface,
+     *     current_gap_days: int,
+     *     current_streak_weeks: int,
+     *     longest_streak_weeks: int
+     * }
      */
     private function engagement(array $dates, CarbonInterface $now): array
     {

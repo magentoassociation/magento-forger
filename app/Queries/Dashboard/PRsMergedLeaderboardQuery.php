@@ -31,7 +31,10 @@ class PRsMergedLeaderboardQuery
                     'bool' => [
                         'filter' => [
                             ['term' => ['state.keyword' => 'MERGED']],
-                            ['range' => ['merged_at' => ['gte' => $from->toIso8601String(), 'lte' => $to->toIso8601String()]]],
+                            ['range' => ['merged_at' => [
+                                'gte' => $from->toIso8601String(),
+                                'lte' => $to->toIso8601String(),
+                            ]]],
                         ],
                         'must_not' => $this->botFilters(),
                     ],

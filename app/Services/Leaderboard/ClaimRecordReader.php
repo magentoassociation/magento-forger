@@ -39,7 +39,12 @@ class ClaimRecordReader
                 'bool' => [
                     'filter' => [
                         ['term' => ['type.keyword' => 'ReviewRequestedEvent']],
-                        ['range' => ['created_at' => ['gte' => $from->toIso8601String(), 'lte' => $to->toIso8601String()]]],
+                        ['range' => [
+                            'created_at' => [
+                                'gte' => $from->toIso8601String(),
+                                'lte' => $to->toIso8601String(),
+                            ],
+                        ]],
                     ],
                 ],
             ],
@@ -92,7 +97,10 @@ class ClaimRecordReader
                 maintainer: $claim['maintainer'],
                 claimedAt: $claim['claimed_at'],
                 pendingReviewAt: $this->latestBefore($pendingReviewTimes[$claim['pr']] ?? [], $claim['claimed_at']),
-                firstReviewAt: $this->earliestAfter($reviewTimes[$claim['pr'].'|'.$claim['maintainer']] ?? [], $claim['claimed_at']),
+                firstReviewAt: $this->earliestAfter(
+                    $reviewTimes[$claim['pr'].'|'.$claim['maintainer']] ?? [],
+                    $claim['claimed_at'],
+                ),
             );
         }
 

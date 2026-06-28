@@ -18,7 +18,7 @@ class ScoreSnapshotRepositoryTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_record_writes_one_row_per_login(): void
+    public function testRecordWritesOneRowPerLogin(): void
     {
         $now = Carbon::now();
 
@@ -28,37 +28,61 @@ class ScoreSnapshotRepositoryTest extends TestCase
         $this->assertDatabaseHas(GithubScoreSnapshot::class, ['login' => 'bob', 'contributor_score' => 2.5]);
     }
 
-    public function test_baseline_returns_latest_snapshot_at_or_before_cutoff(): void
+    public function testBaselineReturnsLatestSnapshotAtOrBeforeCutoff(): void
     {
         $now = Carbon::now();
 
         // Two snapshots before the cutoff (the later one wins) and one after (ignored).
-        GithubScoreSnapshot::create(['login' => 'jane', 'contributor_score' => 1.0, 'captured_at' => $now->copy()->subDays(20)]);
-        GithubScoreSnapshot::create(['login' => 'jane', 'contributor_score' => 4.0, 'captured_at' => $now->copy()->subDays(8)]);
-        GithubScoreSnapshot::create(['login' => 'jane', 'contributor_score' => 9.0, 'captured_at' => $now->copy()->subDays(1)]);
+        GithubScoreSnapshot::create([
+            'login' => 'jane',
+            'contributor_score' => 1.0,
+            'captured_at' => $now->copy()->subDays(20),
+        ]);
+        GithubScoreSnapshot::create([
+            'login' => 'jane',
+            'contributor_score' => 4.0,
+            'captured_at' => $now->copy()->subDays(8),
+        ]);
+        GithubScoreSnapshot::create([
+            'login' => 'jane',
+            'contributor_score' => 9.0,
+            'captured_at' => $now->copy()->subDays(1),
+        ]);
 
         $baseline = (new ScoreSnapshotRepository)->baselineAsOf($now->copy()->subDays(7));
 
         $this->assertSame(4.0, $baseline['jane']);
     }
 
-    public function test_baseline_omits_logins_without_an_old_enough_snapshot(): void
+    public function testBaselineOmitsLoginsWithoutAnOldEnoughSnapshot(): void
     {
         $now = Carbon::now();
 
-        GithubScoreSnapshot::create(['login' => 'jane', 'contributor_score' => 9.0, 'captured_at' => $now->copy()->subDays(1)]);
+        GithubScoreSnapshot::create([
+            'login' => 'jane',
+            'contributor_score' => 9.0,
+            'captured_at' => $now->copy()->subDays(1),
+        ]);
 
         $baseline = (new ScoreSnapshotRepository)->baselineAsOf($now->copy()->subDays(7));
 
         $this->assertArrayNotHasKey('jane', $baseline);
     }
 
-    public function test_prune_drops_snapshots_before_the_horizon(): void
+    public function testPruneDropsSnapshotsBeforeTheHorizon(): void
     {
         $now = Carbon::now();
 
-        GithubScoreSnapshot::create(['login' => 'jane', 'contributor_score' => 1.0, 'captured_at' => $now->copy()->subDays(90)]);
-        GithubScoreSnapshot::create(['login' => 'jane', 'contributor_score' => 2.0, 'captured_at' => $now->copy()->subDays(10)]);
+        GithubScoreSnapshot::create([
+            'login' => 'jane',
+            'contributor_score' => 1.0,
+            'captured_at' => $now->copy()->subDays(90),
+        ]);
+        GithubScoreSnapshot::create([
+            'login' => 'jane',
+            'contributor_score' => 2.0,
+            'captured_at' => $now->copy()->subDays(10),
+        ]);
 
         (new ScoreSnapshotRepository)->prune($now->copy()->subDays(60));
 

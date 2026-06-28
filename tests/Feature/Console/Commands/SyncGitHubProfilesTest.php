@@ -21,15 +21,24 @@ class SyncGitHubProfilesTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_fetches_and_stores_name_and_avatar(): void
+    public function testFetchesAndStoresNameAndAvatar(): void
     {
-        LeaderboardEntry::create(['login' => 'janedoe', 'board' => 'contributor', 'window' => 'rolling12', 'score' => 5.0, 'computed_at' => now()]);
+        LeaderboardEntry::create([
+            'login' => 'janedoe',
+            'board' => 'contributor',
+            'window' => 'rolling12',
+            'score' => 5.0,
+            'computed_at' => now(),
+        ]);
 
         $mock = new MockHandler([
             new Response(200, [], json_encode(['name' => 'Jane Doe', 'avatar_url' => 'https://example.com/jane.png'])),
         ]);
         $rest = new Client(['handler' => HandlerStack::create($mock)]);
-        $this->app->instance(GitHubConnection::class, new GitHubConnection(graphQlClient: new Client, restClient: $rest));
+        $this->app->instance(
+            GitHubConnection::class,
+            new GitHubConnection(graphQlClient: new Client, restClient: $rest),
+        );
 
         $this->artisan('sync:github:profiles')->assertExitCode(0);
 

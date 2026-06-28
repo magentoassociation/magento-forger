@@ -27,7 +27,7 @@ class OpenSearchServiceTest extends TestCase
         return $method->invoke($service, $pr);
     }
 
-    public function test_maps_labeled_event_with_label_name(): void
+    public function testMapsLabeledEventWithLabelName(): void
     {
         $docs = $this->mapTimeline([
             'number' => 123,
@@ -53,7 +53,7 @@ class OpenSearchServiceTest extends TestCase
         $this->assertNull($docs[0]['body']['requested_reviewer']);
     }
 
-    public function test_maps_review_requested_event_with_reviewer(): void
+    public function testMapsReviewRequestedEventWithReviewer(): void
     {
         $docs = $this->mapTimeline([
             'number' => 456,
@@ -75,13 +75,17 @@ class OpenSearchServiceTest extends TestCase
         $this->assertNull($docs[0]['body']['label_name']);
     }
 
-    public function test_skips_nodes_without_id(): void
+    public function testSkipsNodesWithoutId(): void
     {
         $docs = $this->mapTimeline([
             'number' => 789,
             'timelineItems' => [
                 'nodes' => [
-                    ['__typename' => 'LabeledEvent', 'actor' => ['login' => 'x'], 'createdAt' => '2026-01-01T00:00:00Z'],
+                    [
+                        '__typename' => 'LabeledEvent',
+                        'actor' => ['login' => 'x'],
+                        'createdAt' => '2026-01-01T00:00:00Z',
+                    ],
                 ],
             ],
         ]);
@@ -89,7 +93,7 @@ class OpenSearchServiceTest extends TestCase
         $this->assertSame([], $docs);
     }
 
-    public function test_returns_empty_for_no_timeline_items(): void
+    public function testReturnsEmptyForNoTimelineItems(): void
     {
         $this->assertSame([], $this->mapTimeline(['number' => 1]));
     }
@@ -105,7 +109,7 @@ class OpenSearchServiceTest extends TestCase
         return (new ReflectionMethod(OpenSearchService::class, $method))->invoke($service, $node);
     }
 
-    public function test_pull_request_document_includes_size_and_author_company(): void
+    public function testPullRequestDocumentIncludesSizeAndAuthorCompany(): void
     {
         $doc = $this->buildDocument('toPullRequestDocument', [
             'number' => 10,
@@ -134,7 +138,7 @@ class OpenSearchServiceTest extends TestCase
         $this->assertSame(4, $doc['changed_files']);
     }
 
-    public function test_pull_request_document_defaults_missing_size_and_company_to_null(): void
+    public function testPullRequestDocumentDefaultsMissingSizeAndCompanyToNull(): void
     {
         $doc = $this->buildDocument('toPullRequestDocument', [
             'number' => 11,
@@ -157,7 +161,7 @@ class OpenSearchServiceTest extends TestCase
         $this->assertNull($doc['changed_files']);
     }
 
-    public function test_issue_document_includes_author_company(): void
+    public function testIssueDocumentIncludesAuthorCompany(): void
     {
         $doc = $this->buildDocument('toIssueDocument', [
             'number' => 5,

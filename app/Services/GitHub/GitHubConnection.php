@@ -213,7 +213,9 @@ class GitHubConnection
     private function getRetryDelay(): callable
     {
         return static function ($retries, $response) {
-            if ($response && in_array($response->getStatusCode(), [403, 429], true) && $response->hasHeader('Retry-After')) {
+            if ($response
+                && in_array($response->getStatusCode(), [403, 429], true)
+                && $response->hasHeader('Retry-After')) {
                 $waitSeconds = max((int) $response->getHeaderLine('Retry-After'), 60);
                 Log::info("GitHub rate limit. Waiting {$waitSeconds}s before retry...");
 

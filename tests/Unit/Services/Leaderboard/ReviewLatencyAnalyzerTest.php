@@ -17,7 +17,7 @@ use Tests\TestCase;
 
 class ReviewLatencyAnalyzerTest extends TestCase
 {
-    public function test_pr_claimed_impact_scales_with_time_to_claim(): void
+    public function testPrClaimedImpactScalesWithTimeToClaim(): void
     {
         $claimed = Carbon::parse('2026-06-01T00:00:00Z');
         $pending = $claimed->copy()->subDays(100);
@@ -33,7 +33,7 @@ class ReviewLatencyAnalyzerTest extends TestCase
         $this->assertEqualsWithDelta(100.0, $result['stats']['maint']['median_time_to_claim_days'], 0.1);
     }
 
-    public function test_missing_pending_review_gives_base_impact_and_null_claim_stat(): void
+    public function testMissingPendingReviewGivesBaseImpactAndNullClaimStat(): void
     {
         $claimed = Carbon::parse('2026-06-01T00:00:00Z');
 
@@ -45,7 +45,7 @@ class ReviewLatencyAnalyzerTest extends TestCase
         $this->assertNull($result['stats']['maint']['median_time_to_claim_days']);
     }
 
-    public function test_claim_without_a_review_is_not_credited(): void
+    public function testClaimWithoutAReviewIsNotCredited(): void
     {
         $claimed = Carbon::parse('2026-06-01T00:00:00Z');
 
@@ -57,7 +57,7 @@ class ReviewLatencyAnalyzerTest extends TestCase
         $this->assertArrayNotHasKey('ghost', $result['stats']);
     }
 
-    public function test_review_before_claim_is_not_credited(): void
+    public function testReviewBeforeClaimIsNotCredited(): void
     {
         $claimed = Carbon::parse('2026-06-01T00:00:00Z');
 
@@ -71,7 +71,7 @@ class ReviewLatencyAnalyzerTest extends TestCase
         $this->assertArrayNotHasKey('maint', $result['stats']);
     }
 
-    public function test_time_to_review_median_and_count(): void
+    public function testTimeToReviewMedianAndCount(): void
     {
         $claimed = Carbon::parse('2026-06-01T00:00:00Z');
 

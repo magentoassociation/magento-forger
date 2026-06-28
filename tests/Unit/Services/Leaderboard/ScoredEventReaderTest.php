@@ -30,7 +30,7 @@ class ScoredEventReaderTest extends TestCase
         return (new ReflectionMethod(ScoredEventReader::class, 'buildLabelEvents'))->invoke($reader, $rows, $excluded);
     }
 
-    public function test_dedupes_same_actor_target_label_keeping_earliest(): void
+    public function testDedupesSameActorTargetLabelKeepingEarliest(): void
     {
         $early = Carbon::parse('2026-01-01T00:00:00Z');
         $late = Carbon::parse('2026-02-01T00:00:00Z');
@@ -46,16 +46,21 @@ class ScoredEventReaderTest extends TestCase
         $this->assertTrue($events[0]->date->equalTo($early));
     }
 
-    public function test_excludes_configured_labels(): void
+    public function testExcludesConfiguredLabels(): void
     {
         $events = $this->buildLabelEvents([
-            ['actor' => 'mod', 'label' => 'Progress: pending review', 'target' => 'pr:5', 'date' => Carbon::parse('2026-01-01T00:00:00Z')],
+            [
+                'actor' => 'mod',
+                'label' => 'Progress: pending review',
+                'target' => 'pr:5',
+                'date' => Carbon::parse('2026-01-01T00:00:00Z'),
+            ],
         ], ['Progress: pending review']);
 
         $this->assertSame([], $events);
     }
 
-    public function test_credits_distinct_actors_separately(): void
+    public function testCreditsDistinctActorsSeparately(): void
     {
         $date = Carbon::parse('2026-01-01T00:00:00Z');
 
@@ -67,7 +72,7 @@ class ScoredEventReaderTest extends TestCase
         $this->assertCount(2, $events);
     }
 
-    public function test_skips_rows_missing_actor_or_label(): void
+    public function testSkipsRowsMissingActorOrLabel(): void
     {
         $date = Carbon::parse('2026-01-01T00:00:00Z');
 

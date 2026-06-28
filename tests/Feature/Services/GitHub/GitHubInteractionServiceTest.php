@@ -47,7 +47,7 @@ class GitHubInteractionServiceTest extends TestCase
         );
     }
 
-    public function test_extract_interactions_includes_created_issue_event(): void
+    public function testExtractInteractionsIncludesCreatedIssueEvent(): void
     {
         $issue = [
             'author' => ['login' => 'alice'],
@@ -64,7 +64,7 @@ class GitHubInteractionServiceTest extends TestCase
         $this->assertSame('2026-01-01T00:00:00Z', $result[0]['date']);
     }
 
-    public function test_extract_interactions_includes_comments(): void
+    public function testExtractInteractionsIncludesComments(): void
     {
         $issue = [
             'author' => ['login' => 'alice'],
@@ -87,7 +87,7 @@ class GitHubInteractionServiceTest extends TestCase
         $this->assertSame('carol', $result[2]['author']);
     }
 
-    public function test_extract_interactions_includes_timeline_events(): void
+    public function testExtractInteractionsIncludesTimelineEvents(): void
     {
         $issue = [
             'author' => ['login' => 'alice'],
@@ -95,8 +95,16 @@ class GitHubInteractionServiceTest extends TestCase
             'comments' => ['nodes' => []],
             'timelineItems' => [
                 'nodes' => [
-                    ['__typename' => 'LabeledEvent', 'actor' => ['login' => 'mod'], 'createdAt' => '2026-01-02T00:00:00Z'],
-                    ['__typename' => 'ClosedEvent', 'actor' => ['login' => 'mod'], 'createdAt' => '2026-01-03T00:00:00Z'],
+                    [
+                        '__typename' => 'LabeledEvent',
+                        'actor' => ['login' => 'mod'],
+                        'createdAt' => '2026-01-02T00:00:00Z',
+                    ],
+                    [
+                        '__typename' => 'ClosedEvent',
+                        'actor' => ['login' => 'mod'],
+                        'createdAt' => '2026-01-03T00:00:00Z',
+                    ],
                 ],
             ],
         ];
@@ -108,7 +116,7 @@ class GitHubInteractionServiceTest extends TestCase
         $this->assertSame('closed', $result[2]['type']);
     }
 
-    public function test_extract_interactions_captures_label_name(): void
+    public function testExtractInteractionsCapturesLabelName(): void
     {
         $issue = [
             'author' => ['login' => 'alice'],
@@ -116,8 +124,17 @@ class GitHubInteractionServiceTest extends TestCase
             'comments' => ['nodes' => []],
             'timelineItems' => [
                 'nodes' => [
-                    ['__typename' => 'LabeledEvent', 'actor' => ['login' => 'mod'], 'createdAt' => '2026-01-02T00:00:00Z', 'label' => ['name' => 'Progress: pending review']],
-                    ['__typename' => 'ClosedEvent', 'actor' => ['login' => 'mod'], 'createdAt' => '2026-01-03T00:00:00Z'],
+                    [
+                        '__typename' => 'LabeledEvent',
+                        'actor' => ['login' => 'mod'],
+                        'createdAt' => '2026-01-02T00:00:00Z',
+                        'label' => ['name' => 'Progress: pending review'],
+                    ],
+                    [
+                        '__typename' => 'ClosedEvent',
+                        'actor' => ['login' => 'mod'],
+                        'createdAt' => '2026-01-03T00:00:00Z',
+                    ],
                 ],
             ],
         ];
@@ -128,7 +145,7 @@ class GitHubInteractionServiceTest extends TestCase
         $this->assertNull($result[2]['label']);
     }
 
-    public function test_extract_interactions_defaults_unknown_author_to_unknown(): void
+    public function testExtractInteractionsDefaultsUnknownAuthorToUnknown(): void
     {
         $issue = [
             'createdAt' => '2026-01-01T00:00:00Z',
@@ -141,7 +158,7 @@ class GitHubInteractionServiceTest extends TestCase
         $this->assertSame('unknown', $result[0]['author']);
     }
 
-    public function test_extract_interactions_skips_created_issue_when_no_created_at(): void
+    public function testExtractInteractionsSkipsCreatedIssueWhenNoCreatedAt(): void
     {
         $issue = [
             'author' => ['login' => 'alice'],
@@ -154,13 +171,21 @@ class GitHubInteractionServiceTest extends TestCase
         $this->assertCount(0, $result);
     }
 
-    public function test_extract_events_returns_typed_events_from_timeline(): void
+    public function testExtractEventsReturnsTypedEventsFromTimeline(): void
     {
         $issue = [
             'timelineItems' => [
                 'nodes' => [
-                    ['__typename' => 'AssignedEvent', 'actor' => ['login' => 'alice'], 'createdAt' => '2026-01-01T00:00:00Z'],
-                    ['__typename' => 'ClosedEvent', 'actor' => ['login' => 'bob'], 'createdAt' => '2026-01-02T00:00:00Z'],
+                    [
+                        '__typename' => 'AssignedEvent',
+                        'actor' => ['login' => 'alice'],
+                        'createdAt' => '2026-01-01T00:00:00Z',
+                    ],
+                    [
+                        '__typename' => 'ClosedEvent',
+                        'actor' => ['login' => 'bob'],
+                        'createdAt' => '2026-01-02T00:00:00Z',
+                    ],
                 ],
             ],
         ];
@@ -174,12 +199,16 @@ class GitHubInteractionServiceTest extends TestCase
         $this->assertSame('bob', $result[1]['actor']);
     }
 
-    public function test_extract_events_strips_event_suffix_from_typename(): void
+    public function testExtractEventsStripsEventSuffixFromTypename(): void
     {
         $issue = [
             'timelineItems' => [
                 'nodes' => [
-                    ['__typename' => 'RenamedTitleEvent', 'actor' => ['login' => 'alice'], 'createdAt' => '2026-01-01T00:00:00Z'],
+                    [
+                        '__typename' => 'RenamedTitleEvent',
+                        'actor' => ['login' => 'alice'],
+                        'createdAt' => '2026-01-01T00:00:00Z',
+                    ],
                 ],
             ],
         ];
@@ -189,7 +218,7 @@ class GitHubInteractionServiceTest extends TestCase
         $this->assertSame('renamedtitle', $result[0]['type']);
     }
 
-    public function test_extract_events_skips_nodes_without_created_at(): void
+    public function testExtractEventsSkipsNodesWithoutCreatedAt(): void
     {
         $issue = [
             'timelineItems' => [
@@ -204,14 +233,14 @@ class GitHubInteractionServiceTest extends TestCase
         $this->assertCount(0, $result);
     }
 
-    public function test_extract_events_returns_empty_for_no_timeline_items(): void
+    public function testExtractEventsReturnsEmptyForNoTimelineItems(): void
     {
         $result = $this->emptyService()->extractEventsFromIssue(['timelineItems' => ['nodes' => []]]);
 
         $this->assertSame([], $result);
     }
 
-    public function test_extract_events_defaults_unknown_actor_to_unknown(): void
+    public function testExtractEventsDefaultsUnknownActorToUnknown(): void
     {
         $issue = [
             'timelineItems' => [
@@ -226,13 +255,22 @@ class GitHubInteractionServiceTest extends TestCase
         $this->assertSame('unknown', $result[0]['actor']);
     }
 
-    public function test_extract_events_captures_label_name(): void
+    public function testExtractEventsCapturesLabelName(): void
     {
         $issue = [
             'timelineItems' => [
                 'nodes' => [
-                    ['__typename' => 'LabeledEvent', 'actor' => ['login' => 'mod'], 'createdAt' => '2026-01-01T00:00:00Z', 'label' => ['name' => 'Progress: pending review']],
-                    ['__typename' => 'ClosedEvent', 'actor' => ['login' => 'bob'], 'createdAt' => '2026-01-02T00:00:00Z'],
+                    [
+                        '__typename' => 'LabeledEvent',
+                        'actor' => ['login' => 'mod'],
+                        'createdAt' => '2026-01-01T00:00:00Z',
+                        'label' => ['name' => 'Progress: pending review'],
+                    ],
+                    [
+                        '__typename' => 'ClosedEvent',
+                        'actor' => ['login' => 'bob'],
+                        'createdAt' => '2026-01-02T00:00:00Z',
+                    ],
                 ],
             ],
         ];
@@ -243,7 +281,7 @@ class GitHubInteractionServiceTest extends TestCase
         $this->assertNull($result[1]['label']);
     }
 
-    public function test_fetch_interactions_for_issue_returns_created_issue_interaction(): void
+    public function testFetchInteractionsForIssueReturnsCreatedIssueInteraction(): void
     {
         $mock = new MockHandler([
             new Response(200, [], json_encode([
@@ -268,7 +306,7 @@ class GitHubInteractionServiceTest extends TestCase
         $this->assertSame('alice', $result[0]['author']);
     }
 
-    public function test_fetch_interactions_for_pull_request_includes_pr_events(): void
+    public function testFetchInteractionsForPullRequestIncludesPrEvents(): void
     {
         $mock = new MockHandler([
             new Response(200, [], json_encode([
@@ -294,7 +332,7 @@ class GitHubInteractionServiceTest extends TestCase
         $this->assertContains('merged_pr', $types);
     }
 
-    public function test_fetch_interactions_returns_empty_for_null_node(): void
+    public function testFetchInteractionsReturnsEmptyForNullNode(): void
     {
         $mock = new MockHandler([
             new Response(200, [], json_encode([
@@ -311,7 +349,7 @@ class GitHubInteractionServiceTest extends TestCase
         $this->assertSame([], $result);
     }
 
-    public function test_fetch_interactions_throws_graphql_exception_on_errors(): void
+    public function testFetchInteractionsThrowsGraphqlExceptionOnErrors(): void
     {
         $this->expectException(GitHubGraphQLException::class);
 
@@ -324,7 +362,7 @@ class GitHubInteractionServiceTest extends TestCase
         $this->createService($mock)->fetchInteractionsForIssue('owner', 'repo', 1);
     }
 
-    public function test_fetch_events_for_issue_returns_events_from_rest_timeline(): void
+    public function testFetchEventsForIssueReturnsEventsFromRestTimeline(): void
     {
         $mock = new MockHandler([
             new Response(200, [], json_encode([
@@ -343,7 +381,7 @@ class GitHubInteractionServiceTest extends TestCase
         $this->assertSame('bob', $result[1]['actor']);
     }
 
-    public function test_fetch_events_for_issue_defaults_actor_to_unknown_when_missing(): void
+    public function testFetchEventsForIssueDefaultsActorToUnknownWhenMissing(): void
     {
         $mock = new MockHandler([
             new Response(200, [], json_encode([
@@ -357,7 +395,7 @@ class GitHubInteractionServiceTest extends TestCase
         $this->assertSame('unknown', $result[0]['actor']);
     }
 
-    public function test_fetch_events_for_issue_skips_events_missing_event_field(): void
+    public function testFetchEventsForIssueSkipsEventsMissingEventField(): void
     {
         $mock = new MockHandler([
             new Response(200, [], json_encode([
@@ -372,7 +410,7 @@ class GitHubInteractionServiceTest extends TestCase
         $this->assertSame('closed', $result[0]['type']);
     }
 
-    public function test_fetch_events_for_issue_skips_events_missing_created_at(): void
+    public function testFetchEventsForIssueSkipsEventsMissingCreatedAt(): void
     {
         $mock = new MockHandler([
             new Response(200, [], json_encode([
@@ -387,7 +425,7 @@ class GitHubInteractionServiceTest extends TestCase
         $this->assertSame('closed', $result[0]['type']);
     }
 
-    public function test_fetch_events_for_issue_returns_empty_for_empty_response(): void
+    public function testFetchEventsForIssueReturnsEmptyForEmptyResponse(): void
     {
         $mock = new MockHandler([
             new Response(200, [], json_encode([], JSON_THROW_ON_ERROR)),
@@ -398,7 +436,7 @@ class GitHubInteractionServiceTest extends TestCase
         $this->assertSame([], $result);
     }
 
-    public function test_fetch_events_for_issue_returns_empty_and_logs_on_api_error(): void
+    public function testFetchEventsForIssueReturnsEmptyAndLogsOnApiError(): void
     {
         Log::spy();
 
@@ -414,7 +452,7 @@ class GitHubInteractionServiceTest extends TestCase
             ->with('Failed to fetch events for issue #42', \Mockery::any());
     }
 
-    public function test_fetch_events_for_issue_returns_empty_and_logs_on_malformed_json(): void
+    public function testFetchEventsForIssueReturnsEmptyAndLogsOnMalformedJson(): void
     {
         Log::spy();
 
@@ -430,7 +468,7 @@ class GitHubInteractionServiceTest extends TestCase
             ->with('Failed to fetch events for issue #7', \Mockery::any());
     }
 
-    public function test_fetch_all_interactions_aggregates_paginated_comments(): void
+    public function testFetchAllInteractionsAggregatesPaginatedComments(): void
     {
         $issue = [
             'number' => 1,
@@ -472,7 +510,7 @@ class GitHubInteractionServiceTest extends TestCase
         $this->assertContains('carol', $authors);
     }
 
-    public function test_fetch_all_interactions_aggregates_paginated_timeline_items(): void
+    public function testFetchAllInteractionsAggregatesPaginatedTimelineItems(): void
     {
         $issue = [
             'number' => 2,
@@ -482,7 +520,12 @@ class GitHubInteractionServiceTest extends TestCase
             'timelineItems' => [
                 'pageInfo' => ['hasNextPage' => true, 'endCursor' => 'tl-cursor1'],
                 'nodes' => [
-                    ['__typename' => 'ClosedEvent', 'actor' => ['login' => 'mod'], 'createdAt' => '2026-01-02T00:00:00Z', 'label' => null],
+                    [
+                        '__typename' => 'ClosedEvent',
+                        'actor' => ['login' => 'mod'],
+                        'createdAt' => '2026-01-02T00:00:00Z',
+                        'label' => null,
+                    ],
                 ],
             ],
         ];
@@ -495,7 +538,12 @@ class GitHubInteractionServiceTest extends TestCase
                             'timelineItems' => [
                                 'pageInfo' => ['hasNextPage' => false, 'endCursor' => null],
                                 'nodes' => [
-                                    ['__typename' => 'AssignedEvent', 'actor' => ['login' => 'admin'], 'createdAt' => '2026-01-03T00:00:00Z', 'label' => null],
+                                    [
+                                        '__typename' => 'AssignedEvent',
+                                        'actor' => ['login' => 'admin'],
+                                        'createdAt' => '2026-01-03T00:00:00Z',
+                                        'label' => null,
+                                    ],
                                 ],
                             ],
                         ],
@@ -513,7 +561,7 @@ class GitHubInteractionServiceTest extends TestCase
         $this->assertContains('assigned', $types);
     }
 
-    public function test_fetch_all_interactions_stops_comments_pagination_on_null_response(): void
+    public function testFetchAllInteractionsStopsCommentsPaginationOnNullResponse(): void
     {
         $issue = [
             'number' => 3,
@@ -539,14 +587,19 @@ class GitHubInteractionServiceTest extends TestCase
         $this->assertSame('comment', $result[1]['type']);
     }
 
-    public function test_fetch_all_events_aggregates_paginated_timeline_items(): void
+    public function testFetchAllEventsAggregatesPaginatedTimelineItems(): void
     {
         $issue = [
             'number' => 10,
             'timelineItems' => [
                 'pageInfo' => ['hasNextPage' => true, 'endCursor' => 'ev-cursor1'],
                 'nodes' => [
-                    ['__typename' => 'ClosedEvent', 'actor' => ['login' => 'alice'], 'createdAt' => '2026-01-01T00:00:00Z', 'label' => null],
+                    [
+                        '__typename' => 'ClosedEvent',
+                        'actor' => ['login' => 'alice'],
+                        'createdAt' => '2026-01-01T00:00:00Z',
+                        'label' => null,
+                    ],
                 ],
             ],
         ];
@@ -559,7 +612,12 @@ class GitHubInteractionServiceTest extends TestCase
                             'timelineItems' => [
                                 'pageInfo' => ['hasNextPage' => false, 'endCursor' => null],
                                 'nodes' => [
-                                    ['__typename' => 'AssignedEvent', 'actor' => ['login' => 'bob'], 'createdAt' => '2026-01-02T00:00:00Z', 'label' => null],
+                                    [
+                                        '__typename' => 'AssignedEvent',
+                                        'actor' => ['login' => 'bob'],
+                                        'createdAt' => '2026-01-02T00:00:00Z',
+                                        'label' => null,
+                                    ],
                                 ],
                             ],
                         ],
@@ -577,14 +635,19 @@ class GitHubInteractionServiceTest extends TestCase
         $this->assertSame('bob', $result[1]['actor']);
     }
 
-    public function test_fetch_all_events_stops_pagination_on_null_response(): void
+    public function testFetchAllEventsStopsPaginationOnNullResponse(): void
     {
         $issue = [
             'number' => 11,
             'timelineItems' => [
                 'pageInfo' => ['hasNextPage' => true, 'endCursor' => 'ev-cursor1'],
                 'nodes' => [
-                    ['__typename' => 'ClosedEvent', 'actor' => ['login' => 'alice'], 'createdAt' => '2026-01-01T00:00:00Z', 'label' => null],
+                    [
+                        '__typename' => 'ClosedEvent',
+                        'actor' => ['login' => 'alice'],
+                        'createdAt' => '2026-01-01T00:00:00Z',
+                        'label' => null,
+                    ],
                 ],
             ],
         ];
@@ -599,14 +662,19 @@ class GitHubInteractionServiceTest extends TestCase
         $this->assertSame('closed', $result[0]['type']);
     }
 
-    public function test_fetch_all_events_traverses_multiple_pages(): void
+    public function testFetchAllEventsTraversesMultiplePages(): void
     {
         $issue = [
             'number' => 12,
             'timelineItems' => [
                 'pageInfo' => ['hasNextPage' => true, 'endCursor' => 'page1'],
                 'nodes' => [
-                    ['__typename' => 'AssignedEvent', 'actor' => ['login' => 'alice'], 'createdAt' => '2026-01-01T00:00:00Z', 'label' => null],
+                    [
+                        '__typename' => 'AssignedEvent',
+                        'actor' => ['login' => 'alice'],
+                        'createdAt' => '2026-01-01T00:00:00Z',
+                        'label' => null,
+                    ],
                 ],
             ],
         ];
@@ -619,7 +687,12 @@ class GitHubInteractionServiceTest extends TestCase
                             'timelineItems' => [
                                 'pageInfo' => ['hasNextPage' => true, 'endCursor' => 'page2'],
                                 'nodes' => [
-                                    ['__typename' => 'ClosedEvent', 'actor' => ['login' => 'bob'], 'createdAt' => '2026-01-02T00:00:00Z', 'label' => null],
+                                    [
+                                        '__typename' => 'ClosedEvent',
+                                        'actor' => ['login' => 'bob'],
+                                        'createdAt' => '2026-01-02T00:00:00Z',
+                                        'label' => null,
+                                    ],
                                 ],
                             ],
                         ],
@@ -633,7 +706,12 @@ class GitHubInteractionServiceTest extends TestCase
                             'timelineItems' => [
                                 'pageInfo' => ['hasNextPage' => false, 'endCursor' => null],
                                 'nodes' => [
-                                    ['__typename' => 'LabeledEvent', 'actor' => ['login' => 'carol'], 'createdAt' => '2026-01-03T00:00:00Z', 'label' => null],
+                                    [
+                                        '__typename' => 'LabeledEvent',
+                                        'actor' => ['login' => 'carol'],
+                                        'createdAt' => '2026-01-03T00:00:00Z',
+                                        'label' => null,
+                                    ],
                                 ],
                             ],
                         ],

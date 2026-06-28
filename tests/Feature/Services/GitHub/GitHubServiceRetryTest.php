@@ -32,7 +32,7 @@ class GitHubServiceRetryTest extends TestCase
         );
     }
 
-    public function test_retries_on_503_server_error(): void
+    public function testRetriesOn503ServerError(): void
     {
         $mock = new MockHandler([
             new Response(503),
@@ -52,7 +52,7 @@ class GitHubServiceRetryTest extends TestCase
         $this->assertArrayHasKey('nodes', $result);
     }
 
-    public function test_retries_on_502_bad_gateway(): void
+    public function testRetriesOn502BadGateway(): void
     {
         $mock = new MockHandler([
             new Response(502),
@@ -70,7 +70,7 @@ class GitHubServiceRetryTest extends TestCase
         $this->assertIsArray($result);
     }
 
-    public function test_retries_on_504_gateway_timeout(): void
+    public function testRetriesOn504GatewayTimeout(): void
     {
         $mock = new MockHandler([
             new Response(504),
@@ -88,7 +88,7 @@ class GitHubServiceRetryTest extends TestCase
         $this->assertIsArray($result);
     }
 
-    public function test_fails_after_max_retries(): void
+    public function testFailsAfterMaxRetries(): void
     {
         $this->expectException(ServerException::class);
 
@@ -103,7 +103,7 @@ class GitHubServiceRetryTest extends TestCase
         $service->fetchIssues('laravel', 'framework');
     }
 
-    public function test_retries_on_403_secondary_rate_limit_with_retry_after_header(): void
+    public function testRetriesOn403SecondaryRateLimitWithRetryAfterHeader(): void
     {
         $successBody = json_encode([
             'data' => [
@@ -124,7 +124,7 @@ class GitHubServiceRetryTest extends TestCase
         $this->assertArrayHasKey('nodes', $result);
     }
 
-    public function test_does_not_retry_on_403_without_retry_after_header(): void
+    public function testDoesNotRetryOn403WithoutRetryAfterHeader(): void
     {
         $this->expectException(ClientException::class);
 
@@ -137,7 +137,7 @@ class GitHubServiceRetryTest extends TestCase
         $service->fetchIssues('laravel', 'framework');
     }
 
-    public function test_retries_on_429_too_many_requests(): void
+    public function testRetriesOn429TooManyRequests(): void
     {
         $successBody = json_encode([
             'data' => [
@@ -157,7 +157,7 @@ class GitHubServiceRetryTest extends TestCase
         $this->assertIsArray($result);
     }
 
-    public function test_retries_on_non_json_200_and_succeeds(): void
+    public function testRetriesOnNonJson200AndSucceeds(): void
     {
         $successBody = json_encode([
             'data' => [
@@ -178,7 +178,7 @@ class GitHubServiceRetryTest extends TestCase
         $this->assertArrayHasKey('nodes', $result);
     }
 
-    public function test_throws_json_exception_after_max_non_json_retries(): void
+    public function testThrowsJsonExceptionAfterMaxNonJsonRetries(): void
     {
         $this->expectException(\JsonException::class);
 
@@ -193,7 +193,7 @@ class GitHubServiceRetryTest extends TestCase
         $service->fetchIssues('laravel', 'framework');
     }
 
-    public function test_successful_request_without_retries(): void
+    public function testSuccessfulRequestWithoutRetries(): void
     {
         $mock = new MockHandler([
             new Response(200, [], json_encode([

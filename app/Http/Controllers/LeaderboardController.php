@@ -79,7 +79,11 @@ class LeaderboardController extends Controller
             'last-quarter' => $this->lastQuarter(),
             'last-year' => [Carbon::now()->subYear()->startOfYear(), Carbon::now()->subYear()->endOfYear(), $period],
             'custom' => $this->resolveCustomPeriod($request),
-            default => [Carbon::now()->subMonth()->startOfMonth(), Carbon::now()->subMonth()->endOfMonth(), 'last-month'],
+            default => [
+                Carbon::now()->subMonth()->startOfMonth(),
+                Carbon::now()->subMonth()->endOfMonth(),
+                'last-month',
+            ],
         };
     }
 
@@ -132,7 +136,8 @@ class LeaderboardController extends Controller
             'prs-merged' => fn (string $login) => "{$base}/pulls?q=is:pr+is:merged+author:{$login}+merged:{$range}",
             'prs-opened' => fn (string $login) => "{$base}/pulls?q=is:pr+author:{$login}+created:{$range}",
             'issues-opened' => fn (string $login) => "{$base}/issues?q=is:issue+author:{$login}+created:{$range}",
-            'issues-closed' => fn (string $login) => "{$base}/issues?q=is:issue+is:closed+reason:completed+author:{$login}+closed:{$range}",
+            'issues-closed' => fn (string $login) => "{$base}/issues?q=is:issue+is:closed+reason:completed".
+                "+author:{$login}+closed:{$range}",
             default => fn (string $login) => "https://github.com/{$login}",
         };
     }

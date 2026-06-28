@@ -32,7 +32,7 @@ class LabelOrchestratorTest extends TestCase
         parent::tearDown();
     }
 
-    public function test_process_returns_error_when_no_supported_worksheets_found(): void
+    public function testProcessReturnsErrorWhenNoSupportedWorksheetsFound(): void
     {
         config(['github.repo' => 'my-org/my-repo']);
 
@@ -54,7 +54,7 @@ class LabelOrchestratorTest extends TestCase
         $this->assertStringContainsString('No supported worksheets found', $result['errors'][0]);
     }
 
-    public function test_resolve_repo_throws_when_configuration_is_missing(): void
+    public function testResolveRepoThrowsWhenConfigurationIsMissing(): void
     {
         config(['github.repo' => '']);
 
@@ -64,7 +64,7 @@ class LabelOrchestratorTest extends TestCase
         $this->orchestrator->resolveRepo();
     }
 
-    public function test_resolve_repo_throws_when_configuration_has_too_many_slashes(): void
+    public function testResolveRepoThrowsWhenConfigurationHasTooManySlashes(): void
     {
         config(['github.repo' => 'invalid/repo/value']);
 
@@ -74,7 +74,7 @@ class LabelOrchestratorTest extends TestCase
         $this->orchestrator->resolveRepo();
     }
 
-    public function test_resolve_repo_throws_when_owner_segment_is_empty(): void
+    public function testResolveRepoThrowsWhenOwnerSegmentIsEmpty(): void
     {
         config(['github.repo' => '/repo']);
 
@@ -84,7 +84,7 @@ class LabelOrchestratorTest extends TestCase
         $this->orchestrator->resolveRepo();
     }
 
-    public function test_resolve_repo_throws_when_repository_segment_is_empty(): void
+    public function testResolveRepoThrowsWhenRepositorySegmentIsEmpty(): void
     {
         config(['github.repo' => 'owner/']);
 
@@ -94,7 +94,7 @@ class LabelOrchestratorTest extends TestCase
         $this->orchestrator->resolveRepo();
     }
 
-    public function test_resolve_repo_returns_owner_and_repository(): void
+    public function testResolveRepoReturnsOwnerAndRepository(): void
     {
         config(['github.repo' => 'my-org/my-repo']);
 

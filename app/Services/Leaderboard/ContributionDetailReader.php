@@ -39,21 +39,88 @@ class ContributionDetailReader
         $impactMin = (float) config('leaderboard.impact.min', 1.0);
         $impactMax = (float) config('leaderboard.impact.max', 5.0);
 
-        foreach ($this->search(OpenSearchService::OPENSEARCH_GITHUB_PULL_REQUESTS_INDEX, $login, 'created_at', $from, $to, ['title', 'url', 'created_at']) as $s) {
-            $items[] = new ContributionItem(Board::CONTRIBUTOR, Action::PR_OPENED, Carbon::parse($s['created_at']), 1.0, $s['title'] ?? '', $s['url'] ?? '');
+        $openedPullRequests = $this->search(
+            OpenSearchService::OPENSEARCH_GITHUB_PULL_REQUESTS_INDEX,
+            $login,
+            'created_at',
+            $from,
+            $to,
+            ['title', 'url', 'created_at'],
+        );
+        foreach ($openedPullRequests as $s) {
+            $items[] = new ContributionItem(
+                Board::CONTRIBUTOR,
+                Action::PR_OPENED,
+                Carbon::parse($s['created_at']),
+                1.0,
+                $s['title'] ?? '',
+                $s['url'] ?? '',
+            );
         }
 
-        foreach ($this->search(OpenSearchService::OPENSEARCH_GITHUB_PULL_REQUESTS_INDEX, $login, 'merged_at', $from, $to, ['title', 'url', 'merged_at', 'additions', 'deletions'], [['term' => ['state.keyword' => 'MERGED']]]) as $s) {
-            $impact = LeaderboardScorer::impactFromSize((int) ($s['additions'] ?? 0), (int) ($s['deletions'] ?? 0), $impactMin, $impactMax);
-            $items[] = new ContributionItem(Board::CONTRIBUTOR, Action::PR_MERGED, Carbon::parse($s['merged_at']), $impact, $s['title'] ?? '', $s['url'] ?? '');
+        $mergedPullRequests = $this->search(
+            OpenSearchService::OPENSEARCH_GITHUB_PULL_REQUESTS_INDEX,
+            $login,
+            'merged_at',
+            $from,
+            $to,
+            ['title', 'url', 'merged_at', 'additions', 'deletions'],
+            [['term' => ['state.keyword' => 'MERGED']]],
+        );
+        foreach ($mergedPullRequests as $s) {
+            $impact = LeaderboardScorer::impactFromSize(
+                (int) ($s['additions'] ?? 0),
+                (int) ($s['deletions'] ?? 0),
+                $impactMin,
+                $impactMax,
+            );
+            $items[] = new ContributionItem(
+                Board::CONTRIBUTOR,
+                Action::PR_MERGED,
+                Carbon::parse($s['merged_at']),
+                $impact,
+                $s['title'] ?? '',
+                $s['url'] ?? '',
+            );
         }
 
-        foreach ($this->search(OpenSearchService::OPENSEARCH_GITHUB_ISSUES_INDEX, $login, 'created_at', $from, $to, ['title', 'url', 'created_at']) as $s) {
-            $items[] = new ContributionItem(Board::CONTRIBUTOR, Action::ISSUE_OPENED, Carbon::parse($s['created_at']), 1.0, $s['title'] ?? '', $s['url'] ?? '');
+        $openedIssues = $this->search(
+            OpenSearchService::OPENSEARCH_GITHUB_ISSUES_INDEX,
+            $login,
+            'created_at',
+            $from,
+            $to,
+            ['title', 'url', 'created_at'],
+        );
+        foreach ($openedIssues as $s) {
+            $items[] = new ContributionItem(
+                Board::CONTRIBUTOR,
+                Action::ISSUE_OPENED,
+                Carbon::parse($s['created_at']),
+                1.0,
+                $s['title'] ?? '',
+                $s['url'] ?? '',
+            );
         }
 
-        foreach ($this->search(OpenSearchService::OPENSEARCH_GITHUB_ISSUES_INDEX, $login, 'closed_at', $from, $to, ['title', 'url', 'closed_at'], [['term' => ['closed_by_merged_pr' => true]]]) as $s) {
-            $items[] = new ContributionItem(Board::CONTRIBUTOR, Action::ISSUE_RESOLVED_BY_MERGE, Carbon::parse($s['closed_at']), 1.0, $s['title'] ?? '', $s['url'] ?? '');
+        $resolvedIssues = $this->search(
+            OpenSearchService::OPENSEARCH_GITHUB_ISSUES_INDEX,
+            $login,
+            'closed_at',
+            $from,
+            $to,
+            ['title', 'url', 'closed_at'],
+            [['term' => ['closed_by_merged_pr' => true]]],
+        );
+        foreach ($resolvedIssues as $s) {
+            $items[] = new ContributionItem(
+                Board::CONTRIBUTOR,
+                Action::ISSUE_RESOLVED_BY_MERGE,
+                Carbon::parse($s['closed_at']),
+                1.0,
+                $s['title'] ?? '',
+                $s['url'] ?? '',
+            );
         }
 
         $stateAction = [
@@ -61,7 +128,15 @@ class ContributionDetailReader
             'CHANGES_REQUESTED' => Action::REVIEW_REJECTED,
             'COMMENTED' => Action::REVIEW_COMMENTED,
         ];
-        foreach ($this->search(OpenSearchService::OPENSEARCH_GITHUB_PR_REVIEWS_INDEX, $login, 'submitted_at', $from, $to, ['pr_number', 'state', 'submitted_at']) as $s) {
+        $reviews = $this->search(
+            OpenSearchService::OPENSEARCH_GITHUB_PR_REVIEWS_INDEX,
+            $login,
+            'submitted_at',
+            $from,
+            $to,
+            ['pr_number', 'state', 'submitted_at'],
+        );
+        foreach ($reviews as $s) {
             $action = $stateAction[$s['state'] ?? ''] ?? null;
             if ($action === null || empty($s['pr_number'])) {
                 continue;
@@ -84,7 +159,15 @@ class ContributionDetailReader
      * @param  list<array<string, mixed>>  $extraFilters
      * @return list<array<string, mixed>>
      */
-    private function search(string $index, string $login, string $dateField, CarbonInterface $from, CarbonInterface $to, array $source, array $extraFilters = []): array
+    private function search(
+        string $index,
+        string $login,
+        string $dateField,
+        CarbonInterface $from,
+        CarbonInterface $to,
+        array $source,
+        array $extraFilters = []
+    ): array
     {
         $query = [
             'bool' => [

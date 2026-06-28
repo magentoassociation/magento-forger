@@ -12,7 +12,7 @@ use Tests\TestCase;
 
 class LeaderboardConfigTest extends TestCase
 {
-    public function test_pending_review_label_is_excluded_from_triage_in_sync(): void
+    public function testPendingReviewLabelIsExcludedFromTriageInSync(): void
     {
         $label = config('leaderboard.pending_review_label');
 

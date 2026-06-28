@@ -26,7 +26,10 @@ class ReviewsApprovedLeaderboardQuery extends BaseReviewLeaderboardQuery
                     'bool' => [
                         'filter' => [
                             ['term' => ['state.keyword' => 'APPROVED']],
-                            ['range' => ['submitted_at' => ['gte' => $from->toIso8601String(), 'lte' => $to->toIso8601String()]]],
+                            ['range' => ['submitted_at' => [
+                                'gte' => $from->toIso8601String(),
+                                'lte' => $to->toIso8601String(),
+                            ]]],
                         ],
                         'must_not' => $this->botFilters(),
                     ],

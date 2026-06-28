@@ -67,7 +67,12 @@ class SyncGitHubTeams extends Command implements Isolatable
 
                 foreach (array_chunk($logins, 500) as $chunk) {
                     RoleEligibility::query()->insert(array_map(
-                        fn (string $login): array => ['login' => $login, 'role' => $role, 'created_at' => now(), 'updated_at' => now()],
+                        fn (string $login): array => [
+                            'login' => $login,
+                            'role' => $role,
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ],
                         $chunk,
                     ));
                 }
@@ -120,7 +125,10 @@ class SyncGitHubTeams extends Command implements Isolatable
             $status = $e->getResponse()->getStatusCode();
 
             return match ($status) {
-                404 => "404 — the token can't see this team's members. GitHub returns 404 (not 403) when the token lacks `read:org`, its user isn't a member of the org, or the team is secret and the user isn't on it. Verify the slug, and that GITHUB_TOKEN has read:org for this org.",
+                404 => "404 — the token can't see this team's members. GitHub returns 404 (not 403) "
+                    ."when the token lacks `read:org`, its user isn't a member of the org, or the team is "
+                    ."secret and the user isn't on it. Verify the slug, and that GITHUB_TOKEN has "
+                    .'read:org for this org.',
                 403 => '403 — forbidden (missing scope or rate limited).',
                 401 => '401 — the token is invalid or expired.',
                 default => "HTTP {$status}.",

@@ -14,7 +14,7 @@ use Tests\TestCase;
 
 class MembershipResolverTest extends TestCase
 {
-    public function test_resolves_org_for_date_within_membership(): void
+    public function testResolvesOrgForDateWithinMembership(): void
     {
         $resolver = new MembershipResolver([
             'jane' => [['org_id' => 7, 'from' => Carbon::parse('2024-01-01'), 'to' => Carbon::parse('2024-12-31')]],
@@ -23,7 +23,7 @@ class MembershipResolverTest extends TestCase
         $this->assertSame(7, $resolver->resolve('jane', Carbon::parse('2024-06-01')));
     }
 
-    public function test_returns_null_outside_membership(): void
+    public function testReturnsNullOutsideMembership(): void
     {
         $resolver = new MembershipResolver([
             'jane' => [['org_id' => 7, 'from' => Carbon::parse('2024-01-01'), 'to' => Carbon::parse('2024-12-31')]],
@@ -33,12 +33,12 @@ class MembershipResolverTest extends TestCase
         $this->assertNull($resolver->resolve('jane', Carbon::parse('2023-06-01')));
     }
 
-    public function test_returns_null_for_unknown_login(): void
+    public function testReturnsNullForUnknownLogin(): void
     {
         $this->assertNull((new MembershipResolver([]))->resolve('ghost', Carbon::parse('2024-06-01')));
     }
 
-    public function test_open_ended_membership_matches_any_later_date(): void
+    public function testOpenEndedMembershipMatchesAnyLaterDate(): void
     {
         $resolver = new MembershipResolver([
             'jane' => [['org_id' => 3, 'from' => Carbon::parse('2024-01-01'), 'to' => null]],
@@ -47,7 +47,7 @@ class MembershipResolverTest extends TestCase
         $this->assertSame(3, $resolver->resolve('jane', Carbon::parse('2030-01-01')));
     }
 
-    public function test_point_in_time_picks_correct_org_across_job_change(): void
+    public function testPointInTimePicksCorrectOrgAcrossJobChange(): void
     {
         $resolver = new MembershipResolver([
             'jane' => [
@@ -60,7 +60,7 @@ class MembershipResolverTest extends TestCase
         $this->assertSame(2, $resolver->resolve('jane', Carbon::parse('2024-06-01')));
     }
 
-    public function test_overlapping_memberships_prefer_most_recent_start_regardless_of_input_order(): void
+    public function testOverlappingMembershipsPreferMostRecentStartRegardlessOfInputOrder(): void
     {
         // Older range listed first, but a newer overlapping range should win.
         $resolver = new MembershipResolver([
@@ -75,7 +75,7 @@ class MembershipResolverTest extends TestCase
         $this->assertSame(1, $resolver->resolve('jane', Carbon::parse('2021-06-01')));
     }
 
-    public function test_dated_membership_wins_over_open_ended_profile_suggestion(): void
+    public function testDatedMembershipWinsOverOpenEndedProfileSuggestion(): void
     {
         // Open-ended suggestion (from/to null) listed first; a dated range covering
         // the same date is more specific and must win.

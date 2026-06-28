@@ -74,7 +74,12 @@ class ImportEligibility extends Command
 
                 foreach (array_chunk($logins, 500) as $chunk) {
                     RoleEligibility::query()->insert(array_map(
-                        fn (string $login): array => ['login' => $login, 'role' => $role, 'created_at' => now(), 'updated_at' => now()],
+                        fn (string $login): array => [
+                            'login' => $login,
+                            'role' => $role,
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ],
                         $chunk,
                     ));
                 }

@@ -41,7 +41,12 @@ class ScoredEventReader
             ['author', 'created_at'],
             function (array $source) use (&$events): void {
                 if (! empty($source['author']) && ! empty($source['created_at'])) {
-                    $events[] = new ScoredEvent($source['author'], Board::CONTRIBUTOR, Action::PR_OPENED, Carbon::parse($source['created_at']));
+                    $events[] = new ScoredEvent(
+                        $source['author'],
+                        Board::CONTRIBUTOR,
+                        Action::PR_OPENED,
+                        Carbon::parse($source['created_at']),
+                    );
                 }
             }
         );
@@ -62,7 +67,14 @@ class ScoredEventReader
                     // Attribute org credit to the authoring date, not merged_at,
                     // which can land months later under a different employer.
                     $attributionDate = empty($source['created_at']) ? null : Carbon::parse($source['created_at']);
-                    $events[] = new ScoredEvent($source['author'], Board::CONTRIBUTOR, Action::PR_MERGED, Carbon::parse($source['merged_at']), $impact, $attributionDate);
+                    $events[] = new ScoredEvent(
+                        $source['author'],
+                        Board::CONTRIBUTOR,
+                        Action::PR_MERGED,
+                        Carbon::parse($source['merged_at']),
+                        $impact,
+                        $attributionDate,
+                    );
                 }
             }
         );
@@ -74,7 +86,12 @@ class ScoredEventReader
             ['author', 'created_at'],
             function (array $source) use (&$events): void {
                 if (! empty($source['author']) && ! empty($source['created_at'])) {
-                    $events[] = new ScoredEvent($source['author'], Board::CONTRIBUTOR, Action::ISSUE_OPENED, Carbon::parse($source['created_at']));
+                    $events[] = new ScoredEvent(
+                        $source['author'],
+                        Board::CONTRIBUTOR,
+                        Action::ISSUE_OPENED,
+                        Carbon::parse($source['created_at']),
+                    );
                 }
             }
         );
@@ -89,7 +106,14 @@ class ScoredEventReader
                     // Attribute org credit to when the issue was opened, not its
                     // close date, which can fall under a later employer.
                     $attributionDate = empty($source['created_at']) ? null : Carbon::parse($source['created_at']);
-                    $events[] = new ScoredEvent($source['author'], Board::CONTRIBUTOR, Action::ISSUE_RESOLVED_BY_MERGE, Carbon::parse($source['closed_at']), 1.0, $attributionDate);
+                    $events[] = new ScoredEvent(
+                        $source['author'],
+                        Board::CONTRIBUTOR,
+                        Action::ISSUE_RESOLVED_BY_MERGE,
+                        Carbon::parse($source['closed_at']),
+                        1.0,
+                        $attributionDate,
+                    );
                 }
             }
         );
@@ -108,7 +132,12 @@ class ScoredEventReader
             ['author', 'state', 'submitted_at', 'pr_number'],
             function (array $source) use (&$reviews, $stateAction): void {
                 $action = $stateAction[$source['state'] ?? ''] ?? null;
-                if ($action === null || empty($source['author']) || empty($source['submitted_at']) || empty($source['pr_number'])) {
+                if (
+                    $action === null
+                    || empty($source['author'])
+                    || empty($source['submitted_at'])
+                    || empty($source['pr_number'])
+                ) {
                     return;
                 }
                 $reviews[] = [
@@ -149,7 +178,12 @@ class ScoredEventReader
                 'bool' => [
                     'filter' => [
                         ['term' => ['interaction_name.keyword' => 'labeled']],
-                        ['range' => ['interaction_date' => ['gte' => $from->toIso8601String(), 'lte' => $to->toIso8601String()]]],
+                        ['range' => [
+                            'interaction_date' => [
+                                'gte' => $from->toIso8601String(),
+                                'lte' => $to->toIso8601String(),
+                            ],
+                        ]],
                     ],
                     'must_not' => $this->botFiltersFor('github_account_name.keyword'),
                 ],
@@ -175,7 +209,12 @@ class ScoredEventReader
                 'bool' => [
                     'filter' => [
                         ['term' => ['type.keyword' => 'LabeledEvent']],
-                        ['range' => ['created_at' => ['gte' => $from->toIso8601String(), 'lte' => $to->toIso8601String()]]],
+                        ['range' => [
+                            'created_at' => [
+                                'gte' => $from->toIso8601String(),
+                                'lte' => $to->toIso8601String(),
+                            ],
+                        ]],
                     ],
                     'must_not' => $this->botFiltersFor('actor.keyword'),
                 ],
@@ -237,7 +276,13 @@ class ScoredEventReader
      * Score reviews, skipping self-reviews (reviewer == PR author). An approved
      * review whose PR later merged earns an additional impact-weighted bonus.
      *
-     * @param  list<array{pr_number: int|string, author: string, action: Action, state: string, submitted_at: string}>  $reviews
+     * @param  list<array{
+     *     pr_number: int|string,
+     *     author: string,
+     *     action: Action,
+     *     state: string,
+     *     submitted_at: string
+     * }>  $reviews
      * @return list<ScoredEvent>
      */
     private function reviewEvents(array $reviews, float $impactMin, float $impactMax): array
@@ -258,10 +303,21 @@ class ScoredEventReader
                 continue;
             }
 
-            $events[] = new ScoredEvent($review['author'], Board::MAINTAINER, $review['action'], Carbon::parse($review['submitted_at']));
+            $events[] = new ScoredEvent(
+                $review['author'],
+                Board::MAINTAINER,
+                $review['action'],
+                Carbon::parse($review['submitted_at']),
+            );
 
             if ($review['state'] === 'APPROVED' && $pr !== null && $pr['merged']) {
-                $events[] = new ScoredEvent($review['author'], Board::MAINTAINER, Action::APPROVED_THEN_MERGED, Carbon::parse($review['submitted_at']), $pr['impact']);
+                $events[] = new ScoredEvent(
+                    $review['author'],
+                    Board::MAINTAINER,
+                    Action::APPROVED_THEN_MERGED,
+                    Carbon::parse($review['submitted_at']),
+                    $pr['impact'],
+                );
             }
         }
 
@@ -280,7 +336,9 @@ class ScoredEventReader
 
         foreach (array_chunk($prNumbers, 1000) as $chunk) {
             $response = $this->client->search([
-                'index' => OpenSearchService::getIndexWithPrefix(OpenSearchService::OPENSEARCH_GITHUB_PULL_REQUESTS_INDEX),
+                'index' => OpenSearchService::getIndexWithPrefix(
+                    OpenSearchService::OPENSEARCH_GITHUB_PULL_REQUESTS_INDEX,
+                ),
                 'body' => [
                     'size' => count($chunk),
                     '_source' => ['id', 'author', 'state', 'additions', 'deletions'],
@@ -314,7 +372,12 @@ class ScoredEventReader
      * @param  list<array<string, mixed>>  $extraFilters
      * @return array<string, mixed>
      */
-    private function rangeQuery(string $dateField, CarbonInterface $from, CarbonInterface $to, array $extraFilters = []): array
+    private function rangeQuery(
+        string $dateField,
+        CarbonInterface $from,
+        CarbonInterface $to,
+        array $extraFilters = []
+    ): array
     {
         return [
             'bool' => [

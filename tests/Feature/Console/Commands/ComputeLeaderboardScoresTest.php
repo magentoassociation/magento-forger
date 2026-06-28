@@ -58,7 +58,7 @@ class ComputeLeaderboardScoresTest extends TestCase
             ->andReturn([]);
     }
 
-    public function test_command_exits_successfully_with_no_events(): void
+    public function testCommandExitsSuccessfullyWithNoEvents(): void
     {
         $this->mock(ScoredEventReader::class)
             ->shouldReceive('read')
@@ -70,7 +70,7 @@ class ComputeLeaderboardScoresTest extends TestCase
             ->expectsOutputToContain('0 scored events read.');
     }
 
-    public function test_command_writes_leaderboard_entries_for_each_role(): void
+    public function testCommandWritesLeaderboardEntriesForEachRole(): void
     {
         $now = Carbon::now();
 
@@ -96,7 +96,7 @@ class ComputeLeaderboardScoresTest extends TestCase
         ]);
     }
 
-    public function test_command_writes_github_user_stats(): void
+    public function testCommandWritesGithubUserStats(): void
     {
         $now = Carbon::now();
 
@@ -114,7 +114,7 @@ class ComputeLeaderboardScoresTest extends TestCase
         $this->assertGreaterThan(0, $stat->contributor_score);
     }
 
-    public function test_command_assigns_ranks_in_descending_score_order(): void
+    public function testCommandAssignsRanksInDescendingScoreOrder(): void
     {
         $now = Carbon::now();
 
@@ -135,7 +135,7 @@ class ComputeLeaderboardScoresTest extends TestCase
         $this->assertSame(2, $bob->rank);
     }
 
-    public function test_command_preserves_previous_scores_for_delta(): void
+    public function testCommandPreservesPreviousScoresForDelta(): void
     {
         $now = Carbon::now();
 
@@ -165,7 +165,7 @@ class ComputeLeaderboardScoresTest extends TestCase
         $this->assertSame(15.0, $stat->contributor_score_prev);
     }
 
-    public function test_rising_baseline_comes_from_snapshot_at_window_start(): void
+    public function testRisingBaselineComesFromSnapshotAtWindowStart(): void
     {
         config()->set('leaderboard.rising.window_days', 7);
 
@@ -173,8 +173,16 @@ class ComputeLeaderboardScoresTest extends TestCase
 
         // A snapshot from before the rising window — the baseline jane should be
         // measured against. A newer (in-window) snapshot must be ignored.
-        GithubScoreSnapshot::create(['login' => 'jane', 'contributor_score' => 2.0, 'captured_at' => $now->copy()->subDays(8)]);
-        GithubScoreSnapshot::create(['login' => 'jane', 'contributor_score' => 99.0, 'captured_at' => $now->copy()->subDays(1)]);
+        GithubScoreSnapshot::create([
+            'login' => 'jane',
+            'contributor_score' => 2.0,
+            'captured_at' => $now->copy()->subDays(8),
+        ]);
+        GithubScoreSnapshot::create([
+            'login' => 'jane',
+            'contributor_score' => 99.0,
+            'captured_at' => $now->copy()->subDays(1),
+        ]);
 
         $this->mock(ScoredEventReader::class)
             ->shouldReceive('read')
@@ -192,13 +200,17 @@ class ComputeLeaderboardScoresTest extends TestCase
         $this->assertSame(3, GithubScoreSnapshot::where('login', 'jane')->count());
     }
 
-    public function test_command_prunes_snapshots_past_retention(): void
+    public function testCommandPrunesSnapshotsPastRetention(): void
     {
         config()->set('leaderboard.rising.retention_days', 60);
 
         $now = Carbon::now();
 
-        GithubScoreSnapshot::create(['login' => 'jane', 'contributor_score' => 1.0, 'captured_at' => $now->copy()->subDays(90)]);
+        GithubScoreSnapshot::create([
+            'login' => 'jane',
+            'contributor_score' => 1.0,
+            'captured_at' => $now->copy()->subDays(90),
+        ]);
 
         $this->mock(ScoredEventReader::class)
             ->shouldReceive('read')
@@ -212,7 +224,7 @@ class ComputeLeaderboardScoresTest extends TestCase
         $this->assertSame(1, GithubScoreSnapshot::where('login', 'jane')->count());
     }
 
-    public function test_command_evicts_stale_rolling12_entries_for_inactive_users(): void
+    public function testCommandEvictsStaleRolling12EntriesForInactiveUsers(): void
     {
         $now = Carbon::now();
 
@@ -236,7 +248,7 @@ class ComputeLeaderboardScoresTest extends TestCase
         $this->assertDatabaseHas(LeaderboardEntry::class, ['login' => 'alice']);
     }
 
-    public function test_command_records_comeback_after_long_gap(): void
+    public function testCommandRecordsComebackAfterLongGap(): void
     {
         $now = Carbon::now();
 
@@ -255,7 +267,14 @@ class ComputeLeaderboardScoresTest extends TestCase
         $this->mock(ContributionDetailReader::class)
             ->shouldReceive('readForLogin')
             ->andReturn([
-                new ContributionItem(Board::CONTRIBUTOR, Action::PR_OPENED, $now, 1.0, 'Welcome back PR', 'https://github.com/magento/magento2/pull/999'),
+                new ContributionItem(
+                    Board::CONTRIBUTOR,
+                    Action::PR_OPENED,
+                    $now,
+                    1.0,
+                    'Welcome back PR',
+                    'https://github.com/magento/magento2/pull/999',
+                ),
             ]);
 
         $this->artisan('leaderboard:compute')->assertExitCode(0);
@@ -266,7 +285,7 @@ class ComputeLeaderboardScoresTest extends TestCase
         $this->assertSame('https://github.com/magento/magento2/pull/999', $stat->comeback_url);
     }
 
-    public function test_command_links_new_contributor_to_first_contribution(): void
+    public function testCommandLinksNewContributorToFirstContribution(): void
     {
         config()->set('leaderboard.spotlight.window_days', 30);
 
@@ -285,7 +304,14 @@ class ComputeLeaderboardScoresTest extends TestCase
         $this->mock(ContributionDetailReader::class)
             ->shouldReceive('readForLogin')
             ->andReturn([
-                new ContributionItem(Board::CONTRIBUTOR, Action::PR_OPENED, $now->copy()->subDays(3), 1.0, 'My first PR', 'https://github.com/magento/magento2/pull/1'),
+                new ContributionItem(
+                    Board::CONTRIBUTOR,
+                    Action::PR_OPENED,
+                    $now->copy()->subDays(3),
+                    1.0,
+                    'My first PR',
+                    'https://github.com/magento/magento2/pull/1',
+                ),
             ]);
 
         $this->artisan('leaderboard:compute')->assertExitCode(0);
@@ -295,7 +321,7 @@ class ComputeLeaderboardScoresTest extends TestCase
         $this->assertSame('My first PR', $stat->first_contribution_title);
     }
 
-    public function test_established_contributor_has_no_first_contribution_link(): void
+    public function testEstablishedContributorHasNoFirstContributionLink(): void
     {
         config()->set('leaderboard.spotlight.window_days', 30);
 
@@ -321,7 +347,7 @@ class ComputeLeaderboardScoresTest extends TestCase
         $this->assertNull(GithubUserStat::where('login', 'veteran')->first()->first_contribution_url);
     }
 
-    public function test_recent_contributor_is_not_flagged_as_comeback(): void
+    public function testRecentContributorIsNotFlaggedAsComeback(): void
     {
         $now = Carbon::now();
 
@@ -342,7 +368,7 @@ class ComputeLeaderboardScoresTest extends TestCase
         $this->assertNull(GithubUserStat::where('login', 'jane')->first()->returned_after_days);
     }
 
-    public function test_gates_maintainer_events_only(): void
+    public function testGatesMaintainerEventsOnly(): void
     {
         RoleEligibility::create(['login' => 'mod', 'role' => 'maintainer']);
         RoleEligibility::create(['login' => 'councilor', 'role' => 'community-council']);
@@ -351,11 +377,16 @@ class ComputeLeaderboardScoresTest extends TestCase
         $this->mock(ScoredEventReader::class)
             ->shouldReceive('read')
             ->andReturn([
-                new ScoredEvent('alice', Board::CONTRIBUTOR, Action::PR_OPENED, $now),         // contributor — always counts
-                new ScoredEvent('bob', Board::CONTRIBUTOR, Action::PR_OPENED, $now),           // contributor — always counts
-                new ScoredEvent('mod', Board::MAINTAINER, Action::REVIEW_APPROVED, $now),      // eligible maintainer
-                new ScoredEvent('councilor', Board::MAINTAINER, Action::REVIEW_APPROVED, $now), // council — has maintainer rights
-                new ScoredEvent('alice', Board::MAINTAINER, Action::REVIEW_APPROVED, $now),    // not a maintainer → filtered
+                // contributor — always counts
+                new ScoredEvent('alice', Board::CONTRIBUTOR, Action::PR_OPENED, $now),
+                // contributor — always counts
+                new ScoredEvent('bob', Board::CONTRIBUTOR, Action::PR_OPENED, $now),
+                // eligible maintainer
+                new ScoredEvent('mod', Board::MAINTAINER, Action::REVIEW_APPROVED, $now),
+                // council — has maintainer rights
+                new ScoredEvent('councilor', Board::MAINTAINER, Action::REVIEW_APPROVED, $now),
+                // not a maintainer → filtered
+                new ScoredEvent('alice', Board::MAINTAINER, Action::REVIEW_APPROVED, $now),
             ]);
 
         $this->artisan('leaderboard:compute')->assertExitCode(0);
@@ -366,14 +397,17 @@ class ComputeLeaderboardScoresTest extends TestCase
         $this->assertDatabaseHas(LeaderboardEntry::class, ['login' => 'mod', 'board' => 'maintainer']);
 
         // Council members hold maintainer rights, so their reviews earn points.
-        $this->assertGreaterThan(0.0, LeaderboardEntry::where('login', 'councilor')->where('board', 'maintainer')->first()->score);
+        $this->assertGreaterThan(
+            0.0,
+            LeaderboardEntry::where('login', 'councilor')->where('board', 'maintainer')->first()->score,
+        );
 
         // alice has no maintainer rights → her maintainer review was filtered.
         $aliceMaintainer = LeaderboardEntry::where('login', 'alice')->where('board', 'maintainer')->first();
         $this->assertSame(0.0, $aliceMaintainer->score);
     }
 
-    public function test_command_writes_company_entries_with_point_in_time_attribution(): void
+    public function testCommandWritesCompanyEntriesWithPointInTimeAttribution(): void
     {
         $now = Carbon::now();
 
@@ -410,7 +444,7 @@ class ComputeLeaderboardScoresTest extends TestCase
         ]);
     }
 
-    public function test_command_clears_stale_org_entries_when_no_companies(): void
+    public function testCommandClearsStaleOrgEntriesWhenNoCompanies(): void
     {
         $org = Organization::create(['name' => 'Acme', 'slug' => 'acme', 'type' => 'agency']);
         OrgLeaderboardEntry::create([
@@ -434,7 +468,7 @@ class ComputeLeaderboardScoresTest extends TestCase
         ]);
     }
 
-    public function test_command_outputs_contributor_count(): void
+    public function testCommandOutputsContributorCount(): void
     {
         $now = Carbon::now();
 

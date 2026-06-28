@@ -41,9 +41,13 @@ class IssuesByMonthController extends Controller
         return new InfoText(
             title: 'Why Group Open Issues by Month?',
             paragraphs: [
-                'A long list of open issues can be daunting and discouraging. To make things more manageable, we group issues by the month they were last updated. This breaks the backlog into smaller, more approachable segments.',
-                'Developers can focus on a specific month—like issues from March—and make visible progress. Each update or resolution shortens the list, providing a clear sense of momentum and accomplishment.',
-                'This view also makes it easier to spot older issues that may have fallen through the cracks, giving the community an opportunity to reassess and take action where needed.',
+                'A long list of open issues can be daunting and discouraging. To make things more manageable, we '.
+                    'group issues by the month they were last updated. This breaks the backlog into smaller, more '.
+                    'approachable segments.',
+                'Developers can focus on a specific month—like issues from March—and make visible progress. Each '.
+                    'update or resolution shortens the list, providing a clear sense of momentum and accomplishment.',
+                'This view also makes it easier to spot older issues that may have fallen through the cracks, giving '.
+                    'the community an opportunity to reassess and take action where needed.',
             ]
         );
     }

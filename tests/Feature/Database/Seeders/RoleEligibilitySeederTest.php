@@ -17,7 +17,7 @@ class RoleEligibilitySeederTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_removes_stale_rows_and_keeps_current_roster(): void
+    public function testRemovesStaleRowsAndKeepsCurrentRoster(): void
     {
         // A maintainer who has since left the roster.
         RoleEligibility::create(['login' => 'departed', 'role' => 'maintainer']);
@@ -29,7 +29,7 @@ class RoleEligibilitySeederTest extends TestCase
         $this->assertDatabaseHas('role_eligibilities', ['login' => 'lfolco', 'role' => 'community-council']);
     }
 
-    public function test_is_idempotent(): void
+    public function testIsIdempotent(): void
     {
         $seeder = new RoleEligibilitySeeder;
         $seeder->run();
@@ -40,7 +40,7 @@ class RoleEligibilitySeederTest extends TestCase
         $this->assertSame($countAfterFirst, RoleEligibility::count());
     }
 
-    public function test_does_not_touch_other_roles(): void
+    public function testDoesNotTouchOtherRoles(): void
     {
         RoleEligibility::create(['login' => 'someone', 'role' => 'contributor']);
 

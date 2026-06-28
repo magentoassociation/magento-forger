@@ -30,7 +30,7 @@ class CompanyScoreAggregatorTest extends TestCase
         ));
     }
 
-    public function test_attributes_events_to_org_active_at_event_date(): void
+    public function testAttributesEventsToOrgActiveAtEventDate(): void
     {
         $now = Carbon::parse('2026-06-01T00:00:00Z');
         $resolver = new MembershipResolver([
@@ -47,7 +47,7 @@ class CompanyScoreAggregatorTest extends TestCase
         $this->assertSame(1, $result[0]['member_count']);
     }
 
-    public function test_unresolved_contributor_goes_to_null_bucket(): void
+    public function testUnresolvedContributorGoesToNullBucket(): void
     {
         $now = Carbon::parse('2026-06-01T00:00:00Z');
 
@@ -60,7 +60,7 @@ class CompanyScoreAggregatorTest extends TestCase
         $this->assertSame(3.0, $result[0]['contributor_score']);
     }
 
-    public function test_attribution_date_overrides_scoring_date_for_org_resolution(): void
+    public function testAttributionDateOverridesScoringDateForOrgResolution(): void
     {
         $now = Carbon::parse('2026-06-01T00:00:00Z');
         // Jane left org 5 at end of Feb; merged_at falls after, created_at before.
@@ -83,7 +83,7 @@ class CompanyScoreAggregatorTest extends TestCase
         $this->assertSame(5, $result[0]['organization_id']);
     }
 
-    public function test_event_before_membership_start_is_unattributed(): void
+    public function testEventBeforeMembershipStartIsUnattributed(): void
     {
         $now = Carbon::parse('2026-06-01T00:00:00Z');
         $resolver = new MembershipResolver([

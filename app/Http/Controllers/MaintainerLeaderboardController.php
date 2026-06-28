@@ -75,7 +75,11 @@ class MaintainerLeaderboardController extends Controller
             'last-quarter' => $this->lastQuarter(),
             'last-year' => [Carbon::now()->subYear()->startOfYear(), Carbon::now()->subYear()->endOfYear(), $period],
             'custom' => $this->resolveCustomPeriod($request),
-            default => [Carbon::now()->subMonth()->startOfMonth(), Carbon::now()->subMonth()->endOfMonth(), 'last-month'],
+            default => [
+                Carbon::now()->subMonth()->startOfMonth(),
+                Carbon::now()->subMonth()->endOfMonth(),
+                'last-month',
+            ],
         };
     }
 
@@ -125,8 +129,10 @@ class MaintainerLeaderboardController extends Controller
         $range = "{$from}..{$to}";
 
         return match ($metric) {
-            'reviews-approved' => fn (string $login) => "{$base}/pulls?q=is:pr+reviewed-by:{$login}+review:approved+updated:{$range}",
-            'reviews-rejected' => fn (string $login) => "{$base}/pulls?q=is:pr+reviewed-by:{$login}+review:changes_requested+updated:{$range}",
+            'reviews-approved' => fn (string $login) => "{$base}/pulls?q=is:pr+reviewed-by:{$login}".
+                "+review:approved+updated:{$range}",
+            'reviews-rejected' => fn (string $login) => "{$base}/pulls?q=is:pr+reviewed-by:{$login}".
+                "+review:changes_requested+updated:{$range}",
             default => fn (string $login) => "https://github.com/{$login}",
         };
     }

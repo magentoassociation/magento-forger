@@ -22,18 +22,18 @@ class EligibilityGateTest extends TestCase
         return new ScoredEvent($login, $board, Action::PR_OPENED, Carbon::now());
     }
 
-    public function test_contributor_events_are_never_gated(): void
+    public function testContributorEventsAreNeverGated(): void
     {
         $this->assertTrue((new EligibilityGate([]))->allows($this->event('anyone', Board::CONTRIBUTOR)));
         $this->assertTrue((new EligibilityGate(['mod' => true]))->allows($this->event('anyone', Board::CONTRIBUTOR)));
     }
 
-    public function test_empty_maintainer_roster_allows_all_maintainer_events(): void
+    public function testEmptyMaintainerRosterAllowsAllMaintainerEvents(): void
     {
         $this->assertTrue((new EligibilityGate([]))->allows($this->event('anyone', Board::MAINTAINER)));
     }
 
-    public function test_maintainer_events_gated_by_roster(): void
+    public function testMaintainerEventsGatedByRoster(): void
     {
         $gate = new EligibilityGate(['mod' => true]);
 

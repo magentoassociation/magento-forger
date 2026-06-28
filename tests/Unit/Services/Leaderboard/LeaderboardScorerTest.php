@@ -31,7 +31,7 @@ class LeaderboardScorerTest extends TestCase
         );
     }
 
-    public function test_points_apply_weight_with_full_recency_for_today(): void
+    public function testPointsApplyWeightWithFullRecencyForToday(): void
     {
         $now = Carbon::parse('2026-06-01T00:00:00Z');
         $event = new ScoredEvent('jane', Board::CONTRIBUTOR, Action::PR_OPENED, $now);
@@ -39,7 +39,7 @@ class LeaderboardScorerTest extends TestCase
         $this->assertSame(3.0, $this->scorer()->points($event, $now));
     }
 
-    public function test_last_contributor_at_ignores_maintainer_activity(): void
+    public function testLastContributorAtIgnoresMaintainerActivity(): void
     {
         $now = Carbon::parse('2026-06-01T00:00:00Z');
 
@@ -51,7 +51,7 @@ class LeaderboardScorerTest extends TestCase
         $this->assertTrue($summary['jane']['last_contributor_at']->equalTo($now->copy()->subDays(5)));
     }
 
-    public function test_last_contributor_at_is_null_without_contributor_activity(): void
+    public function testLastContributorAtIsNullWithoutContributorActivity(): void
     {
         $now = Carbon::parse('2026-06-01T00:00:00Z');
 
@@ -62,7 +62,7 @@ class LeaderboardScorerTest extends TestCase
         $this->assertNull($summary['mod']['last_contributor_at']);
     }
 
-    public function test_approved_then_merged_bonus_applies_impact(): void
+    public function testApprovedThenMergedBonusAppliesImpact(): void
     {
         $now = Carbon::parse('2026-06-01T00:00:00Z');
         $event = new ScoredEvent('maintainer1', Board::MAINTAINER, Action::APPROVED_THEN_MERGED, $now, 2.0);
@@ -71,7 +71,7 @@ class LeaderboardScorerTest extends TestCase
         $this->assertSame(12.0, $this->scorer()->points($event, $now));
     }
 
-    public function test_unknown_action_scores_zero(): void
+    public function testUnknownActionScoresZero(): void
     {
         $now = Carbon::parse('2026-06-01T00:00:00Z');
         $event = new ScoredEvent('jane', Board::CONTRIBUTOR, Action::ISSUE_OPENED, $now);
@@ -79,7 +79,7 @@ class LeaderboardScorerTest extends TestCase
         $this->assertSame(0.0, $this->scorer()->points($event, $now));
     }
 
-    public function test_recency_halves_at_half_life(): void
+    public function testRecencyHalvesAtHalfLife(): void
     {
         $now = Carbon::parse('2026-06-01T00:00:00Z');
         $factor = $this->scorer()->recencyFactor($now->copy()->subDays(182), $now);
@@ -87,14 +87,14 @@ class LeaderboardScorerTest extends TestCase
         $this->assertEqualsWithDelta(0.5, $factor, 0.01);
     }
 
-    public function test_recency_is_zero_outside_window(): void
+    public function testRecencyIsZeroOutsideWindow(): void
     {
         $now = Carbon::parse('2026-06-01T00:00:00Z');
 
         $this->assertSame(0.0, $this->scorer()->recencyFactor($now->copy()->subDays(400), $now));
     }
 
-    public function test_constructor_throws_on_zero_half_life(): void
+    public function testConstructorThrowsOnZeroHalfLife(): void
     {
         $this->expectException(\InvalidArgumentException::class);
 
@@ -107,14 +107,14 @@ class LeaderboardScorerTest extends TestCase
         );
     }
 
-    public function test_impact_from_size_floors_and_caps(): void
+    public function testImpactFromSizeFloorsAndCaps(): void
     {
         $this->assertSame(1.0, LeaderboardScorer::impactFromSize(0, 0));
         $this->assertSame(5.0, LeaderboardScorer::impactFromSize(100_000_000, 100_000_000));
         $this->assertGreaterThan(1.0, LeaderboardScorer::impactFromSize(200, 200));
     }
 
-    public function test_summarize_keeps_roles_separate_with_breakdown(): void
+    public function testSummarizeKeepsRolesSeparateWithBreakdown(): void
     {
         $now = Carbon::parse('2026-06-01T00:00:00Z');
         $summary = $this->scorer()->summarize([
@@ -128,7 +128,7 @@ class LeaderboardScorerTest extends TestCase
         $this->assertSame(1, $summary['jane']['breakdown']['maintainer']['review_approved']['count']);
     }
 
-    public function test_summarize_computes_streak_and_gap(): void
+    public function testSummarizeComputesStreakAndGap(): void
     {
         $now = Carbon::parse('2026-06-01T00:00:00Z');
         $summary = $this->scorer()->summarize([
@@ -143,7 +143,7 @@ class LeaderboardScorerTest extends TestCase
         $this->assertTrue($summary['jane']['first_contribution_at']->equalTo($now->copy()->subWeeks(2)));
     }
 
-    public function test_current_streak_is_zero_for_inactive_contributor(): void
+    public function testCurrentStreakIsZeroForInactiveContributor(): void
     {
         $now = Carbon::parse('2026-06-01T00:00:00Z');
         $summary = $this->scorer()->summarize([
@@ -155,7 +155,7 @@ class LeaderboardScorerTest extends TestCase
         $this->assertSame(2, $summary['rip']['longest_streak_weeks']);
     }
 
-    public function test_current_streak_allows_one_week_grace(): void
+    public function testCurrentStreakAllowsOneWeekGrace(): void
     {
         $now = Carbon::parse('2026-06-01T00:00:00Z');
         $summary = $this->scorer()->summarize([

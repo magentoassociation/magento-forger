@@ -26,7 +26,10 @@ class ReviewsRejectedLeaderboardQuery extends BaseReviewLeaderboardQuery
                     'bool' => [
                         'filter' => [
                             ['term' => ['state.keyword' => 'CHANGES_REQUESTED']],
-                            ['range' => ['submitted_at' => ['gte' => $from->toIso8601String(), 'lte' => $to->toIso8601String()]]],
+                            ['range' => ['submitted_at' => [
+                                'gte' => $from->toIso8601String(),
+                                'lte' => $to->toIso8601String(),
+                            ]]],
                         ],
                         'must_not' => $this->botFilters(),
                     ],

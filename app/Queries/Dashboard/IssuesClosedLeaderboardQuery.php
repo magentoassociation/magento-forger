@@ -32,7 +32,10 @@ class IssuesClosedLeaderboardQuery
                         'filter' => [
                             ['term' => ['state.keyword' => 'CLOSED']],
                             ['term' => ['closed_by_merged_pr' => true]],
-                            ['range' => ['closed_at' => ['gte' => $from->toIso8601String(), 'lte' => $to->toIso8601String()]]],
+                            ['range' => ['closed_at' => [
+                                'gte' => $from->toIso8601String(),
+                                'lte' => $to->toIso8601String(),
+                            ]]],
                         ],
                         'must_not' => $this->botFilters(),
                     ],
