@@ -36,7 +36,7 @@ class GitHubSyncerTest extends TestCase
         return ['number' => 1, 'updatedAt' => $updatedAt];
     }
 
-    public function test_single_page_sync_indexes_nodes_and_returns_page_count(): void
+    public function testSinglePageSyncIndexesNodesAndReturnsPageCount(): void
     {
         $indexed = [];
         $nodes = [$this->makeNode('2024-01-01'), $this->makeNode('2024-01-02')];
@@ -53,7 +53,7 @@ class GitHubSyncerTest extends TestCase
         $this->assertFalse($result['cutoffReached']);
     }
 
-    public function test_multi_page_sync_follows_cursor_until_no_next_page(): void
+    public function testMultiPageSyncFollowsCursorUntilNoNextPage(): void
     {
         $pages = [
             $this->makePage([$this->makeNode('2024-03-01')], true, 'cursor-1'),
@@ -82,7 +82,7 @@ class GitHubSyncerTest extends TestCase
         $this->assertFalse($result['cutoffReached']);
     }
 
-    public function test_stops_when_last_node_is_older_than_cutoff(): void
+    public function testStopsWhenLastNodeIsOlderThanCutoff(): void
     {
         $cutoff = Carbon::parse('2024-06-01');
         $pages = [
@@ -108,7 +108,7 @@ class GitHubSyncerTest extends TestCase
         $this->assertTrue($result['cutoffReached']);
     }
 
-    public function test_does_not_stop_when_last_node_is_newer_than_cutoff(): void
+    public function testDoesNotStopWhenLastNodeIsNewerThanCutoff(): void
     {
         $cutoff = Carbon::parse('2024-01-01');
         $pages = [
@@ -128,7 +128,7 @@ class GitHubSyncerTest extends TestCase
         $this->assertFalse($result['cutoffReached']);
     }
 
-    public function test_on_node_callback_called_for_each_node(): void
+    public function testOnNodeCallbackCalledForEachNode(): void
     {
         $nodes = [$this->makeNode('2024-01-01'), $this->makeNode('2024-01-02')];
         $seen = [];
@@ -144,7 +144,7 @@ class GitHubSyncerTest extends TestCase
         $this->assertSame($nodes, $seen);
     }
 
-    public function test_on_page_callback_called_with_page_number_and_cursor(): void
+    public function testOnPageCallbackCalledWithPageNumberAndCursor(): void
     {
         $pages = [
             $this->makePage([$this->makeNode('2024-03-01')], true, 'c1'),
@@ -167,7 +167,7 @@ class GitHubSyncerTest extends TestCase
         $this->assertSame([[1, 'c1'], [2, null]], $pageCallbacks);
     }
 
-    public function test_on_error_callback_called_and_loop_continues(): void
+    public function testOnErrorCallbackCalledAndLoopContinues(): void
     {
         $pages = [
             $this->makePage([$this->makeNode('2024-03-01')], true, 'c1'),
@@ -201,7 +201,7 @@ class GitHubSyncerTest extends TestCase
         $this->assertSame(1, $result['pages']);
     }
 
-    public function test_resumes_from_provided_cursor(): void
+    public function testResumesFromProvidedCursor(): void
     {
         $firstCursor = null;
 
@@ -218,7 +218,7 @@ class GitHubSyncerTest extends TestCase
         $this->assertSame('resume-cursor', $firstCursor);
     }
 
-    public function test_empty_page_does_not_trigger_cutoff(): void
+    public function testEmptyPageDoesNotTriggerCutoff(): void
     {
         $cutoff = Carbon::parse('2024-06-01');
 

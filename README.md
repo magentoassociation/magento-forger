@@ -144,6 +144,15 @@ ddev artisan sync:github:issues
 
 # Sync GitHub pull requests (this may take a while for the initial sync)
 ddev artisan sync:github:prs
+
+# Sync issue events (opened, closed, labeled, assigned, etc.)
+ddev artisan sync:github:events
+
+# Sync all interactions (comments, reviews, reactions)
+ddev artisan sync:github:interactions
+
+# Sync maintainer and community-council team rosters into role_eligibilities
+ddev artisan sync:github:teams
 ```
 
 **Note**: The initial sync can take a few minutes or hours depending on the repository size. You can monitor progress in the terminal. For subsequent syncs, use the `--since` option:
@@ -152,6 +161,11 @@ ddev artisan sync:github:prs
 # Sync only recent data (much faster)
 ddev artisan sync:github:issues --since "1 week ago"
 ddev artisan sync:github:prs --since "1 week ago"
+ddev artisan sync:github:events --since "1 week ago"
+ddev artisan sync:github:interactions --since "1 week ago"
+
+# Team rosters are small; re-run in full (no --since support)
+ddev artisan sync:github:teams
 ```
 
 ### 6. Start the Development Server

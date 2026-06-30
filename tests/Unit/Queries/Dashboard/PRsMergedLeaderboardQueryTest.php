@@ -35,7 +35,7 @@ class PRsMergedLeaderboardQueryTest extends TestCase
         parent::tearDown();
     }
 
-    public function test_returns_contributors_sorted_by_count(): void
+    public function testReturnsContributorsSortedByCount(): void
     {
         $this->client->shouldReceive('search')->once()->andReturn([
             'aggregations' => [
@@ -61,7 +61,7 @@ class PRsMergedLeaderboardQueryTest extends TestCase
         $this->assertSame(5, $result[1]->count);
     }
 
-    public function test_returns_empty_array_when_no_buckets(): void
+    public function testReturnsEmptyArrayWhenNoBuckets(): void
     {
         $this->client->shouldReceive('search')->once()->andReturn([
             'aggregations' => ['by_contributor' => ['buckets' => []]],
@@ -72,7 +72,7 @@ class PRsMergedLeaderboardQueryTest extends TestCase
         $this->assertSame([], $result);
     }
 
-    public function test_query_filters_on_merged_state_and_merged_at(): void
+    public function testQueryFiltersOnMergedStateAndMergedAt(): void
     {
         $capturedParams = null;
         $this->client->shouldReceive('search')->once()->withArgs(function (array $params) use (&$capturedParams) {
@@ -88,7 +88,7 @@ class PRsMergedLeaderboardQueryTest extends TestCase
         $this->assertTrue(collect($filters)->contains(fn ($f) => isset($f['range']['merged_at'])));
     }
 
-    public function test_query_excludes_bots(): void
+    public function testQueryExcludesBots(): void
     {
         $capturedParams = null;
         $this->client->shouldReceive('search')->once()->withArgs(function (array $params) use (&$capturedParams) {
@@ -100,7 +100,11 @@ class PRsMergedLeaderboardQueryTest extends TestCase
         $this->query->execute(Carbon::parse('2026-01-01'), Carbon::parse('2026-01-31'));
 
         $mustNot = $capturedParams['body']['query']['bool']['must_not'];
-        $this->assertTrue(collect($mustNot)->contains(fn ($f) => ($f['wildcard']['author.keyword'] ?? null) === 'engcom-*'));
-        $this->assertTrue(collect($mustNot)->contains(fn ($f) => ($f['term']['author.keyword'] ?? null) === 'github-actions[bot]'));
+        $this->assertTrue(
+            collect($mustNot)->contains(fn ($f) => ($f['wildcard']['author.keyword'] ?? null) === 'engcom-*')
+        );
+        $this->assertTrue(
+            collect($mustNot)->contains(fn ($f) => ($f['term']['author.keyword'] ?? null) === 'github-actions[bot]')
+        );
     }
 }

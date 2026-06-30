@@ -34,7 +34,7 @@ class WelcomeControllerTest extends TestCase
         parent::tearDown();
     }
 
-    public function test_homepage_renders_paths_and_area_tiles_with_live_counts(): void
+    public function testHomepageRendersPathsAndAreaTilesWithLiveCounts(): void
     {
         $this->bindClient($this->prAggregations(), [
             ['key' => 'Issue: Ready for Work', 'doc_count' => 20],
@@ -52,7 +52,7 @@ class WelcomeControllerTest extends TestCase
         $response->assertSee('221 open');      // area tile pill
     }
 
-    public function test_homepage_survives_label_count_failure_and_drops_pills(): void
+    public function testHomepageSurvivesLabelCountFailureAndDropsPills(): void
     {
         // PR chart succeeds; the label-count aggregation throws. The page must still render
         // (cards intact) and simply omit the count pills.
@@ -70,8 +70,10 @@ class WelcomeControllerTest extends TestCase
      * aggregation independently, keyed by index.
      *
      * @param  array<string, mixed>  $prResult  Response for the github-pull-requests index.
-     * @param  list<array{key: string, doc_count: int}>|\Throwable  $labelBuckets
-     *                                                                             Buckets for the github-issues by_label aggregation, or a throwable to simulate failure.
+     * @param  list<array{key: string, doc_count: int}>|\Throwable  $labelBuckets  Buckets for the
+     *                                                                             github-issues by_label
+     *                                                                             aggregation, or a throwable
+     *                                                                             to simulate failure.
      */
     private function bindClient(array $prResult, array|\Throwable $labelBuckets): void
     {

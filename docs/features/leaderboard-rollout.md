@@ -8,28 +8,57 @@ Living checklist for the weighted contributor/maintainer leaderboard. Source-of-
 
 ## Outstanding work
 
-- [ ] **`assignRanks` test** — sqlite-backed feature test for `ComputeLeaderboardScores::assignRanks()`: seed `leaderboard_entries` with known per-board scores, run ranking, assert order, `id` tiebreak, and per-board partitioning (contributor vs maintainer independent). The batch-upsert path currently has no automated coverage.
-- [ ] **`approved_then_merged` maintainer bonus** — needs a review→PR-merge join (review in window, PR merged any time).
-- [ ] **Review latency / responsiveness** — compute `pending_review_at` / `claimed_at` / `first_review_at` from `github-pr-timeline` into `github_user_stats`. Time-to-claim is backlog health (not a maintainer board); Time-to-review is per maintainer.
-- [ ] **Label / triage scoring** — `label_name` is captured; scoring logic (scored event #9, "issues triaged") not built.
-- [ ] **Company rollup** — create `organizations` / `user_org_memberships` tables, point-in-time resolution pipeline, and the company board.
-- [ ] **Score boards UI** — contributor / maintainer / company boards (controllers + Blade), with per-row breakdown expansion.
-- [ ] **Segmented boards** — New contributor spotlight, Rising, Recently active; all-time as opt-in only.
+### UI & surfacing
+
+- [ ] **Link score boards in nav** — `scores/*` routes exist but aren't in the dynamic `MainMenu`.
+- [ ] **Internal-only maintainer stats** — expose review-latency / responsiveness signals (`median_time_to_review_hours`, `median_time_to_claim_days`, `reviews_in_window`), and council-only maintainers, to maintainers / community-council / admins only — not on the public board.
+
+### Scoring fidelity
+
+- [ ] **Persist per-contribution line items** during `leaderboard:compute` (the gated scored events + their points), and have the drill-down read them instead of re-deriving via `ContributionDetailReader`. Today `detail()` re-derives over a different event set than the board sum, so the totals never reconcile exactly (timestamp drift is already fixed by anchoring to `computed_at`; the set mismatch is not). This retires that divergence and is the prerequisite that makes per-month "Details" almost free (filter line items by `Y-m`). See [monthly-leaderboards.md](monthly-leaderboards.md).
+
+### Retention
+
 - [ ] **Retention loop** — good-first-issue queue from triage labels; lapse nudges driven by `current_gap_days`.
+
+### Hardening & operations
+
+- [ ] **`assignRanks` test** — sqlite-backed feature test for `ComputeLeaderboardScores::assignRanks()`: seed `leaderboard_entries` with known per-board scores, run ranking, assert order, `id` tiebreak, and per-board partitioning (contributor vs maintainer independent). The batch-upsert path currently has no automated coverage.
 - [ ] **Schedule `leaderboard:compute`** — add to `routes/console.php` (e.g. hourly); relies on `schedule:run`.
-- [ ] **All-time `first_contribution_at`** — currently "first within the rolling window"; add an all-time min pass if true first-contribution is needed.
-- [ ] **(Optional) Action enum** — action strings (`pr_opened`, `review_approved`, …) are bare strings; a typo silently scores 0. `Board` is already enum-safe; actions could follow.
 - [ ] **(Scale) Chunk the rank upsert** — `assignRanks` builds one upsert per board; chunk at tens of thousands of rows.
+
+## Completed
+
+- **`approved_then_merged` maintainer bonus** — impact-weighted approver bonus when an approved PR merges; self-reviews skipped.
+- **Review latency / responsiveness** — `median_time_to_review_hours` / `median_time_to_claim_days` / `reviews_in_window`, plus the `pr_claimed` staleness bonus (credited only when the claim is reviewed).
+- **Label / triage scoring** — `label_applied`, deduped per (actor, target, label); excluded labels via config.
+- **All-time `first_contribution_at`** — earliest issue/PR/review across all time (composite agg).
+- **Action enum** — scored actions are a backed `Action` enum; an invalid action can't be constructed (no silent zero-scores from typos).
+- **Comeback metric** — `returned_after_days` records the silence a returning contributor bridged (stat, not a score); `comeback_url`/`comeback_title` capture the PR/issue that ended the silence, linked on the Highlights card.
+- **Company rollup (engine)** — `organizations` / `user_org_memberships` / `org_leaderboard_entries` tables; `MembershipResolver` (point-in-time) + `CompanyScoreAggregator` write per-org scores, unresolved → Unknown. Org credit uses each event's **attribution date** (the work date) rather than its scoring date: `ScoredEvent::attributionDate()` carries `created_at` for PR-merged and issue-resolved-by-merge (set in `ScoredEventReader`), so credit lands with the employer at authoring time even when `merged_at`/`closed_at` falls months later. `MembershipResolver` orders overlapping ranges most-recent-start-first (open `from` last), so a dated manual range beats an open-ended profile suggestion. A run that resolves no companies clears the stale `org_leaderboard_entries` rows explicitly (an empty `whereNotIn` would delete nothing).
+- **Membership suggestions** — `leaderboard:suggest-memberships` seeds low-confidence `profile` memberships from `author_company` (skips bots, never overwrites manual). `AuthorCompanyReader` takes each author's company from the **most recently `updated_at`** PR/issue doc; the command **rebuilds the entire `source=profile` set per run inside a transaction** (delete all, recreate survivors) so cleared GitHub company fields drop out. Manual entry / a Filament review UI is still the gap for high-confidence org mapping.
+- **Score boards UI** — `scores/{board}`: contributor & maintainer boards (with per-row breakdown expansion) and a merged company board, reading the precomputed SQL tables. `ScoreLeaderboardController` + Blade. Not yet linked in the dynamic nav.
+- **Segmented boards (Highlights)** — `scores/highlights`: New contributor spotlight, Rising, Comebacks, Recently active — all from `github_user_stats`. Shared tabs partial; all-time intentionally omitted. Each card carries plain-language explanatory text. New contributor spotlight links to the newcomer's first PR/issue (`first_contribution_url`/`first_contribution_title`, captured during compute within `spotlight.window_days`).
+- **Rising over a fixed window** — Rising is `contributor_score − rising_baseline_score` (the score as of `rising.window_days` ago), not a per-run delta. `github_score_snapshots` + `ScoreSnapshotRepository` (record / `baselineAsOf` / prune) back it; `leaderboard:compute` reads the baseline, snapshots today, and prunes past `rising.retention_days`. The panel label states the real timeframe.
+- **Recently active = contributor activity only** — `last_contributor_at` tracks the most recent *contributor* event; maintainer reviews don't qualify a maintainer for the Recently-active card. Computed in `LeaderboardScorer::summarize()`.
+- **"How are scores tallied?" modal** — each contributor/maintainer board has a Bootstrap modal listing configured base points per action (live from config) + impact/recency/staleness multipliers. Data via `ScoreLeaderboardController::scoringExplainer()` → `$scoring` (kept out of Blade `@php` blocks, which collide with inline `@php(...)`).
+- **Per-user score drill-down** — `scores/{board}/user/{login}` lists the actual PRs/issues/reviews behind a score, re-derived on demand (`ContributionDetailReader`), linked as "Details" on each board row (the link is hidden for zero-score rows, e.g. idle maintainers on the full roster). Recency decay is anchored to the persisted entry's `computed_at` (not request-time `now()`), so the page total doesn't drift below the board score as wall-clock advances; it falls back to `now()` only when no entry exists yet. Authored items + reviews are itemized; derived bonuses (claim/label/merge-approval) count toward the score but aren't line-itemized, so the total is representative, not a byte-exact reconciliation (see the line-items item under Scoring fidelity). `ContributionDetailReader` pages through all matching docs per type (no single-request cap), so a prolific contributor's items aren't silently truncated.
+- **Self-review exclusion + team eligibility** — reviews on one's own PR no longer score (all review actions). Maintainer points require maintainer-rights membership — the `maintainer` team **or** the `community-council` committee — via `role_eligibilities` → `EligibilityGate` (empty roster = allow all, opt-in until populated); contributor points are open to everyone. The public maintainer board lists only the `maintainer` roster (council-only members are gated in for scoring but hidden from it). Rosters come from `sync:github:teams` (both teams; needs org Members:read) or `leaderboard:import-eligibility <csv>`.
+- **Profile names + avatars** — `sync:github:profiles` fetches GitHub display name + avatar into `github_profiles` for board/roster logins; the contributor/maintainer boards, Highlights, and drill-down show real name + handle, with an avatar for every user (derived from the login when not yet fetched). Public profile data — no special token scope.
 
 ## Pre-ship verification
 
 - [ ] Run `vendor/bin/pint --dirty --format agent` and the full test suite (nothing was executed in the build environment).
-- [ ] Run migrations (`leaderboard_entries`, `github_user_stats`).
+- [ ] Run migrations (`leaderboard_entries`, `github_user_stats` incl. `last_contributor_at`, `rising_baseline_score`, and `first_contribution_url`/`first_contribution_title`, `github_score_snapshots`, org tables, `role_eligibilities`, `github_profiles`).
+- [ ] Run `sync:github:profiles` after `leaderboard:compute` to populate display names/avatars (public profile data; re-run periodically). Avatars work without it (derived from login); names need it.
+- [ ] Populate eligibility, then re-run `leaderboard:compute`: `sync:github:teams` (token needs org **Members: read**) **or** `leaderboard:import-eligibility <csv>` (`login,role`) when the token can't read org membership. Until populated, everyone counts.
 - [ ] First real `leaderboard:compute`: validate `ScoredEventReader` field assumptions — `state.keyword`, `author.keyword`, boolean `closed_by_merged_pr`.
 - [ ] First PR sync after timeline change: confirm `github-pr-timeline` populates and node `id` exists on all four event types.
 - [ ] Add keyword mappings (or query `.keyword`) for `label_name`, `requested_reviewer`, and timeline `type` if exact-match filtering is needed.
 
 ## Re-sync & index operations
+
+> Pre-deployment: there's no production data, so this is just the initial sync, and there's nothing to "backfill." The drop steps below only matter if your dev OpenSearch already holds documents written before these schema changes; on a clean cluster, skip the drops and run the syncs.
 
 - [ ] Drop `github-events` and `github-interactions` before re-syncing (content-hash IDs → adding `label_name` duplicates label events).
 - [ ] Drop the orphaned `points` index (`ProcessGitHubInteractions` deleted).
@@ -40,8 +69,10 @@ Living checklist for the weighted contributor/maintainer leaderboard. Source-of-
 
 - **Weights** in `config/leaderboard.php` are arbitrary placeholders — tune against real output; bump `version` on change.
 - **Recency**: 365-day window, 182-day half-life.
+- **Rising window**: `rising.window_days` (default 7) — the timeframe the "Rising" delta is measured over, against `github_score_snapshots`. `rising.retention_days` (default 60) bounds the snapshot table. Each `leaderboard:compute` records one snapshot per contributor, so the window only means a true N days once `compute` runs at least daily. Until N days of history exist, the baseline is 0 and everyone shows their full score as their gain.
 - **Impact**: `1 + log10(additions + deletions) / 2`, clamped [1, 5].
 - **`current_streak_weeks`**: anchored to now with a 1-week grace; remove the grace for strict behavior.
 - **Comments** are intentionally **not** scored (gaming risk) — open decision.
 - **`author_company`** is free-text GitHub profile data (unreliable) — a seed for org resolution, not a key; manual mapping is the intended source of truth.
-- **Bot list** (`engcom-*`, `dependabot[bot]`, `github-actions[bot]`, `m2-assistant`) is duplicated in `ScoredEventReader` and the raw-count queries — keep in sync.
+- **Bot list** lives in one place — `config('leaderboard.bots')` (`exact` + `prefixes`), consumed everywhere via `App\Support\BotFilter` (`mustNot($field)` for OpenSearch, `isBot($login)` for PHP). Add a bot there and it applies to every board and scorer.
+- **Pending-review label** is defined once in `config/leaderboard.php` (a local `$pendingReviewLabel`) and reused for both `pending_review_label` (claim detection) and `triage.excluded_labels`, so the two can't drift apart.

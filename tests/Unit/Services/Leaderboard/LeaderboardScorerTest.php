@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services\Leaderboard;
 
+use App\DataTransferObjects\Leaderboard\Action;
 use App\DataTransferObjects\Leaderboard\Board;
 use App\DataTransferObjects\Leaderboard\ScoredEvent;
 use App\Services\Leaderboard\LeaderboardScorer;
@@ -21,7 +22,7 @@ class LeaderboardScorerTest extends TestCase
         return new LeaderboardScorer(
             weights: [
                 'contributor' => ['pr_opened' => 3, 'pr_merged' => 10],
-                'maintainer' => ['review_approved' => 3],
+                'maintainer' => ['review_approved' => 3, 'approved_then_merged' => 6],
             ],
             impactMin: 1.0,
             impactMax: 5.0,
@@ -30,23 +31,55 @@ class LeaderboardScorerTest extends TestCase
         );
     }
 
-    public function test_points_apply_weight_with_full_recency_for_today(): void
+    public function testPointsApplyWeightWithFullRecencyForToday(): void
     {
         $now = Carbon::parse('2026-06-01T00:00:00Z');
-        $event = new ScoredEvent('jane', Board::CONTRIBUTOR, 'pr_opened', $now);
+        $event = new ScoredEvent('jane', Board::CONTRIBUTOR, Action::PR_OPENED, $now);
 
         $this->assertSame(3.0, $this->scorer()->points($event, $now));
     }
 
-    public function test_unknown_action_scores_zero(): void
+    public function testLastContributorAtIgnoresMaintainerActivity(): void
     {
         $now = Carbon::parse('2026-06-01T00:00:00Z');
-        $event = new ScoredEvent('jane', Board::CONTRIBUTOR, 'mystery', $now);
+
+        $summary = $this->scorer()->summarize([
+            new ScoredEvent('jane', Board::CONTRIBUTOR, Action::PR_OPENED, $now->copy()->subDays(5)),
+            new ScoredEvent('jane', Board::MAINTAINER, Action::REVIEW_APPROVED, $now), // newer, but maintainer
+        ], $now);
+
+        $this->assertTrue($summary['jane']['last_contributor_at']->equalTo($now->copy()->subDays(5)));
+    }
+
+    public function testLastContributorAtIsNullWithoutContributorActivity(): void
+    {
+        $now = Carbon::parse('2026-06-01T00:00:00Z');
+
+        $summary = $this->scorer()->summarize([
+            new ScoredEvent('mod', Board::MAINTAINER, Action::REVIEW_APPROVED, $now),
+        ], $now);
+
+        $this->assertNull($summary['mod']['last_contributor_at']);
+    }
+
+    public function testApprovedThenMergedBonusAppliesImpact(): void
+    {
+        $now = Carbon::parse('2026-06-01T00:00:00Z');
+        $event = new ScoredEvent('maintainer1', Board::MAINTAINER, Action::APPROVED_THEN_MERGED, $now, 2.0);
+
+        // base 6 × impact 2.0 × full recency 1.0
+        $this->assertSame(12.0, $this->scorer()->points($event, $now));
+    }
+
+    public function testUnknownActionScoresZero(): void
+    {
+        $now = Carbon::parse('2026-06-01T00:00:00Z');
+        $event = new ScoredEvent('jane', Board::CONTRIBUTOR, Action::ISSUE_OPENED, $now);
 
         $this->assertSame(0.0, $this->scorer()->points($event, $now));
     }
 
-    public function test_recency_halves_at_half_life(): void
+    public function testRecencyHalvesAtHalfLife(): void
     {
         $now = Carbon::parse('2026-06-01T00:00:00Z');
         $factor = $this->scorer()->recencyFactor($now->copy()->subDays(182), $now);
@@ -54,14 +87,14 @@ class LeaderboardScorerTest extends TestCase
         $this->assertEqualsWithDelta(0.5, $factor, 0.01);
     }
 
-    public function test_recency_is_zero_outside_window(): void
+    public function testRecencyIsZeroOutsideWindow(): void
     {
         $now = Carbon::parse('2026-06-01T00:00:00Z');
 
         $this->assertSame(0.0, $this->scorer()->recencyFactor($now->copy()->subDays(400), $now));
     }
 
-    public function test_constructor_throws_on_zero_half_life(): void
+    public function testConstructorThrowsOnZeroHalfLife(): void
     {
         $this->expectException(\InvalidArgumentException::class);
 
@@ -74,19 +107,19 @@ class LeaderboardScorerTest extends TestCase
         );
     }
 
-    public function test_impact_from_size_floors_and_caps(): void
+    public function testImpactFromSizeFloorsAndCaps(): void
     {
         $this->assertSame(1.0, LeaderboardScorer::impactFromSize(0, 0));
         $this->assertSame(5.0, LeaderboardScorer::impactFromSize(100_000_000, 100_000_000));
         $this->assertGreaterThan(1.0, LeaderboardScorer::impactFromSize(200, 200));
     }
 
-    public function test_summarize_keeps_roles_separate_with_breakdown(): void
+    public function testSummarizeKeepsRolesSeparateWithBreakdown(): void
     {
         $now = Carbon::parse('2026-06-01T00:00:00Z');
         $summary = $this->scorer()->summarize([
-            new ScoredEvent('jane', Board::CONTRIBUTOR, 'pr_opened', $now),
-            new ScoredEvent('jane', Board::MAINTAINER, 'review_approved', $now),
+            new ScoredEvent('jane', Board::CONTRIBUTOR, Action::PR_OPENED, $now),
+            new ScoredEvent('jane', Board::MAINTAINER, Action::REVIEW_APPROVED, $now),
         ], $now);
 
         $this->assertSame(3.0, $summary['jane']['contributor_score']);
@@ -95,13 +128,13 @@ class LeaderboardScorerTest extends TestCase
         $this->assertSame(1, $summary['jane']['breakdown']['maintainer']['review_approved']['count']);
     }
 
-    public function test_summarize_computes_streak_and_gap(): void
+    public function testSummarizeComputesStreakAndGap(): void
     {
         $now = Carbon::parse('2026-06-01T00:00:00Z');
         $summary = $this->scorer()->summarize([
-            new ScoredEvent('jane', Board::CONTRIBUTOR, 'pr_opened', $now),
-            new ScoredEvent('jane', Board::CONTRIBUTOR, 'pr_opened', $now->copy()->subWeeks(1)),
-            new ScoredEvent('jane', Board::CONTRIBUTOR, 'pr_opened', $now->copy()->subWeeks(2)),
+            new ScoredEvent('jane', Board::CONTRIBUTOR, Action::PR_OPENED, $now),
+            new ScoredEvent('jane', Board::CONTRIBUTOR, Action::PR_OPENED, $now->copy()->subWeeks(1)),
+            new ScoredEvent('jane', Board::CONTRIBUTOR, Action::PR_OPENED, $now->copy()->subWeeks(2)),
         ], $now);
 
         $this->assertSame(3, $summary['jane']['current_streak_weeks']);
@@ -110,23 +143,23 @@ class LeaderboardScorerTest extends TestCase
         $this->assertTrue($summary['jane']['first_contribution_at']->equalTo($now->copy()->subWeeks(2)));
     }
 
-    public function test_current_streak_is_zero_for_inactive_contributor(): void
+    public function testCurrentStreakIsZeroForInactiveContributor(): void
     {
         $now = Carbon::parse('2026-06-01T00:00:00Z');
         $summary = $this->scorer()->summarize([
-            new ScoredEvent('rip', Board::CONTRIBUTOR, 'pr_opened', $now->copy()->subWeeks(26)),
-            new ScoredEvent('rip', Board::CONTRIBUTOR, 'pr_opened', $now->copy()->subWeeks(27)),
+            new ScoredEvent('rip', Board::CONTRIBUTOR, Action::PR_OPENED, $now->copy()->subWeeks(26)),
+            new ScoredEvent('rip', Board::CONTRIBUTOR, Action::PR_OPENED, $now->copy()->subWeeks(27)),
         ], $now);
 
         $this->assertSame(0, $summary['rip']['current_streak_weeks']);
         $this->assertSame(2, $summary['rip']['longest_streak_weeks']);
     }
 
-    public function test_current_streak_allows_one_week_grace(): void
+    public function testCurrentStreakAllowsOneWeekGrace(): void
     {
         $now = Carbon::parse('2026-06-01T00:00:00Z');
         $summary = $this->scorer()->summarize([
-            new ScoredEvent('mid', Board::CONTRIBUTOR, 'pr_opened', $now->copy()->subWeeks(1)),
+            new ScoredEvent('mid', Board::CONTRIBUTOR, Action::PR_OPENED, $now->copy()->subWeeks(1)),
         ], $now);
 
         $this->assertSame(1, $summary['mid']['current_streak_weeks']);

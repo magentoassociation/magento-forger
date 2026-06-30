@@ -1,10 +1,22 @@
 @php
     use App\Helpers\RouteLabelHelper;
-    $formattedLabel = RouteLabelHelper::formatLabel(Route::currentRouteName());
+    $currentRouteName = Route::currentRouteName();
+    $formattedLabel = RouteLabelHelper::formatLabel($currentRouteName);
 
     // For year-specific leaderboard routes, show "Leaderboard - Year"
-    if (isset($year) && Route::currentRouteName() === 'leaderboard-year') {
+    if (isset($year) && $currentRouteName === 'leaderboard-year') {
         $formattedLabel = 'Leaderboard - ' . $year;
+    }
+
+    // Weighted score routes: show a readable, board-aware heading.
+    if ($currentRouteName === 'scores.show') {
+        $boardName = (isset($boards, $board) && isset($boards[$board])) ? $boards[$board] : null;
+        $formattedLabel = $boardName ? $boardName . ' Leaderboard' : 'Leaderboard';
+    } elseif ($currentRouteName === 'scores.highlights') {
+        $formattedLabel = 'Leaderboard Highlights';
+    } elseif ($currentRouteName === 'scores.detail') {
+        $boardName = (isset($boards, $board) && isset($boards[$board])) ? $boards[$board] : null;
+        $formattedLabel = $boardName ? $boardName . ' Contributions' : 'Contributions';
     }
 @endphp
 

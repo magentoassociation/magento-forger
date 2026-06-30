@@ -114,13 +114,21 @@ class LabelOrchestrator
                     $serviceError = $this->labels->getLastOperationError();
 
                     if (($serviceError['status'] ?? null) === 'skipped') {
-                        $message = "Skipped creating label '$label': ".($serviceError['message'] ?? 'GitHub skipped the label creation.');
+                        $message = "Skipped creating label '$label': "
+                            .($serviceError['message'] ?? 'GitHub skipped the label creation.');
                         $results['skipped'][] = $message;
-                        Log::info('GitHub label creation skipped.', ['label' => $label, 'service_error' => $serviceError]);
+                        Log::info('GitHub label creation skipped.', [
+                            'label' => $label,
+                            'service_error' => $serviceError,
+                        ]);
                     } else {
-                        $message = "Failed to create label '$label': ".($serviceError['message'] ?? 'GitHub returned 0.');
+                        $message = "Failed to create label '$label': "
+                            .($serviceError['message'] ?? 'GitHub returned 0.');
                         $results['errors'][] = $message;
-                        Log::error('GitHub label creation returned 0.', ['label' => $label, 'service_error' => $serviceError]);
+                        Log::error('GitHub label creation returned 0.', [
+                            'label' => $label,
+                            'service_error' => $serviceError,
+                        ]);
                     }
 
                     continue;

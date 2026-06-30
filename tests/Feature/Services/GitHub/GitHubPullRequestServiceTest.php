@@ -32,7 +32,7 @@ class GitHubPullRequestServiceTest extends TestCase
     // fetchPullRequestCount
     // -------------------------------------------------------------------------
 
-    public function test_fetch_pull_request_count_returns_pull_request_counts_dto(): void
+    public function testFetchPullRequestCountReturnsPullRequestCountsDto(): void
     {
         $mock = new MockHandler([
             new Response(200, [], json_encode([
@@ -56,7 +56,7 @@ class GitHubPullRequestServiceTest extends TestCase
         $this->assertSame(5, $result->closed);
     }
 
-    public function test_fetch_pull_request_count_returns_zeros_when_repository_data_is_missing(): void
+    public function testFetchPullRequestCountReturnsZerosWhenRepositoryDataIsMissing(): void
     {
         $mock = new MockHandler([
             new Response(200, [], json_encode([
@@ -73,7 +73,7 @@ class GitHubPullRequestServiceTest extends TestCase
         $this->assertSame(0, $result->closed);
     }
 
-    public function test_fetch_pull_request_count_throws_graphql_exception_on_errors(): void
+    public function testFetchPullRequestCountThrowsGraphqlExceptionOnErrors(): void
     {
         $this->expectException(GitHubGraphQLException::class);
 
@@ -90,7 +90,7 @@ class GitHubPullRequestServiceTest extends TestCase
     // fetchPullRequests
     // -------------------------------------------------------------------------
 
-    public function test_fetch_pull_requests_returns_pull_requests_with_rate_limit(): void
+    public function testFetchPullRequestsReturnsPullRequestsWithRateLimit(): void
     {
         $nodes = [
             ['number' => 101, 'title' => 'Fix typo'],
@@ -119,7 +119,7 @@ class GitHubPullRequestServiceTest extends TestCase
         $this->assertSame(['remaining' => 4800], $result['rateLimit']);
     }
 
-    public function test_fetch_pull_requests_returns_empty_when_no_pull_requests(): void
+    public function testFetchPullRequestsReturnsEmptyWhenNoPullRequests(): void
     {
         $mock = new MockHandler([
             new Response(200, [], json_encode([
@@ -140,7 +140,7 @@ class GitHubPullRequestServiceTest extends TestCase
         $this->assertNull($result['rateLimit']);
     }
 
-    public function test_fetch_pull_requests_with_cursor_returns_paginated_results(): void
+    public function testFetchPullRequestsWithCursorReturnsPaginatedResults(): void
     {
         $nodes = [['number' => 200, 'title' => 'Page 2 PR']];
 
@@ -163,7 +163,7 @@ class GitHubPullRequestServiceTest extends TestCase
         $this->assertSame('end-cursor', $result['pageInfo']['endCursor']);
     }
 
-    public function test_fetch_pull_requests_returns_only_rate_limit_when_repository_key_absent(): void
+    public function testFetchPullRequestsReturnsOnlyRateLimitWhenRepositoryKeyAbsent(): void
     {
         $mock = new MockHandler([
             new Response(200, [], json_encode([
@@ -178,7 +178,7 @@ class GitHubPullRequestServiceTest extends TestCase
         $this->assertSame(['rateLimit' => null], $result);
     }
 
-    public function test_fetch_pull_requests_throws_graphql_exception_on_errors(): void
+    public function testFetchPullRequestsThrowsGraphqlExceptionOnErrors(): void
     {
         $this->expectException(GitHubGraphQLException::class);
 
@@ -195,7 +195,7 @@ class GitHubPullRequestServiceTest extends TestCase
     // expandTimelineItems
     // -------------------------------------------------------------------------
 
-    public function test_expand_timeline_items_returns_pr_unchanged_when_no_next_page(): void
+    public function testExpandTimelineItemsReturnsPrUnchangedWhenNoNextPage(): void
     {
         $pr = [
             'number' => 42,
@@ -211,7 +211,7 @@ class GitHubPullRequestServiceTest extends TestCase
         $this->assertSame($pr, $result);
     }
 
-    public function test_expand_timeline_items_fetches_additional_pages_and_merges_nodes(): void
+    public function testExpandTimelineItemsFetchesAdditionalPagesAndMergesNodes(): void
     {
         $pr = [
             'number' => 42,
@@ -243,7 +243,7 @@ class GitHubPullRequestServiceTest extends TestCase
         $this->assertSame('event-2', $result['timelineItems']['nodes'][1]['id']);
     }
 
-    public function test_expand_timeline_items_handles_multiple_extra_pages(): void
+    public function testExpandTimelineItemsHandlesMultipleExtraPages(): void
     {
         $pr = [
             'number' => 42,
@@ -286,7 +286,7 @@ class GitHubPullRequestServiceTest extends TestCase
         $this->assertSame(['event-1', 'event-2', 'event-3'], array_column($result['timelineItems']['nodes'], 'id'));
     }
 
-    public function test_expand_timeline_items_handles_null_data_response(): void
+    public function testExpandTimelineItemsHandlesNullDataResponse(): void
     {
         $pr = [
             'number' => 42,

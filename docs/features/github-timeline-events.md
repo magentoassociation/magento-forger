@@ -1,6 +1,6 @@
 # GitHub Timeline-Events Sync
 
-> **Status:** Partially implemented. The PR timeline sync (`github-pr-timeline` index) and issue `label { name }` capture are built; the derived latency metrics and the scoring compute are not. Prerequisite for three features deferred in [Weighted Scoring](leaderboard-scoring.md): **review latency**, **maintainer responsiveness**, and **label / triage scoring**.
+> **Status:** Implemented. The PR timeline sync (`github-pr-timeline`), issue `label { name }` capture, review latency / responsiveness (`ClaimRecordReader` + `ReviewLatencyAnalyzer`, including the `pr_claimed` stale-PR bonus), and label / triage scoring (`ScoredEventReader::labelAppliedEvents()`) are all built. This doc is now the design reference; remaining leaderboard work is tracked in [Leaderboard Rollout](leaderboard-rollout.md).
 
 ## Why
 
@@ -53,7 +53,7 @@ Note `id` on every node (used as the OpenSearch `_id`, same upsert pattern as re
 - `resources/graphql/github/github_issue_interactions.graphql`
 - `resources/graphql/github/github_issues_with_interactions.graphql`
 
-`GitHubInteractionService` surfaces it as a `label` key on each event/interaction record (null for non-label events), and `SyncGitHubEvents` / `SyncGitHubInteractions` write it as `label_name` on the `github-events` / `github-interactions` documents (only when present). What remains for triage scoring is the scoring logic itself, plus a keyword mapping if exact-match filtering on label strings is needed (see below). These four queries still overlap heavily; worth consolidating later.
+`GitHubInteractionService` surfaces it as a `label` key on each event/interaction record (null for non-label events), and `SyncGitHubEvents` / `SyncGitHubInteractions` write it as `label_name` on the `github-events` / `github-interactions` documents (only when present). Triage scoring consumes this via `ScoredEventReader::labelAppliedEvents()` (deduped per actor/target/label). The `label_name.keyword` subfield is used for exact-match filtering. These four queries still overlap heavily; worth consolidating later.
 
 ### Confirmed
 
@@ -105,7 +105,7 @@ Computed in the leaderboard compute job, per PR and per maintainer:
 
 ## Relationship to the events / interactions indexes
 
-The `github-events` and `github-interactions` indexes are **live** — restored and expanded with paginated comments and timeline items, sync commands (`SyncGitHubEvents`, `SyncGitHubInteractions`), and an enlarged `GitHubInteractionService`. Issue triage scoring (phase 3) extends that path; `label { name }` is now captured (see above), leaving only the scoring logic. The `github-pr-timeline` index here is PR-specific and independent of those.
+The `github-events` and `github-interactions` indexes are **live** — restored and expanded with paginated comments and timeline items, sync commands (`SyncGitHubEvents`, `SyncGitHubInteractions`), and an enlarged `GitHubInteractionService`. Issue triage scoring reads label events from `github-events` (and PR label events from `github-pr-timeline`) via `ScoredEventReader::labelAppliedEvents()`. The `github-pr-timeline` index here is PR-specific and independent of those.
 
 ## Status & remaining work
 

@@ -21,7 +21,7 @@
         @foreach($prs as $year)
             <div class="row">
                 <div class="col-12">
-                    <h3>{{ $year['year']  }} <span class="text-secondary">({{ $year['total'] }} Pull Requests)</span> </h3>
+                    <h3>{{ $year['year']  }} <span class="text-secondary">({{ $year['total'] }} PRs)</span> </h3>
                 </div>
                 @foreach($year['months'] as $month)
                     @if (!($year['year'] == $currentYear && $month['month_number'] > $currentMonth))
@@ -34,7 +34,7 @@
                                 </p>
                                 @if($month['total'] > 0)
                                     <a href="https://github.com/magento/magento2/pulls?q=is%3Apr%20state%3Aopen%20updated%3A{{$month['start']}}..{{$month['end']}}" target="magentoForgerGitHub" class="stretched-link">
-                                        <span class="visually-hidden">View Pull Requests</span>
+                                        <span class="visually-hidden">View PRs</span>
                                     </a>
                                 @endif
                             </div>

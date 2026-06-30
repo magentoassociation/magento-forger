@@ -26,14 +26,14 @@ class SyncGitHubEventsTest extends TestCase
         Log::spy();
     }
 
-    public function test_invalid_since_returns_error_and_exits_with_code_1(): void
+    public function testInvalidSinceReturnsErrorAndExitsWithCode1(): void
     {
         $this->artisan('sync:github:events', ['--since' => 'not-a-date'])
             ->assertExitCode(1)
             ->expectsOutputToContain('Invalid date format for --since option: not-a-date');
     }
 
-    public function test_valid_iso_date_since_is_accepted(): void
+    public function testValidIsoDateSinceIsAccepted(): void
     {
         $this->mockSyncerReturnsEmpty();
 
@@ -42,7 +42,7 @@ class SyncGitHubEventsTest extends TestCase
             ->expectsOutputToContain('Filtering events for issues updated since');
     }
 
-    public function test_valid_relative_since_is_accepted(): void
+    public function testValidRelativeSinceIsAccepted(): void
     {
         $this->mockSyncerReturnsEmpty();
 
@@ -51,7 +51,7 @@ class SyncGitHubEventsTest extends TestCase
             ->expectsOutputToContain('Filtering events for issues updated since');
     }
 
-    public function test_no_since_runs_full_sync(): void
+    public function testNoSinceRunsFullSync(): void
     {
         $this->mockSyncerReturnsEmpty();
 
@@ -60,7 +60,7 @@ class SyncGitHubEventsTest extends TestCase
             ->expectsOutputToContain('No date filter applied');
     }
 
-    public function test_missing_repo_config_returns_error(): void
+    public function testMissingRepoConfigReturnsError(): void
     {
         config()->set('github.repo', null);
 
@@ -69,7 +69,7 @@ class SyncGitHubEventsTest extends TestCase
             ->expectsOutputToContain('Missing or invalid repository');
     }
 
-    public function test_invalid_repo_format_returns_error(): void
+    public function testInvalidRepoFormatReturnsError(): void
     {
         config()->set('github.repo', 'invalid-no-slash');
 
@@ -78,7 +78,7 @@ class SyncGitHubEventsTest extends TestCase
             ->expectsOutputToContain('Missing or invalid repository');
     }
 
-    public function test_cursor_option_resumes_from_cursor(): void
+    public function testCursorOptionResumesFromCursor(): void
     {
         $this->mockSyncerReturnsEmpty();
 
@@ -87,7 +87,7 @@ class SyncGitHubEventsTest extends TestCase
             ->expectsOutputToContain('Resuming from cursor: Y3Vyc29yOnYyOpKt');
     }
 
-    public function test_max_pages_option_is_accepted(): void
+    public function testMaxPagesOptionIsAccepted(): void
     {
         $this->mockSyncerReturnsEmpty();
 
@@ -95,7 +95,7 @@ class SyncGitHubEventsTest extends TestCase
             ->assertExitCode(0);
     }
 
-    public function test_cutoff_reached_shows_stopping_message(): void
+    public function testCutoffReachedShowsStoppingMessage(): void
     {
         $this->mock(GitHubInteractionService::class);
         $this->mock(GitHubIssueService::class);
@@ -109,7 +109,7 @@ class SyncGitHubEventsTest extends TestCase
             ->expectsOutputToContain('Last issue is older than given cutoff');
     }
 
-    public function test_successful_sync_shows_done_message(): void
+    public function testSuccessfulSyncShowsDoneMessage(): void
     {
         $this->mockSyncerReturnsEmpty();
 
@@ -118,7 +118,7 @@ class SyncGitHubEventsTest extends TestCase
             ->expectsOutputToContain('Done syncing GitHub events.');
     }
 
-    public function test_page_error_shows_error_message_and_suppresses_done_message(): void
+    public function testPageErrorShowsErrorMessageAndSuppressesDoneMessage(): void
     {
         $this->mock(GitHubInteractionService::class);
         $this->mock(GitHubIssueService::class);
@@ -137,7 +137,7 @@ class SyncGitHubEventsTest extends TestCase
             ->doesntExpectOutputToContain('Done syncing GitHub events.');
     }
 
-    public function test_graphql_error_shows_individual_errors(): void
+    public function testGraphqlErrorShowsIndividualErrors(): void
     {
         $this->mock(GitHubInteractionService::class);
         $this->mock(GitHubIssueService::class);

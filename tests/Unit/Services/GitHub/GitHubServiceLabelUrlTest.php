@@ -1,4 +1,5 @@
 <?php
+
 /*
  * @copyright Copyright (c) 2026 The Magento Association
  * @license https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
@@ -14,11 +15,11 @@ use Tests\TestCase;
 
 class GitHubServiceLabelUrlTest extends TestCase
 {
-    public function test_build_label_url_encodes_spaces_and_colons(): void
+    public function testBuildLabelUrlEncodesSpacesAndColons(): void
     {
         config()->set('github.token', 'test-token');
 
-        $service = new GitHubLabelService(new GitHubConnection());
+        $service = new GitHubLabelService(new GitHubConnection);
         $reflection = new ReflectionClass($service);
         $method = $reflection->getMethod('buildLabelUrl');
         $method->setAccessible(true);

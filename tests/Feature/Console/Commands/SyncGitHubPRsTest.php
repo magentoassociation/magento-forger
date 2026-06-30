@@ -25,14 +25,14 @@ class SyncGitHubPRsTest extends TestCase
         Log::spy();
     }
 
-    public function test_invalid_since_returns_error_and_exits_with_code_1(): void
+    public function testInvalidSinceReturnsErrorAndExitsWithCode1(): void
     {
         $this->artisan('sync:github:prs', ['--since' => 'not-a-date'])
             ->assertExitCode(1)
             ->expectsOutputToContain('Invalid date format for --since option: not-a-date');
     }
 
-    public function test_valid_iso_date_since_is_accepted(): void
+    public function testValidIsoDateSinceIsAccepted(): void
     {
         $this->mockSyncerReturnsEmpty();
 
@@ -41,7 +41,7 @@ class SyncGitHubPRsTest extends TestCase
             ->expectsOutputToContain('Filtering PRs updated since');
     }
 
-    public function test_valid_relative_since_is_accepted(): void
+    public function testValidRelativeSinceIsAccepted(): void
     {
         $this->mockSyncerReturnsEmpty();
 
@@ -50,7 +50,7 @@ class SyncGitHubPRsTest extends TestCase
             ->expectsOutputToContain('Filtering PRs updated since');
     }
 
-    public function test_no_since_runs_full_sync_without_cutoff_message(): void
+    public function testNoSinceRunsFullSyncWithoutCutoffMessage(): void
     {
         $this->mockSyncerReturnsEmpty();
 
@@ -59,7 +59,7 @@ class SyncGitHubPRsTest extends TestCase
             ->expectsOutputToContain('No date filter applied');
     }
 
-    public function test_missing_repo_config_returns_error(): void
+    public function testMissingRepoConfigReturnsError(): void
     {
         config()->set('github.repo', null);
 
@@ -68,7 +68,7 @@ class SyncGitHubPRsTest extends TestCase
             ->expectsOutputToContain('Missing or invalid repository');
     }
 
-    public function test_invalid_repo_format_returns_error(): void
+    public function testInvalidRepoFormatReturnsError(): void
     {
         config()->set('github.repo', 'invalid-no-slash');
 
@@ -77,7 +77,7 @@ class SyncGitHubPRsTest extends TestCase
             ->expectsOutputToContain('Missing or invalid repository');
     }
 
-    public function test_successful_sync_shows_done_message(): void
+    public function testSuccessfulSyncShowsDoneMessage(): void
     {
         $this->mockSyncerReturnsEmpty();
 
@@ -86,13 +86,21 @@ class SyncGitHubPRsTest extends TestCase
             ->expectsOutputToContain('Done syncing PRs.');
     }
 
-    public function test_page_error_shows_error_message_and_suppresses_done_message(): void
+    public function testPageErrorShowsErrorMessageAndSuppressesDoneMessage(): void
     {
         $this->mock(GitHubPullRequestService::class);
         $this->mock(OpenSearchService::class);
         $this->mock(GitHubSyncer::class)
             ->shouldReceive('sync')
-            ->andReturnUsing(function (callable $fetchPage, callable $index, $cutoff, $cursor, $onPage, $onNode, $onError) {
+            ->andReturnUsing(function (
+                callable $fetchPage,
+                callable $index,
+                $cutoff,
+                $cursor,
+                $onPage,
+                $onNode,
+                $onError
+            ) {
                 $onError(new RuntimeException('Connection refused'), 3);
 
                 return ['pages' => 3, 'cutoffReached' => false];
@@ -104,13 +112,21 @@ class SyncGitHubPRsTest extends TestCase
             ->doesntExpectOutputToContain('Done syncing PRs.');
     }
 
-    public function test_graphql_error_shows_individual_errors(): void
+    public function testGraphqlErrorShowsIndividualErrors(): void
     {
         $this->mock(GitHubPullRequestService::class);
         $this->mock(OpenSearchService::class);
         $this->mock(GitHubSyncer::class)
             ->shouldReceive('sync')
-            ->andReturnUsing(function (callable $fetchPage, callable $index, $cutoff, $cursor, $onPage, $onNode, $onError) {
+            ->andReturnUsing(function (
+                callable $fetchPage,
+                callable $index,
+                $cutoff,
+                $cursor,
+                $onPage,
+                $onNode,
+                $onError
+            ) {
                 $onError(new GitHubGraphQLException('GitHub GraphQL API error', [
                     'errors' => [['message' => 'Could not resolve to a Repository']],
                 ]), 2);

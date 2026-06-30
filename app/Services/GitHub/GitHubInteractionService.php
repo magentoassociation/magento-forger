@@ -33,23 +33,33 @@ class GitHubInteractionService
         $isPullRequest = $node['__typename'] === 'PullRequest';
 
         while ($node['comments']['pageInfo']['hasNextPage'] ?? false) {
-            $more = $this->executeQuery('github_issue_interactions.graphql', $baseVars + ['commentsCursor' => $node['comments']['pageInfo']['endCursor']]);
+            $more = $this->executeQuery('github_issue_interactions.graphql', $baseVars + [
+                'commentsCursor' => $node['comments']['pageInfo']['endCursor'],
+            ]);
             $moreNode = $more !== null ? ($more['repository']['issueOrPullRequest'] ?? null) : null;
             if (! $moreNode) {
                 break;
             }
-            $node['comments']['nodes'] = array_merge($node['comments']['nodes'] ?? [], $moreNode['comments']['nodes'] ?? []);
+            $node['comments']['nodes'] = array_merge(
+                $node['comments']['nodes'] ?? [],
+                $moreNode['comments']['nodes'] ?? [],
+            );
             $node['comments']['pageInfo'] = $moreNode['comments']['pageInfo'] ?? ['hasNextPage' => false];
         }
 
         if (! $isPullRequest) {
             while ($node['timelineItems']['pageInfo']['hasNextPage'] ?? false) {
-                $more = $this->executeQuery('github_issue_interactions.graphql', $baseVars + ['timelinesCursor' => $node['timelineItems']['pageInfo']['endCursor']]);
+                $more = $this->executeQuery('github_issue_interactions.graphql', $baseVars + [
+                    'timelinesCursor' => $node['timelineItems']['pageInfo']['endCursor'],
+                ]);
                 $moreNode = $more !== null ? ($more['repository']['issueOrPullRequest'] ?? null) : null;
                 if (! $moreNode) {
                     break;
                 }
-                $node['timelineItems']['nodes'] = array_merge($node['timelineItems']['nodes'] ?? [], $moreNode['timelineItems']['nodes'] ?? []);
+                $node['timelineItems']['nodes'] = array_merge(
+                    $node['timelineItems']['nodes'] ?? [],
+                    $moreNode['timelineItems']['nodes'] ?? [],
+                );
                 $node['timelineItems']['pageInfo'] = $moreNode['timelineItems']['pageInfo'] ?? ['hasNextPage' => false];
             }
         }
@@ -98,7 +108,10 @@ class GitHubInteractionService
             ]);
             $comments = $data !== null ? ($data['repository']['issue']['comments'] ?? []) : [];
             $commentsPageInfo = $comments['pageInfo'] ?? ['hasNextPage' => false];
-            $interactions = array_merge($interactions, $this->processComments(['comments' => $comments, 'timelineItems' => ['nodes' => []]], []));
+            $interactions = array_merge($interactions, $this->processComments([
+                'comments' => $comments,
+                'timelineItems' => ['nodes' => []],
+            ], []));
         }
 
         while ($timelinePageInfo['hasNextPage'] ?? false) {
@@ -110,7 +123,10 @@ class GitHubInteractionService
             ]);
             $timelineItems = $data !== null ? ($data['repository']['issue']['timelineItems'] ?? []) : [];
             $timelinePageInfo = $timelineItems['pageInfo'] ?? ['hasNextPage' => false];
-            $interactions = array_merge($interactions, $this->processComments(['comments' => ['nodes' => []], 'timelineItems' => $timelineItems], []));
+            $interactions = array_merge($interactions, $this->processComments([
+                'comments' => ['nodes' => []],
+                'timelineItems' => $timelineItems,
+            ], []));
         }
 
         return $interactions;

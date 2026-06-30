@@ -57,4 +57,4 @@ None beyond the shared OpenSearch config.
 
 - Review data only exists for PRs that have been synced. A PR with no review activity in the synced period returns zero rows — not an error.
 - Reviews with an empty `id` field are skipped during indexing (guard in `indexPullRequestReviews()`).
-- `CONTEXT.md` notes "Maintainer Leaderboard" as "not yet implemented" — this is outdated. The feature is live; update `CONTEXT.md` if that entry causes confusion.
+- This doc covers the **raw-count** review boards only. The weighted **Maintainer Score** (review/claim/triage scoring, latency stats) is a separate system — see [Weighted Scoring](leaderboard-scoring.md).

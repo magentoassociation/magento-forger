@@ -46,16 +46,16 @@ Ranks Contributors two ways: the raw-count per-metric boards (top 100 by a singl
 A weighted sum of a Contributor's (or Maintainer's) scored events, with impact weighting and a recency half-life. Contributor and Maintainer Scores are always kept separate, never merged into one number. Weights are versioned in `config/leaderboard.php`; every board row exposes its breakdown so the weighting stays transparent.
 
 **Company Leaderboard**:
-Ranks organizations by the **point-in-time** sum of their members' scores — each contribution credited to the org the contributor belonged to *when the work was done* (for a merge bonus, the PR's `created_at`). Unresolved contributors roll up to "Independent / Unknown". See [ADR 0001](docs/adr/0001-contributor-leaderboard.md).
+Ranks organizations by the **point-in-time** sum of their members' scores — each contribution credited to the org the contributor belonged to *when the work was done* (for a merge bonus, the PR's `created_at`). Unresolved contributors roll up to "Unknown". See [ADR 0001](docs/adr/0001-contributor-leaderboard.md).
 
 **Metric**:
 A single countable contribution signal used as the basis for one raw-count Contributor Leaderboard. Each metric filters on its own event date field (e.g., PRs merged filters on `merged_at`, not `created_at`). Distinct from a Score, which combines weighted events.
 
 **Calendar Period**:
-A date range defined by calendar boundaries. Presets: last month (first–last day of previous month), last quarter (Q1–Q4 of current year), last year (Jan 1–Dec 31 of previous year), or a custom from/to range. Used by the raw-count boards and the period-scoped Score views. The Score also has a default **rolling-12-month** window with decay (see Score), used by the Recently active and Rising segments.
+A date range defined by calendar boundaries. Presets: last month (first–last day of previous month), last quarter (Q1–Q4 of current year), last year (Jan 1–Dec 31 of previous year), or a custom from/to range. Used by the raw-count boards and the period-scoped Score views. The Score also has a default **rolling-12-month** window with decay (see Score). The Highlights segments apply their own filters on top: **Recently active** keys off recent *contributor* activity (last 14 days; maintainer reviews excluded), and **Rising** measures the score gain over a fixed window (default 7 days) against per-run score snapshots.
 
 **Maintainer Leaderboard**:
-Ranks Maintainers by review activity — both raw-count boards (PRs approved = review state `APPROVED`, PRs rejected = `CHANGES_REQUESTED`, sourced from the `github-pr-reviews` index) and a weighted **Maintainer Score** that adds an impact-weighted bonus when an approved PR is later merged. Review latency and label/triage scoring are deferred pending a timeline-events index. See [ADR 0002](docs/adr/0002-maintainer-leaderboard.md) and [Maintainer Leaderboards](docs/features/maintainer-leaderboards.md).
+Ranks Maintainers by review activity — both raw-count boards (PRs approved = review state `APPROVED`, PRs rejected = `CHANGES_REQUESTED`, sourced from the `github-pr-reviews` index) and a weighted **Maintainer Score** that adds an impact-weighted bonus when an approved PR is later merged, a staleness-weighted bonus for claiming a long-pending PR (credited only once reviewed), and triage credit for applying labels. Review-latency stats (time-to-review, time-to-claim) are derived from the `github-pr-timeline` index. See [ADR 0002](docs/adr/0002-maintainer-leaderboard.md), [Weighted Scoring](docs/features/leaderboard-scoring.md), and [Maintainer Leaderboards](docs/features/maintainer-leaderboards.md).
 
 ---
 
@@ -63,7 +63,7 @@ Ranks Maintainers by review activity — both raw-count boards (PRs approved = r
 
 > **Dev**: Should I show contributors without a linked User account on the leaderboard?
 >
-> **Domain expert**: Yes — the raw-count boards show all Contributors. Leave the company column blank if there's no match. On the Company Leaderboard, contributors whose org can't be resolved roll up to "Independent / Unknown" rather than being hidden.
+> **Domain expert**: Yes — the raw-count boards show all Contributors. Leave the company column blank if there's no match. On the Company Leaderboard, contributors whose org can't be resolved roll up to "Unknown" rather than being hidden.
 >
 > **Dev**: What if someone wants a single total across all metrics for a Contributor?
 >

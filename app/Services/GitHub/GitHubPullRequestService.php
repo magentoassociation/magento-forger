@@ -59,7 +59,10 @@ class GitHubPullRequestService
             ]);
             $timelineItems = $data !== null ? ($data['repository']['pullRequest']['timelineItems'] ?? []) : [];
             $pageInfo = $timelineItems['pageInfo'] ?? ['hasNextPage' => false];
-            $pr['timelineItems']['nodes'] = array_merge($pr['timelineItems']['nodes'] ?? [], $timelineItems['nodes'] ?? []);
+            $pr['timelineItems']['nodes'] = array_merge(
+                $pr['timelineItems']['nodes'] ?? [],
+                $timelineItems['nodes'] ?? [],
+            );
         }
 
         return $pr;

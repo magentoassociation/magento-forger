@@ -21,6 +21,10 @@ Recognize *impact*, not just volume, and give lapsed contributors a reason to re
 
 A maintainer who also authors PRs accrues a Contributor Score *and* a Maintainer Score independently.
 
+**Eligibility.** Maintainer points are limited to people with maintainer rights: the **maintainer** team plus the **community-council** committee (who hold the same rights but don't actively maintain). Contributor points are open to anyone. Both rosters populate `role_eligibilities` (roles `maintainer` and `community-council`) via `sync:github:teams` (token needs org Members:read) or `leaderboard:import-eligibility <csv>`. `EligibilityGate` lets *either* role earn maintainer points. The **public maintainer board lists only the `maintainer` roster** — council-only members are excluded from it (they'll surface in the planned internal-only stats). If both rosters are empty, gating is disabled and everyone counts.
+
+**Self-reviews don't count.** A review on one's own PR (reviewer == PR author) earns nothing — for *all* review actions, not just the merge bonus. This is why commenting on your own PR no longer awards maintainer points.
+
 ## Scored events (grounded in current indexes)
 
 | # | Role | Action | Index | Date field | Status |
@@ -32,9 +36,10 @@ A maintainer who also authors PRs accrues a Contributor Score *and* a Maintainer
 | 5 | Maintainer | Review approved | `github-pr-reviews` | `submitted_at`, `state=APPROVED` | ✅ exists |
 | 6 | Maintainer | Review rejected | `github-pr-reviews` | `submitted_at`, `state=CHANGES_REQUESTED` | ✅ exists |
 | 7 | Maintainer | Review commented | `github-pr-reviews` | `submitted_at`, `state=COMMENTED` | ✅ exists |
-| 8 | Maintainer | **Approved PR later merged** (approver bonus) | join reviews → PR `merged_at` | derivable | ⚙️ compute-side join |
-| 9 | Maintainer | Label applied | — timeline events | — | ⛔ not event-sourced (deferred) |
+| 8 | Maintainer | **Approved PR later merged** (approver bonus) | join reviews → PR `merged_at` | derivable | ✅ `ScoredEventReader::approvedThenMergedEvents()` (impact-weighted, self-review guarded) |
+| 9 | Maintainer | **Label applied** (triage) | `github-events` + `github-pr-timeline` | event date | ✅ `labelAppliedEvents()` (deduped per actor/target/label; excludes configured labels) |
 | 10 | Contributor | Comment on issue/PR | `github-interactions` (`type=comment`) | `created_at` | ✅ available — optional, see caveat |
+| 11 | Maintainer | **Claimed & reviewed a pending-review PR** (staleness bonus) | `github-pr-timeline` + `github-pr-reviews` | claim `created_at` | ✅ `ReviewLatencyAnalyzer` (impact grows with time-to-claim; only credited if the claim is reviewed) |
 
 > **Comment scoring caveat:** comments are now available (the interactions index is live), but they are the easiest signal to farm with low-value chatter. If scored at all, give them a low base weight and cap points per thread/day. Recommended: leave comments *out* of the Score initially and revisit, rather than incentivize noise on `magento/magento2`.
 
@@ -83,6 +88,8 @@ recency      = age_days > 365 ? 0 : 0.5 ** (age_days / 182)
 
 ## Point-in-time company attribution
 
+> **Implemented.** `MembershipResolver` (point-in-time, reads `user_org_memberships`) + `CompanyScoreAggregator` (reuses `LeaderboardScorer` for points) roll events up per org in `ComputeLeaderboardScores`, writing `org_leaderboard_entries`. Unresolved contributors bucket into an auto-created **Unknown** organization. The `user_org_memberships` table is keyed by login (no separate `github_users` table); membership population (the resolution pipeline below) is still manual until a Filament admin exists.
+
 Each scored event is attributed to the org the actor belonged to **on the contribution date**:
 
 | Event | Attribution date |
@@ -95,9 +102,15 @@ Each scored event is attributed to the org the actor belonged to **on the contri
 
 `Company Score` = Σ member event points, attributed point-in-time, with the same decay. A contributor who changes employer keeps their personal score; their *past* org keeps the credit for *past* work.
 
+The **scoring date and the attribution date are separate**: an event's points still decay from its scoring date (e.g. `merged_at`), but org credit is resolved against `ScoredEvent::attributionDate()` — the work date. `ScoredEventReader` sets that to `created_at` for PR-merged and issue-resolved-by-merge (both of which can land months later, under a different employer); for all other events it defaults to the scoring date. `CompanyScoreAggregator` resolves the org with `attributionDate()`.
+
 ### Org resolution pipeline
 
-Candidate org from, in order: (1) email domain → `organizations.domains`, (2) normalized GitHub profile company, (3) registered `User.company`. **Manual override in Filament is the source of truth.** Each membership carries a `source` and `confidence`; low-confidence rows land in a needs-review queue. Unresolved actors roll up to **"Independent / Unknown"** rather than being hidden.
+Candidate org from, in order: (1) email domain → `organizations.domains`, (2) normalized GitHub profile company, (3) registered `User.company`. **Manual override is the source of truth.** Each membership carries a `source` and `confidence`; low-confidence rows land in a needs-review queue. Unresolved actors roll up to **"Unknown"** rather than being hidden.
+
+When a login has overlapping memberships, `MembershipResolver` returns the first range covering the attribution date after ordering them most-recent-start-first (an open `from` sorts last, tie-broken by most-recent end). This makes a dated manual range win over an open-ended `source=profile` suggestion without inspecting `source`.
+
+`leaderboard:suggest-memberships` (`SuggestOrgMemberships` + `AuthorCompanyReader`) implements (2): it harvests each non-bot author's `author_company` and creates low-confidence `source=profile` memberships, never overwriting `source=manual` rows. `AuthorCompanyReader` picks each author's company from the **most recently `updated_at`** PR/issue document (so a stale value can't shadow a newer one). Each run **rebuilds the whole `source=profile` set inside a transaction** — every `source=profile` row is deleted, then survivors recreated — so logins who clear their GitHub company field drop out cleanly; consumers never see the momentary empty state. Domain/User.company seeding (1, 3) and a Filament review UI are not built yet.
 
 ## New data model
 
@@ -141,11 +154,12 @@ org_leaderboard_entries               # precomputed company scores
 - Bot exclusion reuses the existing list (`engcom-*`, `dependabot[bot]`, `github-actions[bot]`, `m2-assistant`), applied in the compute job.
 - Decay stops anyone (or any org) camping the top after going quiet.
 - `github_users.excluded` flag (set in Filament, Drupal-style) removes bad actors from all score boards.
-- Guard `author == reviewer` so self-review can't earn the approver bonus.
+- Guard `author == reviewer` so self-reviews earn nothing (all review actions, not just the approver bonus).
+- Team eligibility (`EligibilityGate`): maintainer points require `maintainer` or `community-council` membership; contributor points are open.
 
 ## UI
 
-- **Public:** new "Contributor Score", "Maintainer Score", and "Company" boards, defaulting to the rolling-12 window and reusing the Calendar Period selector. Each row is **expandable to show its breakdown** (action counts → weighted points) so the score stays transparent — this directly answers ADR 0001's "opaque weights" objection.
+- **Public:** new "Contributor Score", "Maintainer Score", and "Company" boards, defaulting to the rolling-12 window and reusing the Calendar Period selector. Each row is **expandable to show its breakdown** (action counts → weighted points) so the score stays transparent — this directly answers ADR 0001's "opaque weights" objection. The board subtitle lists, in plain language, which actions earn points (derived from the same configured weights, so it can't drift). A **"How are scores tallied?" modal** on each board lists the configured base points per action (read live from `config('leaderboard.weights.{board}')`) plus the impact, recency, and (maintainer) staleness multipliers, so the point values shown always match config. Modal data is assembled in `ScoreLeaderboardController::scoringExplainer()` and passed to the view as `$scoring` — not built inside a Blade `@php` block (a Blade `@php`/`@endphp` block pairs with any earlier inline `@php(...)` and breaks the template). Human-readable action names (board breakdown rows, drill-down items, modal, subtitle) all come from one place — `Action::label()` / `Action::labelFor()` on the `Action` enum — so raw keys like `pr_opened` never reach the UI.
 - **Filament admin:** `Organizations` resource; `Memberships` resource with a point-in-time editor and a needs-review filter; a read-only scoring-weights view (with version); an exclusions/abuse tool.
 
 ## Engagement signals (re-engagement layer)
@@ -156,25 +170,36 @@ Scores rank impact; these signals power *getting lapsed contributors back* — t
 github_user_stats
   id, github_user_id,
   first_contribution_at, last_contribution_at,
+  first_contribution_url, first_contribution_title, # newcomer's first PR/issue (set only within the spotlight window)
   current_gap_days,            # now - last_contribution_at
   current_streak_weeks,        # consecutive active weeks ending at now (0 if inactive; 1-week grace)
   longest_streak_weeks,
-  contributor_score_prev,      # prior window, for "Rising" delta
+  contributor_score_prev,      # score at the previous compute run (per-run delta, reference only)
   maintainer_score_prev,
-  median_review_latency_hours, # maintainers only
+  rising_baseline_score,       # contributor score as of rising.window_days ago, for the "Rising" delta
+  median_time_to_review_hours, # maintainers: responsiveness after claiming
+  median_time_to_claim_days,   # maintainers: how stale the PRs they pick up are
   reviews_in_window,
+  returned_after_days,         # comeback: days of silence bridged by a return (null if not a comeback)
+  comeback_url, comeback_title, # the PR/issue that ended the silence (the return contribution)
+  last_contributor_at,         # most recent *contributor* event (drives Recently active; excludes maintainer reviews)
   computed_at
 ```
 
+A companion `github_score_snapshots` table (`login`, `contributor_score`, `captured_at`) records one row per contributor on each `leaderboard:compute`. It backs the **Rising** window: the compute reads each contributor's score as of `rising.window_days` ago (the latest snapshot at or before the cutoff, via `ScoreSnapshotRepository::baselineAsOf()`) into `rising_baseline_score`, then writes today's snapshot and prunes rows older than `rising.retention_days`.
+
 | Signal | Definition | Source |
 |---|---|---|
-| First / last contribution | min/max event date across all scored actions | existing indexes |
+| First contribution | all-time earliest issue/PR opened or review submitted (`FirstContributionReader`, composite agg, not window-bound) | issues/PRs/reviews indexes |
+| Last contribution | most recent scored event in the window (any board) | derived |
+| Last contributor activity (`last_contributor_at`) | most recent *contributor* event only — drives Recently active, excludes maintainer reviews | derived |
+| Comeback (`returned_after_days`) | days between the last contribution before the window and the return inside it, when ≥ `comeback.min_gap_days` (else null) | `FirstContributionReader` |
 | Current gap | days since `last_contribution_at` — drives lapse detection | derived |
 | Streak | consecutive weeks with ≥1 contribution | derived |
-| Time-to-review (maintainer-controlled) | median hours from reviewer **self-assignment** to that maintainer's first `submitted_at` | ⛔ needs assignment timeline event — **deferred** |
-| Responsiveness | share of self-assigned PRs reviewed within N days | ⛔ same dependency — **deferred** |
+| Time-to-review (maintainer-controlled) | median hours from reviewer **self-assignment** to that maintainer's first `submitted_at` | ✅ `ReviewLatencyAnalyzer` |
+| Time-to-claim | median days a claimed PR sat in the review pool before pickup | ✅ `ReviewLatencyAnalyzer` (also drives the `pr_claimed` bonus) |
 
-### Review workflow (Magento-specific) and why latency is deferred
+### Review workflow (Magento-specific) and the claim incentive
 
 Contributors do **not** request reviews. The flow is:
 
@@ -184,10 +209,10 @@ Contributors do **not** request reviews. The flow is:
 
 This produces two different clocks:
 
-- **Time-to-claim** (`Progress: pending review` applied → self-assignment): a *backlog / project-health* metric, **not** attributable to any individual maintainer. Do not put this on a maintainer board.
-- **Time-to-review** (self-assignment → first review submitted): the only span a maintainer controls, so the only fair per-maintainer responsiveness signal.
+- **Time-to-claim** (`Progress: pending review` applied → self-assignment): how long the PR sat before this maintainer picked it up. Rather than treat it as untracked backlog noise, it **rewards** the claimer — the `pr_claimed` event's impact grows with this age, to encourage clearing stale PRs. Anti-farming guards: the bonus is only credited once the maintainer reviews the PR, and only when that review is submitted **after** the claim (a pre-claim or back-dated review scores nothing — latencies are computed as signed diffs so a negative span can't be `abs()`-ed into points); and repeated self-assignments on the same PR (`ClaimRecordReader`) collapse to one claim per (PR, maintainer), keeping the earliest, so re-requesting review can't manufacture extra claim credit.
+- **Time-to-review** (self-assignment → first review submitted): the span a maintainer controls after claiming — stored as the `median_time_to_review_hours` responsiveness stat.
 
-Both require event-sourced timing that the current sync lacks — `labels[]` is only a snapshot and reviewer assignment isn't captured at all. **Review latency, responsiveness, "issues triaged", and label-applied scoring (#9) are all deferred until a timeline-events index lands** — scoped in [GitHub Timeline-Events Sync](github-timeline-events.md). Until then, maintainer signals use review submissions (approve/reject/comment) only. `created_at` is *not* an acceptable proxy — a PR can sit unclaimed for months before any maintainer is responsible for it.
+These are computed from the `github-pr-timeline` index by `ClaimRecordReader` (assembling claim, pending-review-label, and first-review timings) and `ReviewLatencyAnalyzer` (the pure scoring + median math). Label-applied / "issues triaged" scoring (#9) remains deferred — it needs per-label event scoring, see [GitHub Timeline-Events Sync](github-timeline-events.md).
 
 Lapse detection is just a query: `last_contribution_at` older than a threshold (e.g. 90 days) among users with a meaningful prior score. This is the hook for the retention loop in phase 6 (nudges, "we miss you" surfacing).
 
@@ -197,9 +222,10 @@ A single all-time board entrenches the top 3 and tells everyone else they don't 
 
 | Board | Definition | Why it exists |
 |---|---|---|
-| **New contributor spotlight** | `first_contribution_at` within the current period | Celebrates entry, where motivation is most fragile |
-| **Rising** | largest positive delta `score − score_prev` | Lets newcomers rank without beating veterans |
-| **Recently active** | ranked within the rolling-12 window (decayed) | Refreshes constantly; not permanently owned by incumbents |
+| **New contributor spotlight** | `first_contribution_at` within `spotlight.window_days` (default 30); links to their first PR/issue (`first_contribution_url`) | Celebrates entry, where motivation is most fragile |
+| **Rising** | largest positive delta `score − rising_baseline_score`, where the baseline is the contributor's score as of `rising.window_days` ago (default 7), read from `github_score_snapshots` | Lets newcomers rank without beating veterans; the window is a fixed timeframe, not "since the last compute run" |
+| **Recently active** | `last_contributor_at` within 14 days (contributor activity only — maintainer reviews don't count), by contributor score | Refreshes constantly; not permanently owned by incumbents |
+| **Comebacks** | `returned_after_days` is set, ordered by gap length; links to the return PR/issue (`comeback_url`) | Welcomes back long-dormant contributors — directly serves re-engagement |
 | **This month / quarter / year** | score over the Calendar Period | Time-boxed competition with a clear reset |
 | **All-time** | *intentionally omitted as a default* | Entrenches incumbents; available only as an opt-in deep view |
 
@@ -207,7 +233,7 @@ All segments reuse the existing Calendar Period selector and the same decayed Sc
 
 ## Testing (per CLAUDE.md)
 
-PHPUnit feature tests, using factories, covering: scoring math against fixtures, decay boundaries (364 vs 366 days), point-in-time attribution across a mid-history job change, bot + `excluded` filtering, and org rollup including "Independent / Unknown". Run with `php artisan test --compact --filter=...`.
+PHPUnit feature tests, using factories, covering: scoring math against fixtures, decay boundaries (364 vs 366 days), point-in-time attribution across a mid-history job change, bot + `excluded` filtering, and org rollup including "Unknown". Run with `php artisan test --compact --filter=...`.
 
 ## Status & remaining work
 

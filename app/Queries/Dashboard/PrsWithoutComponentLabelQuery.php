@@ -18,7 +18,11 @@ class PrsWithoutComponentLabelQuery
     public function __construct(private readonly Client $client) {}
 
     /**
-     * @return array<string, array{year: string, total: int, months: array<string, array{month_number: string, total: int, start: string|null, end: string|null}>}>
+     * @return array<string, array{
+     *     year: string,
+     *     total: int,
+     *     months: array<string, array{month_number: string, total: int, start: string|null, end: string|null}>
+     * }>
      */
     public function execute(): array
     {

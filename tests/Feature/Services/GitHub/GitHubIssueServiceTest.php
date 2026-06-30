@@ -32,7 +32,7 @@ class GitHubIssueServiceTest extends TestCase
     // fetchIssueCount
     // -------------------------------------------------------------------------
 
-    public function test_fetch_issue_count_returns_issue_counts_dto(): void
+    public function testFetchIssueCountReturnsIssueCountsDto(): void
     {
         $mock = new MockHandler([
             new Response(200, [], json_encode([
@@ -54,7 +54,7 @@ class GitHubIssueServiceTest extends TestCase
         $this->assertSame(10, $result->closed);
     }
 
-    public function test_fetch_issue_count_returns_zeros_when_repository_data_is_missing(): void
+    public function testFetchIssueCountReturnsZerosWhenRepositoryDataIsMissing(): void
     {
         $mock = new MockHandler([
             new Response(200, [], json_encode([
@@ -70,7 +70,7 @@ class GitHubIssueServiceTest extends TestCase
         $this->assertSame(0, $result->closed);
     }
 
-    public function test_fetch_issue_count_throws_graphql_exception_on_errors(): void
+    public function testFetchIssueCountThrowsGraphqlExceptionOnErrors(): void
     {
         $this->expectException(GitHubGraphQLException::class);
 
@@ -87,7 +87,7 @@ class GitHubIssueServiceTest extends TestCase
     // fetchIssues
     // -------------------------------------------------------------------------
 
-    public function test_fetch_issues_returns_issues_with_rate_limit(): void
+    public function testFetchIssuesReturnsIssuesWithRateLimit(): void
     {
         $nodes = [
             ['number' => 1, 'title' => 'Bug report'],
@@ -116,7 +116,7 @@ class GitHubIssueServiceTest extends TestCase
         $this->assertSame(['remaining' => 5000], $result['rateLimit']);
     }
 
-    public function test_fetch_issues_returns_empty_nodes_when_no_issues(): void
+    public function testFetchIssuesReturnsEmptyNodesWhenNoIssues(): void
     {
         $mock = new MockHandler([
             new Response(200, [], json_encode([
@@ -137,7 +137,7 @@ class GitHubIssueServiceTest extends TestCase
         $this->assertNull($result['rateLimit']);
     }
 
-    public function test_fetch_issues_throws_graphql_exception_on_errors(): void
+    public function testFetchIssuesThrowsGraphqlExceptionOnErrors(): void
     {
         $this->expectException(GitHubGraphQLException::class);
 
@@ -154,7 +154,7 @@ class GitHubIssueServiceTest extends TestCase
     // fetchIssuesWithInteractions
     // -------------------------------------------------------------------------
 
-    public function test_fetch_issues_with_interactions_returns_nodes_page_info_and_total(): void
+    public function testFetchIssuesWithInteractionsReturnsNodesPageInfoAndTotal(): void
     {
         $nodes = [
             ['number' => 1, 'title' => 'Bug', 'comments' => ['nodes' => []]],
@@ -183,7 +183,7 @@ class GitHubIssueServiceTest extends TestCase
         $this->assertSame(['remaining' => 4000], $result['rateLimit']);
     }
 
-    public function test_fetch_issues_with_interactions_returns_empty_nodes_when_no_issues(): void
+    public function testFetchIssuesWithInteractionsReturnsEmptyNodesWhenNoIssues(): void
     {
         $mock = new MockHandler([
             new Response(200, [], json_encode([
@@ -209,7 +209,7 @@ class GitHubIssueServiceTest extends TestCase
     // fetchIssuesWithEvents
     // -------------------------------------------------------------------------
 
-    public function test_fetch_issues_with_events_returns_nodes_page_info_and_total(): void
+    public function testFetchIssuesWithEventsReturnsNodesPageInfoAndTotal(): void
     {
         $nodes = [
             ['number' => 1, 'updatedAt' => '2026-01-01T00:00:00Z', 'timelineItems' => ['nodes' => []]],
@@ -238,7 +238,7 @@ class GitHubIssueServiceTest extends TestCase
         $this->assertSame(['remaining' => 4000], $result['rateLimit']);
     }
 
-    public function test_fetch_issues_with_events_returns_empty_nodes_when_no_issues(): void
+    public function testFetchIssuesWithEventsReturnsEmptyNodesWhenNoIssues(): void
     {
         $mock = new MockHandler([
             new Response(200, [], json_encode([

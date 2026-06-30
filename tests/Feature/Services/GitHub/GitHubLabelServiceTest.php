@@ -1,4 +1,5 @@
 <?php
+
 /*
  * @copyright Copyright (c) 2026 The Magento Association
  * @license https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
@@ -31,7 +32,7 @@ class GitHubLabelServiceTest extends TestCase
     // createLabel
     // -------------------------------------------------------------------------
 
-    public function test_create_label_returns_one_when_label_does_not_exist(): void
+    public function testCreateLabelReturnsOneWhenLabelDoesNotExist(): void
     {
         // First: GET 404 (label does not exist), then POST 201 (created)
         $mock = new MockHandler([
@@ -46,7 +47,7 @@ class GitHubLabelServiceTest extends TestCase
         $this->assertNull($service->getLastOperationError());
     }
 
-    public function test_create_label_returns_zero_and_sets_skipped_error_when_label_already_exists(): void
+    public function testCreateLabelReturnsZeroAndSetsSkippedErrorWhenLabelAlreadyExists(): void
     {
         // GET 200 with matching name → skip
         $mock = new MockHandler([
@@ -65,7 +66,7 @@ class GitHubLabelServiceTest extends TestCase
         $this->assertStringContainsString('Area: Frontend', $error['message']);
     }
 
-    public function test_create_label_returns_zero_and_sets_failed_error_when_post_throws(): void
+    public function testCreateLabelReturnsZeroAndSetsFailedErrorWhenPostThrows(): void
     {
         // GET 404 → label not found; POST 422 → server rejects creation
         $mock = new MockHandler([
@@ -84,7 +85,7 @@ class GitHubLabelServiceTest extends TestCase
         $this->assertSame('failed', $error['status']);
     }
 
-    public function test_create_label_clears_previous_error_on_each_call(): void
+    public function testCreateLabelClearsPreviousErrorOnEachCall(): void
     {
         $mock = new MockHandler([
             new Response(200, [], json_encode(['name' => 'OldLabel'], JSON_THROW_ON_ERROR)),
@@ -102,7 +103,7 @@ class GitHubLabelServiceTest extends TestCase
         $this->assertNull($service->getLastOperationError());
     }
 
-    public function test_create_label_encodes_label_name_with_special_characters(): void
+    public function testCreateLabelEncodesLabelNameWithSpecialCharacters(): void
     {
         // Label contains spaces and colons — the GET URL should rawurlencode them
         $mock = new MockHandler([
@@ -120,7 +121,7 @@ class GitHubLabelServiceTest extends TestCase
     // renameLabel
     // -------------------------------------------------------------------------
 
-    public function test_rename_label_returns_one_on_success(): void
+    public function testRenameLabelReturnsOneOnSuccess(): void
     {
         $mock = new MockHandler([
             new Response(200, [], json_encode(['id' => 1, 'name' => 'Area: New'], JSON_THROW_ON_ERROR)),
@@ -133,7 +134,7 @@ class GitHubLabelServiceTest extends TestCase
         $this->assertNull($service->getLastOperationError());
     }
 
-    public function test_rename_label_returns_zero_and_sets_error_when_patch_throws(): void
+    public function testRenameLabelReturnsZeroAndSetsErrorWhenPatchThrows(): void
     {
         $mock = new MockHandler([
             new Response(404, [], json_encode(['message' => 'Not Found'], JSON_THROW_ON_ERROR)),
@@ -152,7 +153,7 @@ class GitHubLabelServiceTest extends TestCase
         $this->assertSame('Area: New', $error['new_name']);
     }
 
-    public function test_rename_label_clears_previous_error_on_each_call(): void
+    public function testRenameLabelClearsPreviousErrorOnEachCall(): void
     {
         // First call fails, second succeeds — error should be null after success
         $mock = new MockHandler([
@@ -173,7 +174,7 @@ class GitHubLabelServiceTest extends TestCase
     // getLastOperationError
     // -------------------------------------------------------------------------
 
-    public function test_get_last_operation_error_returns_null_initially(): void
+    public function testGetLastOperationErrorReturnsNullInitially(): void
     {
         config()->set('github.token', 'test-token');
         $restClient = new Client(['handler' => HandlerStack::create(new MockHandler([]))]);
