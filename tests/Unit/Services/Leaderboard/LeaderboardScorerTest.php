@@ -164,4 +164,55 @@ class LeaderboardScorerTest extends TestCase
 
         $this->assertSame(1, $summary['mid']['current_streak_weeks']);
     }
+
+    public function testPointsFlatAppliesImpactWithoutRecencyDecay(): void
+    {
+        // 100+ days old: points() would decay it, pointsFlat() must not.
+        $old = new ScoredEvent('jane', Board::CONTRIBUTOR, Action::PR_MERGED, Carbon::parse('2026-01-01T00:00:00Z'), 2.0);
+
+        // base 10 × impact 2.0, no recency factor
+        $this->assertSame(20.0, $this->scorer()->pointsFlat($old));
+    }
+
+    public function testPointsFlatIsZeroForUnweightedAction(): void
+    {
+        $event = new ScoredEvent('jane', Board::CONTRIBUTOR, Action::ISSUE_OPENED, Carbon::parse('2026-06-01T00:00:00Z'));
+
+        $this->assertSame(0.0, $this->scorer()->pointsFlat($event));
+    }
+
+    public function testSummarizeByMonthBucketsByUtcMonthWithoutDecay(): void
+    {
+        $months = $this->scorer()->summarizeByMonth([
+            new ScoredEvent('jane', Board::CONTRIBUTOR, Action::PR_OPENED, Carbon::parse('2026-06-15T12:00:00Z')),
+            new ScoredEvent('jane', Board::CONTRIBUTOR, Action::PR_OPENED, Carbon::parse('2026-05-20T12:00:00Z')),
+            new ScoredEvent('jane', Board::MAINTAINER, Action::REVIEW_APPROVED, Carbon::parse('2026-06-01T00:00:00Z')),
+        ], ['2026-06', '2026-05']);
+
+        // No decay: each pr_opened is worth its full base weight of 3.
+        $this->assertSame(3.0, $months['2026-06']['jane']['contributor_score']);
+        $this->assertSame(3.0, $months['2026-06']['jane']['maintainer_score']);
+        $this->assertSame(3.0, $months['2026-05']['jane']['contributor_score']);
+        $this->assertSame(1, $months['2026-06']['jane']['breakdown']['contributor']['pr_opened']['count']);
+    }
+
+    public function testSummarizeByMonthBucketsUsingUtcNotLocalOffset(): void
+    {
+        // 2026-06-01T01:30+02:00 is 2026-05-31T23:30Z — must land in May.
+        $months = $this->scorer()->summarizeByMonth([
+            new ScoredEvent('jane', Board::CONTRIBUTOR, Action::PR_OPENED, Carbon::parse('2026-06-01T01:30:00+02:00')),
+        ], ['2026-06', '2026-05']);
+
+        $this->assertArrayNotHasKey('2026-06', $months);
+        $this->assertSame(3.0, $months['2026-05']['jane']['contributor_score']);
+    }
+
+    public function testSummarizeByMonthIgnoresMonthsOutsideAllowedList(): void
+    {
+        $months = $this->scorer()->summarizeByMonth([
+            new ScoredEvent('jane', Board::CONTRIBUTOR, Action::PR_OPENED, Carbon::parse('2024-01-01T00:00:00Z')),
+        ], ['2026-06', '2026-05']);
+
+        $this->assertSame([], $months);
+    }
 }

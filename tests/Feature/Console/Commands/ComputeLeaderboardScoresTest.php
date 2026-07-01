@@ -58,6 +58,13 @@ class ComputeLeaderboardScoresTest extends TestCase
             ->andReturn([]);
     }
 
+    protected function tearDown(): void
+    {
+        Carbon::setTestNow();
+
+        parent::tearDown();
+    }
+
     public function testCommandExitsSuccessfullyWithNoEvents(): void
     {
         $this->mock(ScoredEventReader::class)
@@ -246,6 +253,95 @@ class ComputeLeaderboardScoresTest extends TestCase
 
         $this->assertDatabaseMissing(LeaderboardEntry::class, ['login' => 'ghost']);
         $this->assertDatabaseHas(LeaderboardEntry::class, ['login' => 'alice']);
+    }
+
+    public function testCommandWritesMonthlyEntriesWithoutRecencyDecay(): void
+    {
+        Carbon::setTestNow('2026-07-15T12:00:00Z');
+
+        $this->mock(ScoredEventReader::class)
+            ->shouldReceive('read')
+            ->andReturn([
+                new ScoredEvent('jane', Board::CONTRIBUTOR, Action::PR_OPENED, Carbon::parse('2026-07-02T00:00:00Z')),
+                new ScoredEvent('jane', Board::CONTRIBUTOR, Action::PR_OPENED, Carbon::parse('2026-03-02T00:00:00Z')),
+            ]);
+
+        $this->artisan('leaderboard:compute')->assertExitCode(0);
+
+        // Both months are within the trailing 12; each pr_opened is worth its
+        // full base weight of 3 regardless of age (no decay on monthly boards).
+        $july = LeaderboardEntry::where('login', 'jane')->where('board', 'contributor')->where('window', '2026-07')->first();
+        $march = LeaderboardEntry::where('login', 'jane')->where('board', 'contributor')->where('window', '2026-03')->first();
+
+        $this->assertNotNull($july);
+        $this->assertNotNull($march);
+        $this->assertSame(3.0, (float) $july->score);
+        $this->assertSame(3.0, (float) $march->score);
+    }
+
+    public function testCommandExcludesMonthsOutsideTheTrailingWindow(): void
+    {
+        Carbon::setTestNow('2026-07-15T12:00:00Z');
+
+        $this->mock(ScoredEventReader::class)
+            ->shouldReceive('read')
+            ->andReturn([
+                // 13 months back — outside the trailing 12, so no monthly row.
+                new ScoredEvent('jane', Board::CONTRIBUTOR, Action::PR_OPENED, Carbon::parse('2025-06-10T00:00:00Z')),
+                new ScoredEvent('jane', Board::CONTRIBUTOR, Action::PR_OPENED, Carbon::parse('2026-07-02T00:00:00Z')),
+            ]);
+
+        $this->artisan('leaderboard:compute')->assertExitCode(0);
+
+        $this->assertDatabaseHas(LeaderboardEntry::class, ['login' => 'jane', 'window' => '2026-07']);
+        $this->assertDatabaseMissing(LeaderboardEntry::class, ['login' => 'jane', 'window' => '2025-06']);
+    }
+
+    public function testCommandRanksMonthlyEntriesPerMonth(): void
+    {
+        Carbon::setTestNow('2026-07-15T12:00:00Z');
+
+        $this->mock(ScoredEventReader::class)
+            ->shouldReceive('read')
+            ->andReturn([
+                new ScoredEvent('alice', Board::CONTRIBUTOR, Action::PR_OPENED, Carbon::parse('2026-07-02T00:00:00Z')),
+                new ScoredEvent('alice', Board::CONTRIBUTOR, Action::PR_OPENED, Carbon::parse('2026-07-03T00:00:00Z')),
+                new ScoredEvent('bob', Board::CONTRIBUTOR, Action::PR_OPENED, Carbon::parse('2026-07-04T00:00:00Z')),
+            ]);
+
+        $this->artisan('leaderboard:compute')->assertExitCode(0);
+
+        $alice = LeaderboardEntry::where('login', 'alice')->where('board', 'contributor')->where('window', '2026-07')->first();
+        $bob = LeaderboardEntry::where('login', 'bob')->where('board', 'contributor')->where('window', '2026-07')->first();
+
+        $this->assertSame(1, $alice->rank);
+        $this->assertSame(2, $bob->rank);
+    }
+
+    public function testCommandEvictsStaleMonthlyEntriesButKeepsRolling(): void
+    {
+        Carbon::setTestNow('2026-07-15T12:00:00Z');
+
+        // A monthly row from a month no longer in the window must be swept away.
+        LeaderboardEntry::create([
+            'login' => 'ghost',
+            'board' => 'contributor',
+            'window' => '2020-01',
+            'score' => 99.0,
+            'computed_at' => Carbon::now(),
+        ]);
+
+        $this->mock(ScoredEventReader::class)
+            ->shouldReceive('read')
+            ->andReturn([
+                new ScoredEvent('alice', Board::CONTRIBUTOR, Action::PR_OPENED, Carbon::parse('2026-07-02T00:00:00Z')),
+            ]);
+
+        $this->artisan('leaderboard:compute')->assertExitCode(0);
+
+        $this->assertDatabaseMissing(LeaderboardEntry::class, ['window' => '2020-01']);
+        $this->assertDatabaseHas(LeaderboardEntry::class, ['login' => 'alice', 'window' => 'rolling12']);
+        $this->assertDatabaseHas(LeaderboardEntry::class, ['login' => 'alice', 'window' => '2026-07']);
     }
 
     public function testCommandRecordsComebackAfterLongGap(): void

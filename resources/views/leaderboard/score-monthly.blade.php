@@ -5,7 +5,7 @@
         <div class="row mb-3">
             <div class="col-12">
                 <p class="text-muted mb-1">
-                    Ranked by the last 12 months of activity — recent work and bigger changes count for more.
+                    Ranked by activity in {{ $monthLabel }} — bigger changes count for more, with no recency decay.
                     Points come from {{ $scoring['scoredList'] }}.
                 </p>
                 <button type="button" class="btn btn-link btn-sm p-0" data-bs-toggle="modal" data-bs-target="#scoringModal">
@@ -16,9 +16,18 @@
 
         @include('leaderboard._tabs')
 
+        <div class="mb-4 d-flex flex-wrap gap-2">
+            @foreach ($months as $month)
+                <a href="{{ route('scores.monthly', ['board' => $board, 'ym' => $month['ym']]) }}"
+                   class="btn btn-sm {{ $month['active'] ? 'btn-primary' : 'btn-outline-secondary' }}">
+                    {{ $month['label'] }}
+                </a>
+            @endforeach
+        </div>
+
         @if ($entries->isEmpty())
             <div class="alert alert-info">
-                No scores yet. Run <code>ddev artisan leaderboard:compute</code> to populate.
+                No scored activity for {{ $monthLabel }}.
             </div>
         @else
             <div class="table-responsive">
@@ -51,19 +60,14 @@
                                     <span class="badge text-bg-success rounded-pill">{{ number_format($entry->score, 1) }}</span>
                                 </td>
                                 <td class="text-end">
-                                    <div class="d-flex gap-2 justify-content-end flex-nowrap">
-                                        @if ($entry->score > 0)
-                                            <a href="{{ route('scores.detail', ['board' => $board, 'login' => $entry->login]) }}" class="btn btn-sm btn-outline-primary text-nowrap">
-                                                Details
-                                            </a>
-                                        @endif
-                                        @if (! empty($entry->breakdown))
+                                    @if (! empty($entry->breakdown))
+                                        <div class="d-flex gap-2 justify-content-end flex-nowrap">
                                             <button class="btn btn-sm btn-outline-secondary text-nowrap" type="button"
                                                     data-bs-toggle="collapse" data-bs-target="#breakdown-{{ $i }}" aria-expanded="false">
                                                 See Points Breakdown
                                             </button>
-                                        @endif
-                                    </div>
+                                        </div>
+                                    @endif
                                 </td>
                             </tr>
                             @if (! empty($entry->breakdown))

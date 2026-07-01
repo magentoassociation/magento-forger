@@ -144,19 +144,19 @@ class ScoreLeaderboardControllerTest extends TestCase
             'first_contribution_at' => now()->subDays(5),
             'first_contribution_url' => 'https://github.com/magento/magento2/pull/7',
             'contributor_score' => 5,
-            'computed_at' => now()
+            'computed_at' => now(),
         ]);
         GithubUserStat::create([
             'login' => 'climber',
             'contributor_score' => 20,
             'rising_baseline_score' => 10,
-            'computed_at' => now()
+            'computed_at' => now(),
         ]);
         GithubUserStat::create([
             'login' => 'returner',
             'returned_after_days' => 400,
             'comeback_url' => 'https://github.com/magento/magento2/pull/999',
-            'computed_at' => now()
+            'computed_at' => now(),
         ]);
 
         $this->get(route('scores.highlights'))
@@ -178,7 +178,7 @@ class ScoreLeaderboardControllerTest extends TestCase
             'last_contributor_at' => now()->subDays(2),
             'contributor_score' => 8,
             'rising_baseline_score' => 8,
-            'computed_at' => now()
+            'computed_at' => now(),
         ]);
         // Recent maintainer work but stale as a contributor → excluded from Recently active.
         GithubUserStat::create([
@@ -186,7 +186,7 @@ class ScoreLeaderboardControllerTest extends TestCase
             'last_contributor_at' => now()->subDays(90),
             'contributor_score' => 8,
             'rising_baseline_score' => 8,
-            'computed_at' => now()
+            'computed_at' => now(),
         ]);
 
         $this->get(route('scores.highlights'))
@@ -203,13 +203,13 @@ class ScoreLeaderboardControllerTest extends TestCase
             'window' => 'rolling12',
             'score' => 10.0,
             'rank' => 1,
-            'computed_at' => now()
+            'computed_at' => now(),
         ]);
         GithubProfile::create([
             'login' => 'janedoe',
             'name' => 'Jane Doe',
             'avatar_url' => 'https://example.com/jane.png',
-            'fetched_at' => now()
+            'fetched_at' => now(),
         ]);
 
         $this->get(route('scores.show', ['board' => 'contributor']))
@@ -226,7 +226,7 @@ class ScoreLeaderboardControllerTest extends TestCase
             'window' => 'rolling12',
             'score' => 12.0,
             'rank' => 1,
-            'computed_at' => now()
+            'computed_at' => now(),
         ]);
         LeaderboardEntry::create([
             'login' => 'justacontributor',
@@ -234,7 +234,7 @@ class ScoreLeaderboardControllerTest extends TestCase
             'window' => 'rolling12',
             'score' => 0,
             'rank' => 2,
-            'computed_at' => now()
+            'computed_at' => now(),
         ]);
 
         $this->get(route('scores.show', ['board' => 'maintainer']))
@@ -254,7 +254,7 @@ class ScoreLeaderboardControllerTest extends TestCase
             'window' => 'rolling12',
             'score' => 9.0,
             'rank' => 1,
-            'computed_at' => now()
+            'computed_at' => now(),
         ]);
         // Scored, but not on the roster — must not appear.
         LeaderboardEntry::create([
@@ -263,7 +263,7 @@ class ScoreLeaderboardControllerTest extends TestCase
             'window' => 'rolling12',
             'score' => 50.0,
             'rank' => 2,
-            'computed_at' => now()
+            'computed_at' => now(),
         ]);
 
         $this->get(route('scores.show', ['board' => 'maintainer']))
@@ -276,6 +276,86 @@ class ScoreLeaderboardControllerTest extends TestCase
             ->assertDontSee(route('scores.detail', ['board' => 'maintainer', 'login' => 'idlemaintainer']));
     }
 
+    public function testMonthlyIndexRedirectsToCurrentMonth(): void
+    {
+        \Carbon\Carbon::setTestNow('2026-07-15T12:00:00Z');
+
+        $this->get(route('scores.monthly.index', ['board' => 'contributor']))
+            ->assertRedirect(route('scores.monthly', ['board' => 'contributor', 'ym' => '2026-07']));
+
+        \Carbon\Carbon::setTestNow();
+    }
+
+    public function testMonthlyIndexRejectsInvalidBoard(): void
+    {
+        $this->get('/scores/monthly/company')->assertNotFound();
+    }
+
+    public function testMonthlyBoardListsEntriesForTheMonth(): void
+    {
+        \Carbon\Carbon::setTestNow('2026-07-15T12:00:00Z');
+
+        LeaderboardEntry::create([
+            'login' => 'jane',
+            'board' => 'contributor',
+            'window' => '2026-07',
+            'score' => 21.0,
+            'breakdown' => ['pr_opened' => ['count' => 7, 'points' => 21.0]],
+            'rank' => 1,
+            'computed_at' => now(),
+        ]);
+        // A different month's row must not leak into July.
+        LeaderboardEntry::create([
+            'login' => 'olduser',
+            'board' => 'contributor',
+            'window' => '2026-06',
+            'score' => 99.0,
+            'rank' => 1,
+            'computed_at' => now(),
+        ]);
+
+        $this->get(route('scores.monthly', ['board' => 'contributor', 'ym' => '2026-07']))
+            ->assertOk()
+            ->assertSee('Contributor Leaderboard — Jul 2026')
+            ->assertSee('jane')
+            ->assertSee('21')
+            ->assertDontSee('olduser')
+            // No recency decay copy on monthly boards.
+            ->assertDontSee('no longer counts');
+
+        \Carbon\Carbon::setTestNow();
+    }
+
+    public function testMonthlyBoardOffersMonthNavigation(): void
+    {
+        \Carbon\Carbon::setTestNow('2026-07-15T12:00:00Z');
+
+        $this->get(route('scores.monthly', ['board' => 'contributor', 'ym' => '2026-07']))
+            ->assertOk()
+            ->assertSee('Jul 2026')
+            ->assertSee('Jun 2026')
+            ->assertSee(route('scores.monthly', ['board' => 'contributor', 'ym' => '2026-06']));
+
+        \Carbon\Carbon::setTestNow();
+    }
+
+    public function testMonthlyBoardRejectsMonthOutsideWindow(): void
+    {
+        \Carbon\Carbon::setTestNow('2026-07-15T12:00:00Z');
+
+        // Too old (more than 12 months back) and in the future both 404.
+        $this->get('/scores/monthly/contributor/2020-01')->assertNotFound();
+        $this->get('/scores/monthly/contributor/2026-08')->assertNotFound();
+
+        \Carbon\Carbon::setTestNow();
+    }
+
+    public function testMonthlyBoardRejectsMalformedMonth(): void
+    {
+        // Route constraint rejects non-YYYY-MM before the controller runs.
+        $this->get('/scores/monthly/contributor/nope')->assertNotFound();
+    }
+
     public function testCompanyBoardMergesOrgRows(): void
     {
         $acme = Organization::create(['name' => 'Acme', 'slug' => 'acme', 'type' => 'agency']);
@@ -286,7 +366,7 @@ class ScoreLeaderboardControllerTest extends TestCase
             'score' => 10.0,
             'member_count' => 3,
             'rank' => 1,
-            'computed_at' => now()
+            'computed_at' => now(),
         ]);
         OrgLeaderboardEntry::create([
             'organization_id' => $acme->id,
@@ -295,7 +375,7 @@ class ScoreLeaderboardControllerTest extends TestCase
             'score' => 5.0,
             'member_count' => 3,
             'rank' => 1,
-            'computed_at' => now()
+            'computed_at' => now(),
         ]);
 
         $this->get(route('scores.show', ['board' => 'company']))

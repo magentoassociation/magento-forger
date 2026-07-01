@@ -1,6 +1,6 @@
 # Monthly Leaderboards — Spec
 
-> Status: proposed. Per-calendar-month contributor (and maintainer) score boards for the **trailing 12 months**, modelled on package-maven's `/leaderboard/monthly/YYYY-MM`. Additive to the rolling-12 boards in [Weighted Scoring](leaderboard-scoring.md) — nothing about the existing boards changes.
+> Status: implemented. Per-calendar-month contributor (and maintainer) score boards for the **trailing 12 months**, modelled on package-maven's `/leaderboard/monthly/YYYY-MM`. Additive to the rolling-12 boards in [Weighted Scoring](leaderboard-scoring.md) — nothing about the existing boards changes.
 
 ## Goal
 
@@ -95,13 +95,13 @@ New `resources/views/leaderboard/score-monthly.blade.php` (reuses the rolling bo
 
 The "How are scores tallied?" modal is reused, but for monthly it must **drop the recency bullet** and state impact still applies — pass a `decay = false` flag into `scoringExplainer()`/the modal partial. The per-action point list (`scoredList`) is unchanged.
 
-## Tasks (phased)
+## Tasks (phased) — all done
 
-1. **Scorer** — `pointsFlat()` + `summarizeByMonth()` + unit tests (bucketing by UTC `Y-m`, no decay, ignores out-of-range months).
-2. **Compute** — month bucketing, per-month upsert, window-aware `assignRanks()`, stale-month eviction; feature tests (12 months written, 13th evicted, ranks per window).
-3. **Routes + controller** — `monthly()`/`monthlyIndex()` with in-range/real/not-future guards; feature tests (valid month renders; out-of-range and future → 404; current-month redirect).
-4. **View** — `score-monthly.blade.php`, month nav, header label, `_tabs` link, decay-off modal; view tests.
-5. **Docs** — finalize this file; update [rollout](leaderboard-rollout.md) (Completed + `monthly.months_back` tunable) and the segments note in [leaderboard-scoring.md](leaderboard-scoring.md).
+1. **Scorer** — `pointsFlat()` + `summarizeByMonth()` in `LeaderboardScorer`, plus the `App\Support\MonthlyWindow` helper (shared allowed-month set + `M Y` labels); unit tests cover UTC bucketing, no decay, and out-of-range exclusion.
+2. **Compute** — month bucketing via `summarizeByMonth()`, `writeMonthlyEntries()` upsert, window-aware `assignRanks(['rolling12', ...months])`, stale-month eviction; feature tests cover months written, out-of-window exclusion, per-month ranks, and eviction. **Note:** eviction is implemented as "delete every `window != 'rolling12'` row, then re-insert the allowed months" — a superset of the spec's `NOT IN $allowedMonths` delete that also drops contributors who fell out of an otherwise-live month. Matches the "recompute all 12 months every run" contract.
+3. **Routes + controller** — `monthly()`/`monthlyIndex()` with in-range/real/not-future guards (out-of-range and future both fall outside `MonthlyWindow::allowed()` → 404; the route regex rejects malformed `ym`); feature tests cover render, redirect, and the 404 cases.
+4. **View** — `score-monthly.blade.php`, month nav, header label (`components/header.blade.php`), `_tabs` "Monthly" link, and the shared `_scoring-modal.blade.php` partial driven by a `decay` flag; controller feature tests assert the month heading, nav links, and absence of recency copy.
+5. **Docs** — this file; [rollout](leaderboard-rollout.md) updated.
 
 ## Caveats
 

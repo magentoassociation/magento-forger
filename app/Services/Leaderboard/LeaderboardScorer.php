@@ -80,6 +80,84 @@ class LeaderboardScorer
     }
 
     /**
+     * Points without recency decay: base weight x clamped impact. Used by the
+     * monthly boards, where the calendar month is the window, so a contribution
+     * is worth the same at the start and end of its month.
+     */
+    public function pointsFlat(ScoredEvent $event): float
+    {
+        $base = (float) ($this->weights[$event->board->value][$event->action->value] ?? 0);
+
+        if ($base === 0.0) {
+            return 0.0;
+        }
+
+        $impact = max($this->impactMin, min($this->impactMax, $event->impact));
+
+        return $base * $impact;
+    }
+
+    /**
+     * Bucket events into per-calendar-month, per-login scores with a per-action
+     * breakdown. Months are keyed by the event's UTC `Y-m`; events outside
+     * $allowedMonths are ignored. No recency decay and no engagement signals —
+     * the month is the window. Mirrors summarize()'s breakdown shape so the
+     * monthly board can reuse the same view partials.
+     *
+     * @param  list<ScoredEvent>  $events
+     * @param  list<string>  $allowedMonths  e.g. ['2026-07', '2026-06', ...]
+     * @return array<string, array<string, array{
+     *     contributor_score: float,
+     *     maintainer_score: float,
+     *     breakdown: array<string, array<string, array{count: int, points: float}>>
+     * }>> keyed by 'Y-m' then login
+     */
+    public function summarizeByMonth(array $events, array $allowedMonths): array
+    {
+        $allowed = array_flip($allowedMonths);
+        $months = [];
+
+        foreach ($events as $event) {
+            $month = $event->date->copy()->utc()->format('Y-m');
+
+            if (! isset($allowed[$month])) {
+                continue;
+            }
+
+            $login = $event->login;
+
+            if (! isset($months[$month][$login])) {
+                $months[$month][$login] = [
+                    'contributor_score' => 0.0,
+                    'maintainer_score' => 0.0,
+                    'breakdown' => [],
+                ];
+            }
+
+            $board = $event->board->value;
+            $action = $event->action->value;
+            $points = $this->pointsFlat($event);
+            $months[$month][$login][$board.'_score'] += $points;
+
+            $bucket = $months[$month][$login]['breakdown'][$board][$action] ?? ['count' => 0, 'points' => 0.0];
+            $bucket['count']++;
+            $bucket['points'] = round($bucket['points'] + $points, 4);
+            $months[$month][$login]['breakdown'][$board][$action] = $bucket;
+        }
+
+        foreach ($months as &$logins) {
+            foreach ($logins as &$data) {
+                $data['contributor_score'] = round($data['contributor_score'], 4);
+                $data['maintainer_score'] = round($data['maintainer_score'], 4);
+            }
+            unset($data);
+        }
+        unset($logins);
+
+        return $months;
+    }
+
+    /**
      * Aggregate events per contributor into scores, a per-action breakdown, and
      * engagement signals.
      *
