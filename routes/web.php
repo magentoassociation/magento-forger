@@ -34,6 +34,8 @@ Route::get('scores/highlights', [Controllers\ScoreLeaderboardController::class, 
 Route::get('scores/monthly/{board}', [Controllers\ScoreLeaderboardController::class, 'monthlyIndex'])->name('scores.monthly.index');
 Route::get('scores/monthly/{board}/{ym}', [Controllers\ScoreLeaderboardController::class, 'monthly'])
     ->where('ym', '[0-9]{4}-[0-9]{2}')->name('scores.monthly');
+Route::get('scores/monthly/{board}/{ym}/user/{login}', [Controllers\ScoreLeaderboardController::class, 'monthlyDetail'])
+    ->where('ym', '[0-9]{4}-[0-9]{2}')->name('scores.monthly.detail');
 Route::get('scores/{board}', [Controllers\ScoreLeaderboardController::class, 'show'])->name('scores.show');
 Route::get('scores/{board}/user/{login}', [Controllers\ScoreLeaderboardController::class, 'detail'])->name('scores.detail');
 

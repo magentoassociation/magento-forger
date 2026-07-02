@@ -9,16 +9,14 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\DataTransferObjects\Leaderboard\Action;
-use App\DataTransferObjects\Leaderboard\Board;
-use App\DataTransferObjects\Leaderboard\ContributionItem;
-use App\DataTransferObjects\Leaderboard\ScoredEvent;
 use App\Models\GithubProfile;
 use App\Models\GithubUserStat;
 use App\Models\LeaderboardEntry;
+use App\Models\LeaderboardLineItem;
 use App\Models\OrgLeaderboardEntry;
 use App\Models\RoleEligibility;
-use App\Services\Leaderboard\ContributionDetailReader;
 use App\Services\Leaderboard\LeaderboardScorer;
+use App\Services\Leaderboard\ReviewLatencyAnalyzer;
 use App\Support\MonthlyWindow;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
@@ -131,6 +129,49 @@ class ScoreLeaderboardController extends Controller
     }
 
     /**
+     * Per-user drill-down for a single month. Reads the persisted line items
+     * filtered to the month and summed on flat (no-decay) points, so the total
+     * reconciles with the monthly board. Same in-range/real/not-future guards as
+     * the monthly board.
+     */
+    public function monthlyDetail(string $board, string $ym, string $login): View
+    {
+        if ($board !== 'contributor' && $board !== 'maintainer') {
+            abort(404);
+        }
+
+        if (! in_array($ym, MonthlyWindow::allowed(), true)) {
+            abort(404);
+        }
+
+        $rows = LeaderboardLineItem::query()
+            ->where('login', $login)
+            ->where('board', $board)
+            ->where('month', $ym)
+            ->where('points_flat', '>', 0)
+            ->orderByDesc('points_flat')
+            ->get()
+            ->map(fn (LeaderboardLineItem $item): object => (object) [
+                'action' => Action::labelFor($item->action),
+                'title' => $item->title,
+                'url' => $item->url,
+                'date' => $item->contributed_at,
+                'points' => round($item->points_flat, 2),
+            ]);
+
+        return view('leaderboard.score-monthly-detail', [
+            'board' => $board,
+            'boards' => self::BOARDS,
+            'login' => $login,
+            'ym' => $ym,
+            'monthLabel' => MonthlyWindow::label($ym),
+            'profile' => GithubProfile::query()->where('login', $login)->first(),
+            'rows' => $rows,
+            'total' => round($rows->sum('points'), 1),
+        ]);
+    }
+
+    /**
      * Data for the "How are scores tallied?" modal: the configured weights for
      * this board plus the multipliers, so the modal stays in sync with config.
      * $decay is false for the monthly boards, which apply impact but no recency
@@ -143,7 +184,10 @@ class ScoreLeaderboardController extends Controller
      *     labels: array<string, string>,
      *     impactActions: list<string>,
      *     scoredList: string,
-     *     decay: bool
+     *     decay: bool,
+     *     impactExamples: list<array{label: string, factor: float}>,
+     *     recencyExamples: list<array{label: string, factor: float}>,
+     *     stalenessExamples: list<array{label: string, factor: float}>
      * }
      */
     private function scoringExplainer(string $board, bool $decay = true): array
@@ -170,17 +214,87 @@ class ScoreLeaderboardController extends Controller
             array_keys($weights),
         );
 
+        $impact = (array) config('leaderboard.impact', ['min' => 1, 'max' => 5]);
+        $recency = (array) config('leaderboard.recency', ['window_days' => 365, 'half_life_days' => 182]);
+
         return [
             'weights' => $weights,
-            'impact' => (array) config('leaderboard.impact', ['min' => 1, 'max' => 5]),
-            'recency' => (array) config('leaderboard.recency', ['window_days' => 365, 'half_life_days' => 182]),
+            'impact' => $impact,
+            'recency' => $recency,
             'labels' => collect(Action::cases())
                 ->mapWithKeys(fn (Action $action): array => [$action->value => $action->label()])
                 ->all(),
             'impactActions' => ['pr_merged', 'issue_resolved_by_merge', 'approved_then_merged'],
             'scoredList' => $this->humanJoin($scored),
             'decay' => $decay,
+            'impactExamples' => $this->impactExamples($impact),
+            'recencyExamples' => $decay ? $this->recencyExamples($recency) : [],
+            'stalenessExamples' => $board === 'maintainer' ? $this->stalenessExamples($impact) : [],
         ];
+    }
+
+    /**
+     * Worked "size → multiplier" rows for the impact (complexity) explainer, run
+     * through the real scorer so the modal can never drift from the formula.
+     *
+     * @param  array{min: int|float, max: int|float}  $impact
+     * @return list<array{label: string, factor: float}>
+     */
+    private function impactExamples(array $impact): array
+    {
+        $min = (float) $impact['min'];
+        $max = (float) $impact['max'];
+
+        return array_map(fn (array $row): array => [
+            'label' => $row['label'],
+            'factor' => round(LeaderboardScorer::impactFromSize($row['lines'], 0, $min, $max), 1),
+        ], [
+            ['label' => 'a small fix (~10 lines)', 'lines' => 10],
+            ['label' => 'a medium change (~100 lines)', 'lines' => 100],
+            ['label' => 'a large change (~1,000 lines)', 'lines' => 1000],
+        ]);
+    }
+
+    /**
+     * Worked "age → multiplier" rows for the recency-decay explainer, derived from
+     * the configured half-life and window so they always match the scorer.
+     *
+     * @param  array{window_days: int, half_life_days: int}  $recency
+     * @return list<array{label: string, factor: float}>
+     */
+    private function recencyExamples(array $recency): array
+    {
+        $halfLife = (int) $recency['half_life_days'];
+        $window = (int) $recency['window_days'];
+
+        return [
+            ['label' => 'today', 'factor' => 1.0],
+            ['label' => $halfLife.' days ago', 'factor' => 0.5],
+            ['label' => 2 * $halfLife.' days ago', 'factor' => round(2 ** (-2), 2)],
+            ['label' => 'more than '.$window.' days ago', 'factor' => 0.0],
+        ];
+    }
+
+    /**
+     * Worked "wait → multiplier" rows for the maintainer staleness explainer, run
+     * through the real analyzer and clamped to the impact bounds.
+     *
+     * @param  array{min: int|float, max: int|float}  $impact
+     * @return list<array{label: string, factor: float}>
+     */
+    private function stalenessExamples(array $impact): array
+    {
+        $min = (float) $impact['min'];
+        $max = (float) $impact['max'];
+
+        return array_map(fn (array $row): array => [
+            'label' => $row['label'],
+            'factor' => round(max($min, min($max, ReviewLatencyAnalyzer::stalenessFromDays((float) $row['days']))), 1),
+        ], [
+            ['label' => 'claimed within a day', 'days' => 1],
+            ['label' => 'waiting ~2 weeks', 'days' => 14],
+            ['label' => 'waiting ~3 months', 'days' => 90],
+        ]);
     }
 
     /**
@@ -200,42 +314,30 @@ class ScoreLeaderboardController extends Controller
         return implode(', ', $items).$separator.$last;
     }
 
-    public function detail(string $board, string $login, ContributionDetailReader $reader): View
+    public function detail(string $board, string $login): View
     {
         if ($board !== 'contributor' && $board !== 'maintainer') {
             abort(404);
         }
 
-        $boardEnum = $board === 'contributor' ? Board::CONTRIBUTOR : Board::MAINTAINER;
+        // Read the line items persisted by leaderboard:compute — the exact events
+        // that produced the board score, with their points — so the drill-down
+        // total reconciles with the board instead of re-deriving a different set.
+        $weights = (array) config('leaderboard.weights.'.$board, []);
 
-        // Anchor recency decay to when the leaderboard was last computed, not the
-        // current request time. Using a fresh now() would let the decay factor
-        // drift past the persisted entry, so the detail total would no longer
-        // reconcile with the score shown on the board. Falls back to now() only
-        // when no entry has been persisted yet.
-        $entry = LeaderboardEntry::query()
+        $rows = LeaderboardLineItem::query()
             ->where('login', $login)
             ->where('board', $board)
-            ->where('window', 'rolling12')
-            ->first();
-        $asOf = $entry?->computed_at ?? Carbon::now();
-        $from = $asOf->copy()->subDays((int) config('leaderboard.recency.window_days', 365));
-        $scorer = LeaderboardScorer::fromConfig();
-
-        $rows = collect($reader->readForLogin($login, $from, $asOf))
-            ->filter(fn (ContributionItem $item): bool => $item->board === $boardEnum)
-            ->map(fn (ContributionItem $item): object => (object) [
-                'action' => $item->action->label(),
+            ->orderByDesc('points')
+            ->get()
+            ->map(fn (LeaderboardLineItem $item): object => (object) [
+                'action' => Action::labelFor($item->action),
                 'title' => $item->title,
                 'url' => $item->url,
-                'date' => $item->date,
-                'points' => round($scorer->points(
-                    new ScoredEvent($login, $item->board, $item->action, $item->date, $item->impact),
-                    $asOf,
-                ), 2),
-            ])
-            ->sortByDesc('points')
-            ->values();
+                'date' => $item->contributed_at,
+                'points' => round($item->points, 2),
+                'formula' => $this->scoreFormula($item, $weights),
+            ]);
 
         return view('leaderboard.score-detail', [
             'board' => $board,
@@ -245,6 +347,50 @@ class ScoreLeaderboardController extends Controller
             'rows' => $rows,
             'total' => round($rows->sum('points'), 1),
         ]);
+    }
+
+    /**
+     * Human-readable "base × impact × recency" decomposition of a line item's
+     * decayed points, derived from the stored decayed/flat points and the
+     * configured base weight — no extra columns needed. Returns null when it
+     * can't be decomposed (unknown weight or zero flat points) so the view falls
+     * back to the bare total.
+     *
+     * @param  array<string, int|float>  $weights  action => base weight
+     */
+    private function scoreFormula(LeaderboardLineItem $item, array $weights): ?string
+    {
+        $base = (float) ($weights[$item->action] ?? 0);
+
+        if ($base <= 0.0 || $item->points_flat <= 0.0) {
+            return null;
+        }
+
+        // points_flat = base × (impact|staleness); points = points_flat × recency.
+        $sizeFactor = $item->points_flat / $base;
+        $recency = $item->points / $item->points_flat;
+
+        $parts = [$this->trimNumber($base).' base'];
+
+        if (abs($sizeFactor - 1.0) >= 0.05) {
+            $label = $item->action === 'pr_claimed' ? 'staleness' : 'impact';
+            $parts[] = '× '.$this->trimNumber(round($sizeFactor, 1)).'× '.$label;
+        }
+
+        if (abs($recency - 1.0) >= 0.05) {
+            $parts[] = '× '.$this->trimNumber(round($recency, 2)).'× recency';
+        }
+
+        return implode(' ', $parts).' = '.$this->trimNumber(round($item->points, 1)).' pts';
+    }
+
+    /**
+     * Format a factor for display: two decimals, trailing zeros and dot stripped
+     * (6.00 → "6", 1.20 → "1.2", 0.55 → "0.55").
+     */
+    private function trimNumber(float $value): string
+    {
+        return rtrim(rtrim(number_format($value, 2), '0'), '.');
     }
 
     public function highlights(): View

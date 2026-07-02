@@ -27,6 +27,8 @@ use App\DataTransferObjects\Leaderboard\ScoredEvent;
  */
 class ReviewLatencyAnalyzer
 {
+    public function __construct(private readonly ?string $repo = null) {}
+
     /**
      * @param  list<ClaimRecord>  $claims
      * @return array{
@@ -59,7 +61,7 @@ class ReviewLatencyAnalyzer
             if ($claim->pendingReviewAt !== null) {
                 $days = max(0.0, $claim->pendingReviewAt->diffInHours($claim->claimedAt, false) / 24);
                 $bucket['ttc'][] = $days;
-                $staleness = $this->stalenessFromDays($days);
+                $staleness = self::stalenessFromDays($days);
             }
 
             $events[] = new ScoredEvent(
@@ -68,6 +70,10 @@ class ReviewLatencyAnalyzer
                 Action::PR_CLAIMED,
                 $claim->claimedAt,
                 $staleness,
+                title: 'PR #'.$claim->prNumber,
+                url: $this->repo !== null && $this->repo !== ''
+                    ? "https://github.com/{$this->repo}/pull/{$claim->prNumber}"
+                    : null,
             );
 
             $bucket['ttr'][] = $claim->claimedAt->diffInHours($claim->firstReviewAt, false);
@@ -92,7 +98,7 @@ class ReviewLatencyAnalyzer
      * Reward grows ~+1 per 10× age (1 day → 1.0, 10 → 2.0, 100 → 3.0, 1000 → 4.0).
      * The scorer clamps to the configured impact bounds, so very old PRs cap out.
      */
-    private function stalenessFromDays(float $days): float
+    public static function stalenessFromDays(float $days): float
     {
         return 1.0 + log10(max($days, 1.0));
     }

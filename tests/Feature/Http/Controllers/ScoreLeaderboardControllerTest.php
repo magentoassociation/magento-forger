@@ -8,16 +8,13 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Http\Controllers;
 
-use App\DataTransferObjects\Leaderboard\Action;
-use App\DataTransferObjects\Leaderboard\Board;
-use App\DataTransferObjects\Leaderboard\ContributionItem;
 use App\Models\GithubProfile;
 use App\Models\GithubUserStat;
 use App\Models\LeaderboardEntry;
+use App\Models\LeaderboardLineItem;
 use App\Models\Organization;
 use App\Models\OrgLeaderboardEntry;
 use App\Models\RoleEligibility;
-use App\Services\Leaderboard\ContributionDetailReader;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -79,20 +76,18 @@ class ScoreLeaderboardControllerTest extends TestCase
             ->assertSee('17');
     }
 
-    public function testDetailListsAUsersContributions(): void
+    public function testDetailListsAUsersPersistedLineItems(): void
     {
-        $this->mock(ContributionDetailReader::class)
-            ->shouldReceive('readForLogin')
-            ->andReturn([
-                new ContributionItem(
-                    Board::CONTRIBUTOR,
-                    Action::PR_MERGED,
-                    now(),
-                    2.0,
-                    'Fix the thing',
-                    'https://github.com/magento/magento2/pull/123'
-                ),
-            ]);
+        LeaderboardLineItem::create([
+            'login' => 'jane',
+            'board' => 'contributor',
+            'action' => 'pr_merged',
+            'title' => 'Fix the thing',
+            'url' => 'https://github.com/magento/magento2/pull/123',
+            'contributed_at' => now(),
+            'points' => 20.0,
+            'computed_at' => now(),
+        ]);
 
         $this->get(route('scores.detail', ['board' => 'contributor', 'login' => 'jane']))
             ->assertOk()
@@ -103,33 +98,104 @@ class ScoreLeaderboardControllerTest extends TestCase
             ->assertDontSee('pr_merged');
     }
 
-    public function testDetailAnchorsRecencyToPersistedComputedAt(): void
+    public function testDetailTotalReconcilesWithSummedLineItems(): void
     {
-        $computedAt = now()->subDays(30);
-        LeaderboardEntry::create([
+        foreach ([['pr_merged', 20.0], ['review_approved', 3.0], ['label_applied', 1.5]] as [$action, $points]) {
+            LeaderboardLineItem::create([
+                'login' => 'jane',
+                'board' => 'maintainer',
+                'action' => $action,
+                'title' => 'PR #1',
+                'url' => 'https://github.com/magento/magento2/pull/1',
+                'contributed_at' => now(),
+                'points' => $points,
+                'computed_at' => now(),
+            ]);
+        }
+
+        // Only maintainer-board items count toward this board's total (24.5),
+        // regardless of request time — points are precomputed, not re-derived.
+        LeaderboardLineItem::create([
             'login' => 'jane',
             'board' => 'contributor',
-            'window' => 'rolling12',
-            'score' => 10.0,
-            'rank' => 1,
-            'computed_at' => $computedAt,
+            'action' => 'pr_opened',
+            'title' => 'PR #2',
+            'url' => 'https://github.com/magento/magento2/pull/2',
+            'contributed_at' => now(),
+            'points' => 99.0,
+            'computed_at' => now(),
         ]);
 
-        $capturedTo = null;
-        $this->mock(ContributionDetailReader::class)
-            ->shouldReceive('readForLogin')
-            ->withArgs(function (...$args) use (&$capturedTo): bool {
-                // readForLogin($login, $from, $to) — only the "as of" boundary matters here.
-                $capturedTo = $args[2];
+        $this->travel(40)->days();
 
-                return true;
-            })
-            ->andReturn([]);
+        $this->get(route('scores.detail', ['board' => 'maintainer', 'login' => 'jane']))
+            ->assertOk()
+            ->assertSee('24.5')
+            ->assertDontSee('99.0');
 
-        $this->get(route('scores.detail', ['board' => 'contributor', 'login' => 'jane']))->assertOk();
+        $this->travelBack();
+    }
 
-        // The "as of" boundary must be the stored computation time, not now().
-        $this->assertSame($computedAt->toDateTimeString(), $capturedTo->toDateTimeString());
+    public function testDetailListsDerivedBonusesThatOldReaderOmitted(): void
+    {
+        // Labels and claim bonuses now appear as line items (the whole point of
+        // persisting them), so the drill-down is complete.
+        LeaderboardLineItem::create([
+            'login' => 'maint',
+            'board' => 'maintainer',
+            'action' => 'label_applied',
+            'title' => "'bug' label",
+            'url' => null,
+            'contributed_at' => now(),
+            'points' => 1.0,
+            'computed_at' => now(),
+        ]);
+
+        $this->get(route('scores.detail', ['board' => 'maintainer', 'login' => 'maint']))
+            ->assertOk()
+            ->assertSee('Applied a triage label')
+            ->assertSee("'bug' label");
+    }
+
+    public function testDetailShowsPointsBreakdownTooltip(): void
+    {
+        // pr_merged base is 10. Flat 20 → 2x impact; decayed 11 → 0.55x recency.
+        LeaderboardLineItem::create([
+            'login' => 'jane',
+            'board' => 'contributor',
+            'action' => 'pr_merged',
+            'title' => 'Fix the thing',
+            'url' => 'https://github.com/magento/magento2/pull/123',
+            'contributed_at' => now(),
+            'points' => 11.0,
+            'points_flat' => 20.0,
+            'computed_at' => now(),
+        ]);
+
+        $this->get(route('scores.detail', ['board' => 'contributor', 'login' => 'jane']))
+            ->assertOk()
+            ->assertSee('data-bs-toggle="tooltip"', false)
+            ->assertSee('10 base × 2× impact × 0.55× recency = 11 pts');
+    }
+
+    public function testDetailOmitsTooltipWhenPointsCannotBeDecomposed(): void
+    {
+        // No flat points persisted (legacy row) → nothing to decompose, no tooltip.
+        LeaderboardLineItem::create([
+            'login' => 'jane',
+            'board' => 'contributor',
+            'action' => 'pr_merged',
+            'title' => 'Fix the thing',
+            'url' => 'https://github.com/magento/magento2/pull/123',
+            'contributed_at' => now(),
+            'points' => 11.0,
+            'points_flat' => 0.0,
+            'computed_at' => now(),
+        ]);
+
+        $this->get(route('scores.detail', ['board' => 'contributor', 'login' => 'jane']))
+            ->assertOk()
+            ->assertDontSee('data-bs-title', false);
     }
 
     public function testDetailRejectsInvalidBoard(): void
@@ -321,7 +387,9 @@ class ScoreLeaderboardControllerTest extends TestCase
             ->assertSee('21')
             ->assertDontSee('olduser')
             // No recency decay copy on monthly boards.
-            ->assertDontSee('no longer counts');
+            ->assertDontSee('no longer counts')
+            // Each scored row links to its monthly drill-down.
+            ->assertSee(route('scores.monthly.detail', ['board' => 'contributor', 'ym' => '2026-07', 'login' => 'jane']));
 
         \Carbon\Carbon::setTestNow();
     }
@@ -354,6 +422,53 @@ class ScoreLeaderboardControllerTest extends TestCase
     {
         // Route constraint rejects non-YYYY-MM before the controller runs.
         $this->get('/scores/monthly/contributor/nope')->assertNotFound();
+    }
+
+    public function testMonthlyDetailListsMonthItemsAndReconcilesOnFlatPoints(): void
+    {
+        \Carbon\Carbon::setTestNow('2026-07-15T12:00:00Z');
+
+        // July items sum to 13 on flat points (rolling points differ — must be ignored).
+        LeaderboardLineItem::create([
+            'login' => 'jane', 'board' => 'contributor', 'action' => 'pr_opened',
+            'title' => 'Add feature', 'url' => 'https://github.com/magento/magento2/pull/1',
+            'contributed_at' => '2026-07-04T00:00:00Z', 'month' => '2026-07',
+            'points' => 2.7, 'points_flat' => 3.0, 'computed_at' => now(),
+        ]);
+        LeaderboardLineItem::create([
+            'login' => 'jane', 'board' => 'contributor', 'action' => 'pr_merged',
+            'title' => 'Fix bug', 'url' => 'https://github.com/magento/magento2/pull/2',
+            'contributed_at' => '2026-07-06T00:00:00Z', 'month' => '2026-07',
+            'points' => 9.1, 'points_flat' => 10.0, 'computed_at' => now(),
+        ]);
+        // A June item must not leak into July.
+        LeaderboardLineItem::create([
+            'login' => 'jane', 'board' => 'contributor', 'action' => 'pr_opened',
+            'title' => 'June work', 'url' => 'https://github.com/magento/magento2/pull/3',
+            'contributed_at' => '2026-06-02T00:00:00Z', 'month' => '2026-06',
+            'points' => 3.0, 'points_flat' => 3.0, 'computed_at' => now(),
+        ]);
+
+        $this->get(route('scores.monthly.detail', ['board' => 'contributor', 'ym' => '2026-07', 'login' => 'jane']))
+            ->assertOk()
+            ->assertSee('Contributor Contributions — Jul 2026')
+            ->assertSee('Add feature')
+            ->assertSee('Fix bug')
+            ->assertDontSee('June work')
+            ->assertSee('13.0');   // flat total, not the rolling 11.8
+
+        \Carbon\Carbon::setTestNow();
+    }
+
+    public function testMonthlyDetailRejectsInvalidBoardAndOutOfWindowMonth(): void
+    {
+        \Carbon\Carbon::setTestNow('2026-07-15T12:00:00Z');
+
+        $this->get('/scores/monthly/company/2026-07/user/jane')->assertNotFound();
+        $this->get('/scores/monthly/contributor/2020-01/user/jane')->assertNotFound();
+        $this->get('/scores/monthly/contributor/2026-08/user/jane')->assertNotFound();
+
+        \Carbon\Carbon::setTestNow();
     }
 
     public function testCompanyBoardMergesOrgRows(): void

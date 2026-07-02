@@ -13,17 +13,17 @@
                     @endif
                 </h2>
                 <p class="text-muted">
-                    Every scored contribution in the last 12 months behind this score &mdash;
-                    <strong>{{ number_format($total, 1) }}</strong> pts total, reconciling with the board.
+                    Every scored contribution in {{ $monthLabel }} behind this month's score &mdash;
+                    <strong>{{ number_format($total, 1) }}</strong> pts total (impact-weighted, no recency decay).
                 </p>
-                <a href="{{ route('scores.show', ['board' => $board]) }}" class="btn btn-sm btn-outline-secondary mb-2">
-                    &larr; Back to {{ $boards[$board] }} board
+                <a href="{{ route('scores.monthly', ['board' => $board, 'ym' => $ym]) }}" class="btn btn-sm btn-outline-secondary mb-2">
+                    &larr; Back to {{ $monthLabel }} board
                 </a>
             </div>
         </div>
 
         @if ($rows->isEmpty())
-            <div class="alert alert-info">No itemized contributions in this window for <code>{{ $login }}</code>.</div>
+            <div class="alert alert-info">No scored contributions in {{ $monthLabel }} for <code>{{ $login }}</code>.</div>
         @else
             <div class="table-responsive">
                 <table class="table table-hover align-middle">
@@ -49,12 +49,7 @@
                                     @endif
                                 </td>
                                 <td class="text-muted small">{{ $row->date->toFormattedDateString() }}</td>
-                                <td class="text-end">
-                                    <span class="badge text-bg-success rounded-pill"
-                                        @if ($row->formula) data-bs-toggle="tooltip" data-bs-title="{{ $row->formula }}" style="cursor: help;" @endif>
-                                        {{ number_format($row->points, 1) }}
-                                    </span>
-                                </td>
+                                <td class="text-end"><span class="badge text-bg-success rounded-pill">{{ number_format($row->points, 1) }}</span></td>
                             </tr>
                         @endforeach
                     </tbody>
@@ -63,9 +58,3 @@
         @endif
     </div>
 @endsection
-
-@push('scripts')
-    <script>
-        document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => new bootstrap.Tooltip(el));
-    </script>
-@endpush

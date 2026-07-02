@@ -18,6 +18,10 @@
         $boardName = (isset($boards, $board) && isset($boards[$board])) ? $boards[$board] : null;
         $base = $boardName ? $boardName . ' Leaderboard' : 'Leaderboard';
         $formattedLabel = isset($monthLabel) ? $base . ' — ' . $monthLabel : $base;
+    } elseif ($currentRouteName === 'scores.monthly.detail') {
+        $boardName = (isset($boards, $board) && isset($boards[$board])) ? $boards[$board] : null;
+        $base = $boardName ? $boardName . ' Contributions' : 'Contributions';
+        $formattedLabel = isset($monthLabel) ? $base . ' — ' . $monthLabel : $base;
     } elseif ($currentRouteName === 'scores.detail') {
         $boardName = (isset($boards, $board) && isset($boards[$board])) ? $boards[$board] : null;
         $formattedLabel = $boardName ? $boardName . ' Contributions' : 'Contributions';

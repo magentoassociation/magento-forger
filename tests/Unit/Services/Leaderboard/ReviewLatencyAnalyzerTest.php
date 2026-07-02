@@ -33,6 +33,31 @@ class ReviewLatencyAnalyzerTest extends TestCase
         $this->assertEqualsWithDelta(100.0, $result['stats']['maint']['median_time_to_claim_days'], 0.1);
     }
 
+    public function testClaimedEventCarriesPrTitleAndLink(): void
+    {
+        $claimed = Carbon::parse('2026-06-01T00:00:00Z');
+
+        $result = (new ReviewLatencyAnalyzer('magento/magento2'))->analyze([
+            new ClaimRecord(42, 'maint', $claimed, $claimed->copy()->subDays(10), $claimed->copy()->addHours(5)),
+        ]);
+
+        $event = $result['events'][0];
+        $this->assertSame('PR #42', $event->title);
+        $this->assertSame('https://github.com/magento/magento2/pull/42', $event->url);
+    }
+
+    public function testClaimedEventOmitsLinkWhenRepoUnknown(): void
+    {
+        $claimed = Carbon::parse('2026-06-01T00:00:00Z');
+
+        $result = (new ReviewLatencyAnalyzer)->analyze([
+            new ClaimRecord(42, 'maint', $claimed, null, $claimed->copy()->addHours(5)),
+        ]);
+
+        $this->assertSame('PR #42', $result['events'][0]->title);
+        $this->assertNull($result['events'][0]->url);
+    }
+
     public function testMissingPendingReviewGivesBaseImpactAndNullClaimStat(): void
     {
         $claimed = Carbon::parse('2026-06-01T00:00:00Z');

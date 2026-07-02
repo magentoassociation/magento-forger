@@ -9,7 +9,7 @@ Give each calendar month its own board with a stable, shareable URL (`scores/mon
 ## Scope
 
 - **In:** contributor and maintainer monthly boards (the `window` machinery is per-board already, so both come almost for free).
-- **Out (v1):** monthly **company** rollup (adds point-in-time org aggregation per month; defer until asked), and per-month drill-down ("Details"). Engagement segments (Rising, Comebacks, Recently active, newcomer spotlight) are now-relative and never appear on a historical month.
+- **Out (v1):** monthly **company** rollup (adds point-in-time org aggregation per month; defer until asked). Engagement segments (Rising, Comebacks, Recently active, newcomer spotlight) are now-relative and never appear on a historical month. (Per-month drill-down "Details" was deferred in v1 but has since shipped — see below.)
 - **Window:** only the **last 12 months** (current month + the previous 11) are built, served, and linked. Older months 404; future months 404.
 
 ## Scoring semantics (the one real decision)
@@ -89,7 +89,7 @@ New `resources/views/leaderboard/score-monthly.blade.php` (reuses the rolling bo
 
 - **Subtitle:** "June 2026 — points earned that month (impact-weighted, no recency decay)."
 - **Month nav:** a horizontal, wrapping list of the 12 months (newest → oldest), current highlighted, each linking to `scores.monthly`; matches the package-maven affordance and is bounded to the 12-month window.
-- **Breakdown** stays (the row's `breakdown` JSON is already month-scoped and accurate). **Omit the "Details" drill-down in v1.** The rolling board's `detail()` cannot be reused for a month: it runs `LeaderboardScorer::points()`, which applies **recency decay** anchored to the entry's `computed_at`, whereas monthly scores are **flat** (no decay). Reusing it would be wrong on both axes — wrong scoring mode *and* wrong timestamp. A correct per-month detail would need the flat scorer (`pointsFlat` / `summarizeByMonth`) and month bucketing, and is best built on persisted line items (see Caveats). Future item.
+- **Breakdown** stays (the row's `breakdown` JSON is already month-scoped and accurate). **"Details" drill-down now shipped** (`scores.monthly.detail`, `monthlyDetail()`): it reads the persisted line items, filters by `month`, and sums flat `points_flat`, so it reconciles with the monthly board. This sidesteps the reason it was deferred — the rolling `detail()` couldn't be reused because it applies recency decay anchored to `computed_at`, wrong on both scoring mode and timestamp for a month.
 - **Header h1:** extend `components/header.blade.php` so `scores.monthly` renders "{Board} Leaderboard — {Month Year}".
 - **Discoverability:** add a "Monthly" entry to `_tabs` (links to `scores.monthly.index` for the current board) so the rolling and monthly views cross-link.
 
@@ -110,4 +110,4 @@ The "How are scores tallied?" modal is reused, but for monthly it must **drop th
 - **`months_back` is coupled to `recency.window_days`** (see Data model note).
 - **Late merges/edits** within the 365-day read window are corrected because all 12 months are recomputed each run.
 - **Company monthly and per-month drill-down are explicitly deferred.**
-- **Detail re-derivation is the real blocker for monthly drill-down.** The rolling `detail()` page re-derives points from `ContributionDetailReader` rather than reading what compute stored; its total is anchored to `computed_at` to avoid decay drift, but it still surfaces a *different event set* than the board sum, so the two never reconcile exactly. The durable fix — persisting per-contribution line items during `leaderboard:compute` and having detail read them — would both reconcile the rolling detail total and make monthly Details nearly free (filter by `Y-m`). Tracked in [rollout](leaderboard-rollout.md); a prerequisite for monthly Details, not part of monthly v1.
+- **Monthly drill-down is built.** `leaderboard:compute` persists per-contribution line items (`leaderboard_line_items`) carrying both rolling `points` and flat `points_flat` plus the UTC `month`. The rolling `detail()` sums `points` and the monthly `monthlyDetail()` (`scores.monthly.detail`) filters by `month` and sums `points_flat`, so each drill-down reconciles with its board. See [rollout](leaderboard-rollout.md).

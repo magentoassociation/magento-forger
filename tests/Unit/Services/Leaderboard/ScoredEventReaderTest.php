@@ -23,11 +23,31 @@ class ScoredEventReaderTest extends TestCase
      * @param  list<string>  $excluded
      * @return list<\App\DataTransferObjects\Leaderboard\ScoredEvent>
      */
-    private function buildLabelEvents(array $rows, array $excluded = []): array
+    private function buildLabelEvents(array $rows, array $excluded = [], string $repo = ''): array
     {
         $reader = (new ReflectionClass(ScoredEventReader::class))->newInstanceWithoutConstructor();
 
-        return (new ReflectionMethod(ScoredEventReader::class, 'buildLabelEvents'))->invoke($reader, $rows, $excluded);
+        return (new ReflectionMethod(ScoredEventReader::class, 'buildLabelEvents'))->invoke($reader, $rows, $excluded, $repo);
+    }
+
+    public function testPrLabelEventCarriesPrTitleAndLink(): void
+    {
+        $events = $this->buildLabelEvents([
+            ['actor' => 'mod', 'label' => 'bug', 'target' => 'pr:77', 'date' => Carbon::parse('2026-01-01T00:00:00Z')],
+        ], [], 'magento/magento2');
+
+        $this->assertSame('PR #77', $events[0]->title);
+        $this->assertSame('https://github.com/magento/magento2/pull/77', $events[0]->url);
+    }
+
+    public function testIssueLabelEventSurfacesLabelNameWithoutLink(): void
+    {
+        $events = $this->buildLabelEvents([
+            ['actor' => 'mod', 'label' => 'bug', 'target' => 'issue:1', 'date' => Carbon::parse('2026-01-01T00:00:00Z')],
+        ], [], 'magento/magento2');
+
+        $this->assertSame("'bug' label", $events[0]->title);
+        $this->assertNull($events[0]->url);
     }
 
     public function testDedupesSameActorTargetLabelKeepingEarliest(): void

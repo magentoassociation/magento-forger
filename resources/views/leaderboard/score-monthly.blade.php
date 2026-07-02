@@ -60,14 +60,19 @@
                                     <span class="badge text-bg-success rounded-pill">{{ number_format($entry->score, 1) }}</span>
                                 </td>
                                 <td class="text-end">
-                                    @if (! empty($entry->breakdown))
-                                        <div class="d-flex gap-2 justify-content-end flex-nowrap">
+                                    <div class="d-flex gap-2 justify-content-end flex-nowrap">
+                                        @if ($entry->score > 0)
+                                            <a href="{{ route('scores.monthly.detail', ['board' => $board, 'ym' => $ym, 'login' => $entry->login]) }}" class="btn btn-sm btn-outline-primary text-nowrap">
+                                                Details
+                                            </a>
+                                        @endif
+                                        @if (! empty($entry->breakdown))
                                             <button class="btn btn-sm btn-outline-secondary text-nowrap" type="button"
                                                     data-bs-toggle="collapse" data-bs-target="#breakdown-{{ $i }}" aria-expanded="false">
                                                 See Points Breakdown
                                             </button>
-                                        </div>
-                                    @endif
+                                        @endif
+                                    </div>
                                 </td>
                             </tr>
                             @if (! empty($entry->breakdown))

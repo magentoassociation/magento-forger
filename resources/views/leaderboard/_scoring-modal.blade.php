@@ -49,27 +49,85 @@
                 </table>
 
                 <h6 class="mt-4">Multipliers</h6>
-                <ul class="small mb-0">
-                    <li class="mb-2">
-                        <strong>Bigger changes count for more.</strong> Anything tagged
-                        <span class="badge text-bg-light border">× impact</span> is boosted by how much code it
-                        touched — from {{ $scoring['impact']['min'] }}× for a small tweak up to
-                        {{ $scoring['impact']['max'] }}× for a large change.
-                    </li>
-                    @if ($decay)
-                        <li class="mb-2">
-                            <strong>Recent work counts for more.</strong> A contribution's value fades over time:
-                            it's worth half as much after {{ $scoring['recency']['half_life_days'] }} days, and anything
+                <p class="text-muted small mb-3">
+                    Base points are multiplied together with the factors below. A multiplier of
+                    <strong>1×</strong> leaves the score unchanged; higher values boost it.
+                </p>
+
+                <div class="mb-4">
+                    <p class="mb-1"><strong>Bigger changes count for more.</strong></p>
+                    <p class="text-muted small mb-2">
+                        Anything tagged <span class="badge text-bg-light border">× impact</span> is scaled by how
+                        many lines it changed, from {{ $scoring['impact']['min'] }}× up to a
+                        {{ $scoring['impact']['max'] }}× cap (the cap stops one huge PR from dominating).
+                    </p>
+                    <table class="table table-sm align-middle small mb-0">
+                        <tbody>
+                            @foreach ($scoring['impactExamples'] as $example)
+                                <tr>
+                                    <td>{{ $example['label'] }}</td>
+                                    <td class="text-end" style="width: 90px"><code>{{ rtrim(rtrim(number_format($example['factor'], 1), '0'), '.') }}×</code></td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+
+                @if ($decay)
+                    <div class="mb-4">
+                        <p class="mb-1"><strong>Recent work counts for more.</strong></p>
+                        <p class="text-muted small mb-2">
+                            Every action fades over time. It's worth half as much after each
+                            <strong>{{ $scoring['recency']['half_life_days'] }}-day</strong> half-life, and anything
                             older than {{ $scoring['recency']['window_days'] }} days no longer counts.
-                        </li>
-                    @endif
+                        </p>
+                        <table class="table table-sm align-middle small mb-0">
+                            <tbody>
+                                @foreach ($scoring['recencyExamples'] as $example)
+                                    <tr>
+                                        <td>{{ ucfirst($example['label']) }}</td>
+                                        <td class="text-end" style="width: 90px"><code>{{ rtrim(rtrim(number_format($example['factor'], 2), '0'), '.') }}×</code></td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @endif
+
+                @if ($board === 'maintainer')
+                    <div class="mb-4">
+                        <p class="mb-1"><strong>Picking up neglected work counts for more.</strong></p>
+                        <p class="text-muted small mb-2">
+                            Claiming a PR tagged <span class="badge text-bg-light border">× staleness</span> is
+                            boosted by how long it waited for review before you took it (same
+                            {{ $scoring['impact']['max'] }}× cap).
+                        </p>
+                        <table class="table table-sm align-middle small mb-0">
+                            <tbody>
+                                @foreach ($scoring['stalenessExamples'] as $example)
+                                    <tr>
+                                        <td>{{ ucfirst($example['label']) }}</td>
+                                        <td class="text-end" style="width: 90px"><code>{{ rtrim(rtrim(number_format($example['factor'], 1), '0'), '.') }}×</code></td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @endif
+
+                <h6 class="mt-4">Example</h6>
+                <p class="text-muted small mb-0">
                     @if ($board === 'maintainer')
-                        <li class="mb-2">
-                            <strong>Picking up neglected work counts for more.</strong> Claiming a PR that's been
-                            waiting for review is boosted by how long it sat untouched.
-                        </li>
+                        Approving a ~100-line PR that later merges earns
+                        <code>6</code> base × <code>2×</code> impact
+                        @if ($decay) × <code>0.5×</code> recency (≈6 months old) = <strong>6 pts</strong>@else = <strong>12 pts</strong>@endif.
+                    @else
+                        Getting a ~100-line PR merged earns
+                        <code>10</code> base × <code>2×</code> impact
+                        @if ($decay) × <code>0.5×</code> recency (≈6 months old) = <strong>10 pts</strong>@else = <strong>20 pts</strong>@endif.
                     @endif
-                </ul>
+                    The same work today, before any decay, would be worth twice as much.
+                </p>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
