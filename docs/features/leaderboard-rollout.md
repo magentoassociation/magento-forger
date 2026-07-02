@@ -10,7 +10,7 @@ Living checklist for the weighted contributor/maintainer leaderboard. Source-of-
 
 ### UI & surfacing
 
-- [ ] **Link score boards in nav** — `scores/*` routes exist but aren't in the dynamic `MainMenu`.
+- [ ] **Link score boards in nav** — `scores/*` routes (rolling boards, Monthly, Highlights) exist but aren't in the dynamic `MainMenu`.
 - [ ] **Internal-only maintainer stats** — expose review-latency / responsiveness signals (`median_time_to_review_hours`, `median_time_to_claim_days`, `reviews_in_window`), and council-only maintainers, to maintainers / community-council / admins only — not on the public board.
 
 ### Scoring fidelity
@@ -23,7 +23,7 @@ Living checklist for the weighted contributor/maintainer leaderboard. Source-of-
 
 ### Hardening & operations
 
-- [ ] **`assignRanks` test** — sqlite-backed feature test for `ComputeLeaderboardScores::assignRanks()`: seed `leaderboard_entries` with known per-board scores, run ranking, assert order, `id` tiebreak, and per-board partitioning (contributor vs maintainer independent). The batch-upsert path currently has no automated coverage.
+- [ ] **`assignRanks` test** — the batch-upsert path now has incidental coverage (`ComputeLeaderboardScoresTest::testCommandAssignsRanksInDescendingScoreOrder` and `testCommandRanksMonthlyEntriesPerMonth` assert descending order per window). Still missing a dedicated test that isolates the `id` tiebreak on equal scores and per-board partitioning (contributor vs maintainer ranked independently within the same window).
 - [ ] **Schedule `leaderboard:compute`** — add to `routes/console.php` (e.g. hourly); relies on `schedule:run`.
 - [ ] **(Scale) Chunk the rank upsert** — `assignRanks` builds one upsert per board; chunk at tens of thousands of rows.
 
