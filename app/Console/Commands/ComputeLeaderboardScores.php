@@ -24,9 +24,11 @@ use App\Services\Leaderboard\MembershipResolver;
 use App\Services\Leaderboard\ReviewLatencyAnalyzer;
 use App\Services\Leaderboard\ScoredEventReader;
 use App\Services\Leaderboard\ScoreSnapshotRepository;
+use App\Support\MonthlyWindow;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Contracts\Console\Isolatable;
+use Illuminate\Support\Facades\DB;
 
 class ComputeLeaderboardScores extends Command implements Isolatable
 {
@@ -61,7 +63,8 @@ class ComputeLeaderboardScores extends Command implements Isolatable
 
         $this->info(count($events).' scored events read.');
 
-        $summary = LeaderboardScorer::fromConfig()->summarize($events, $now);
+        $scorer = LeaderboardScorer::fromConfig();
+        $summary = $scorer->summarize($events, $now);
 
         // All-time earliest contribution per author (overrides the windowed value).
         $allTimeFirst = $firstContributionReader->read();
@@ -176,7 +179,13 @@ class ComputeLeaderboardScores extends Command implements Isolatable
             ]);
         }
 
-        $this->assignRanks();
+        // Per-calendar-month boards for the trailing window. Recompute every
+        // allowed month in full each run: same gated events, bucketed by UTC
+        // month with impact but no recency decay.
+        $allowedMonths = MonthlyWindow::allowed();
+        $this->writeMonthlyEntries($scorer->summarizeByMonth($events, $allowedMonths), $allowedMonths, $now);
+
+        $this->assignRanks($allowedMonths);
 
         $this->computeCompanyScores($events, $now);
 
@@ -186,34 +195,75 @@ class ComputeLeaderboardScores extends Command implements Isolatable
     }
 
     /**
-     * Rank rows per board in a fixed number of queries (one ordered read + one
-     * bulk upsert per board), rather than one UPDATE per contributor. Uses a
-     * batch upsert instead of a ROW_NUMBER() window UPDATE to stay portable
-     * across MySQL (production) and SQLite (tests).
+     * Replace all monthly (window != 'rolling12') entries with a fresh set for
+     * the allowed months. Recomputing every month in full each run keeps the
+     * eviction trivial: delete all monthly rows, then insert the current set, so
+     * rolled-off months and contributors who dropped out of a month both vanish
+     * without per-row bookkeeping. Never touches the rolling12 rows.
+     *
+     * @param  array<string, array<string, array{contributor_score: float, maintainer_score: float, breakdown: array<string, mixed>}>>  $byMonth
+     * @param  list<string>  $allowedMonths
      */
-    private function assignRanks(): void
+    private function writeMonthlyEntries(array $byMonth, array $allowedMonths, Carbon $now): void
     {
-        foreach (Board::cases() as $board) {
-            $orderedLogins = LeaderboardEntry::query()
-                ->where('board', $board->value)
-                ->where('window', 'rolling12')
-                ->orderByDesc('score')
-                ->orderBy('id')
-                ->pluck('login');
+        DB::transaction(function () use ($byMonth, $allowedMonths, $now): void {
+            LeaderboardEntry::query()->where('window', '!=', 'rolling12')->delete();
 
-            $rank = 0;
             $rows = [];
-            foreach ($orderedLogins as $login) {
-                $rows[] = [
-                    'login' => $login,
-                    'board' => $board->value,
-                    'window' => 'rolling12',
-                    'rank' => ++$rank,
-                ];
+            foreach ($allowedMonths as $month) {
+                foreach ($byMonth[$month] ?? [] as $login => $data) {
+                    foreach (Board::cases() as $board) {
+                        $rows[] = [
+                            'login' => $login,
+                            'board' => $board->value,
+                            'window' => $month,
+                            'score' => $data[$board->value.'_score'],
+                            'breakdown' => json_encode($data['breakdown'][$board->value] ?? [], JSON_THROW_ON_ERROR),
+                            'computed_at' => $now,
+                        ];
+                    }
+                }
             }
 
-            if ($rows !== []) {
-                LeaderboardEntry::upsert($rows, ['login', 'board', 'window'], ['rank']);
+            foreach (array_chunk($rows, 500) as $chunk) {
+                LeaderboardEntry::upsert($chunk, ['login', 'board', 'window'], ['score', 'breakdown', 'computed_at']);
+            }
+        });
+    }
+
+    /**
+     * Rank rows per board and window in a fixed number of queries (one ordered
+     * read + one bulk upsert per board per window), rather than one UPDATE per
+     * contributor. Uses a batch upsert instead of a ROW_NUMBER() window UPDATE
+     * to stay portable across MySQL (production) and SQLite (tests).
+     *
+     * @param  list<string>  $monthWindows  monthly windows to rank alongside rolling12
+     */
+    private function assignRanks(array $monthWindows = []): void
+    {
+        foreach (array_merge(['rolling12'], $monthWindows) as $window) {
+            foreach (Board::cases() as $board) {
+                $orderedLogins = LeaderboardEntry::query()
+                    ->where('board', $board->value)
+                    ->where('window', $window)
+                    ->orderByDesc('score')
+                    ->orderBy('id')
+                    ->pluck('login');
+
+                $rank = 0;
+                $rows = [];
+                foreach ($orderedLogins as $login) {
+                    $rows[] = [
+                        'login' => $login,
+                        'board' => $board->value,
+                        'window' => $window,
+                        'rank' => ++$rank,
+                    ];
+                }
+
+                if ($rows !== []) {
+                    LeaderboardEntry::upsert($rows, ['login', 'board', 'window'], ['rank']);
+                }
             }
         }
     }

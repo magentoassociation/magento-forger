@@ -135,4 +135,14 @@ return [
         'maintainers' => 'community-council-ma',
         'council' => 'community-council',
     ],
+
+    /*
+     * Monthly leaderboards: per-calendar-month score boards for the trailing
+     * months_back months (including the current, partial month). Monthly scores
+     * use the same weights and impact scaling as the rolling board but omit
+     * recency decay — the calendar month itself is the window.
+     */
+    'monthly' => [
+        'months_back' => 12,
+    ],
 ];

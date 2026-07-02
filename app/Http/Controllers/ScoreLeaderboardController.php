@@ -19,6 +19,7 @@ use App\Models\OrgLeaderboardEntry;
 use App\Models\RoleEligibility;
 use App\Services\Leaderboard\ContributionDetailReader;
 use App\Services\Leaderboard\LeaderboardScorer;
+use App\Support\MonthlyWindow;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Collection;
@@ -72,8 +73,68 @@ class ScoreLeaderboardController extends Controller
     }
 
     /**
+     * Redirect to the current month's board so /scores/monthly/{board} is a
+     * stable entry point that always lands on the newest month.
+     */
+    public function monthlyIndex(string $board): RedirectResponse
+    {
+        if ($board !== 'contributor' && $board !== 'maintainer') {
+            abort(404);
+        }
+
+        return redirect()->route('scores.monthly', ['board' => $board, 'ym' => MonthlyWindow::allowed()[0]]);
+    }
+
+    /**
+     * Per-calendar-month score board. Only the trailing months_back months are
+     * viewable; anything older, in the future, or malformed 404s. Scores here
+     * carry no recency decay (the month is the window), so the drill-down —
+     * which reconciles against the decayed rolling total — is omitted.
+     */
+    public function monthly(string $board, string $ym): View
+    {
+        if ($board !== 'contributor' && $board !== 'maintainer') {
+            abort(404);
+        }
+
+        $allowed = MonthlyWindow::allowed();
+
+        if (! in_array($ym, $allowed, true)) {
+            abort(404);
+        }
+
+        $entries = LeaderboardEntry::query()
+            ->where('board', $board)
+            ->where('window', $ym)
+            ->where('score', '>', 0)
+            ->orderBy('rank')
+            ->orderByDesc('score')
+            ->limit(100)
+            ->get();
+
+        $months = array_map(fn (string $month): array => [
+            'ym' => $month,
+            'label' => MonthlyWindow::label($month),
+            'active' => $month === $ym,
+        ], $allowed);
+
+        return view('leaderboard.score-monthly', [
+            'board' => $board,
+            'boards' => self::BOARDS,
+            'ym' => $ym,
+            'monthLabel' => MonthlyWindow::label($ym),
+            'months' => $months,
+            'entries' => $entries,
+            'profiles' => $this->profilesFor($entries->pluck('login')),
+            'scoring' => $this->scoringExplainer($board, decay: false),
+        ]);
+    }
+
+    /**
      * Data for the "How are scores tallied?" modal: the configured weights for
      * this board plus the multipliers, so the modal stays in sync with config.
+     * $decay is false for the monthly boards, which apply impact but no recency
+     * decay, so the modal can drop the recency copy.
      *
      * @return array{
      *     weights: array<string, int|float>,
@@ -81,10 +142,11 @@ class ScoreLeaderboardController extends Controller
      *     recency: array<string, int>,
      *     labels: array<string, string>,
      *     impactActions: list<string>,
-     *     scoredList: string
+     *     scoredList: string,
+     *     decay: bool
      * }
      */
-    private function scoringExplainer(string $board): array
+    private function scoringExplainer(string $board, bool $decay = true): array
     {
         $weights = (array) config('leaderboard.weights.'.$board, []);
 
@@ -117,6 +179,7 @@ class ScoreLeaderboardController extends Controller
                 ->all(),
             'impactActions' => ['pr_merged', 'issue_resolved_by_merge', 'approved_then_merged'],
             'scoredList' => $this->humanJoin($scored),
+            'decay' => $decay,
         ];
     }
 
