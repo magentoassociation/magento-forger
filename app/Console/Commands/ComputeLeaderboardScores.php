@@ -28,6 +28,7 @@ use App\Support\MonthlyWindow;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Contracts\Console\Isolatable;
+use Illuminate\Support\Facades\DB;
 
 class ComputeLeaderboardScores extends Command implements Isolatable
 {
@@ -205,27 +206,29 @@ class ComputeLeaderboardScores extends Command implements Isolatable
      */
     private function writeMonthlyEntries(array $byMonth, array $allowedMonths, Carbon $now): void
     {
-        LeaderboardEntry::query()->where('window', '!=', 'rolling12')->delete();
+        DB::transaction(function () use ($byMonth, $allowedMonths, $now): void {
+            LeaderboardEntry::query()->where('window', '!=', 'rolling12')->delete();
 
-        $rows = [];
-        foreach ($allowedMonths as $month) {
-            foreach ($byMonth[$month] ?? [] as $login => $data) {
-                foreach (Board::cases() as $board) {
-                    $rows[] = [
-                        'login' => $login,
-                        'board' => $board->value,
-                        'window' => $month,
-                        'score' => $data[$board->value.'_score'],
-                        'breakdown' => json_encode($data['breakdown'][$board->value] ?? [], JSON_THROW_ON_ERROR),
-                        'computed_at' => $now,
-                    ];
+            $rows = [];
+            foreach ($allowedMonths as $month) {
+                foreach ($byMonth[$month] ?? [] as $login => $data) {
+                    foreach (Board::cases() as $board) {
+                        $rows[] = [
+                            'login' => $login,
+                            'board' => $board->value,
+                            'window' => $month,
+                            'score' => $data[$board->value.'_score'],
+                            'breakdown' => json_encode($data['breakdown'][$board->value] ?? [], JSON_THROW_ON_ERROR),
+                            'computed_at' => $now,
+                        ];
+                    }
                 }
             }
-        }
 
-        foreach (array_chunk($rows, 500) as $chunk) {
-            LeaderboardEntry::upsert($chunk, ['login', 'board', 'window'], ['score', 'breakdown', 'computed_at']);
-        }
+            foreach (array_chunk($rows, 500) as $chunk) {
+                LeaderboardEntry::upsert($chunk, ['login', 'board', 'window'], ['score', 'breakdown', 'computed_at']);
+            }
+        });
     }
 
     /**
