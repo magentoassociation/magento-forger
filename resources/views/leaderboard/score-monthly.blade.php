@@ -57,7 +57,11 @@
                                     @endif
                                 </td>
                                 <td class="text-end">
-                                    <span class="badge text-bg-success rounded-pill">{{ number_format($entry->score, 1) }}</span>
+                                    @php($breakdownTitle = collect($entry->breakdown)->map(fn ($detail, $action) => e(\App\DataTransferObjects\Leaderboard\Action::labelFor($action)).' &mdash; '.number_format($detail['count'] ?? 0).'&times; &rarr; '.number_format($detail['points'] ?? 0, 1).' pts')->implode('<br>'))
+                                    <span class="badge text-bg-success rounded-pill"
+                                        @if (! empty($entry->breakdown)) data-bs-toggle="tooltip" data-bs-html="true" data-bs-custom-class="breakdown-tooltip" data-bs-title="{!! $breakdownTitle !!}" style="cursor: help;" @endif>
+                                        {{ number_format($entry->score, 1) }}
+                                    </span>
                                 </td>
                                 <td class="text-end">
                                     <div class="d-flex gap-2 justify-content-end flex-nowrap">
@@ -66,31 +70,9 @@
                                                 Details
                                             </a>
                                         @endif
-                                        @if (! empty($entry->breakdown))
-                                            <button class="btn btn-sm btn-outline-secondary text-nowrap" type="button"
-                                                    data-bs-toggle="collapse" data-bs-target="#breakdown-{{ $i }}" aria-expanded="false">
-                                                See Points Breakdown
-                                            </button>
-                                        @endif
                                     </div>
                                 </td>
                             </tr>
-                            @if (! empty($entry->breakdown))
-                                <tr class="collapse" id="breakdown-{{ $i }}">
-                                    <td></td>
-                                    <td colspan="3">
-                                        <ul class="list-unstyled mb-0 small">
-                                            @foreach ($entry->breakdown as $action => $detail)
-                                                <li>
-                                                    {{ \App\DataTransferObjects\Leaderboard\Action::labelFor($action) }}
-                                                    &mdash; {{ number_format($detail['count'] ?? 0) }}&times; &rarr;
-                                                    {{ number_format($detail['points'] ?? 0, 1) }} pts
-                                                </li>
-                                            @endforeach
-                                        </ul>
-                                    </td>
-                                </tr>
-                            @endif
                         @endforeach
                     </tbody>
                 </table>
@@ -100,3 +82,15 @@
 
     @include('leaderboard._scoring-modal')
 @endsection
+
+@push('scripts')
+    <style>
+        .breakdown-tooltip .tooltip-inner {
+            max-width: none;
+            white-space: nowrap;
+        }
+    </style>
+    <script>
+        document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => new bootstrap.Tooltip(el));
+    </script>
+@endpush

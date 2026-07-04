@@ -14,7 +14,8 @@
                 </h2>
                 <p class="text-muted">
                     Every scored contribution in the last 12 months behind this score &mdash;
-                    <strong>{{ number_format($total, 1) }}</strong> pts total, reconciling with the board.
+                    <strong>{{ number_format($total, 1) }}</strong> pts total, reconciling with the board. Hover over
+                    the score to see the points breakdown.
                 </p>
                 <a href="{{ route('scores.show', ['board' => $board]) }}" class="btn btn-sm btn-outline-secondary mb-2">
                     &larr; Back to {{ $boards[$board] }} board

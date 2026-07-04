@@ -232,7 +232,7 @@ class ScoreLeaderboardControllerTest extends TestCase
             ->assertSee('https://github.com/magento/magento2/pull/7')
             ->assertSee('climber')
             ->assertSee('returner')
-            ->assertSee('back after 400 days')
+            ->assertSee('back after 1 year')
             ->assertSee('https://github.com/magento/magento2/pull/999');
     }
 

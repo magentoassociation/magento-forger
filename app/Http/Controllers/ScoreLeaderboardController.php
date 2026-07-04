@@ -417,7 +417,7 @@ class ScoreLeaderboardController extends Controller
             ->get();
 
         $recentlyActive = GithubUserStat::query()
-            ->where('last_contributor_at', '>=', Carbon::now()->subDays(14))
+            ->where('last_contributor_at', '>=', Carbon::now()->subDays(30))
             ->where('contributor_score', '>', 0)
             ->orderByDesc('contributor_score')
             ->limit(20)
