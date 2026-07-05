@@ -59,7 +59,7 @@
                                 <td class="text-end">
                                     @php($breakdownTitle = collect($entry->breakdown)->map(fn ($detail, $action) => e(\App\DataTransferObjects\Leaderboard\Action::labelFor($action)).' &mdash; '.number_format($detail['count'] ?? 0).'&times; &rarr; '.number_format($detail['points'] ?? 0, 1).' pts')->implode('<br>'))
                                     <span class="badge text-bg-success rounded-pill"
-                                        @if (! empty($entry->breakdown)) data-bs-toggle="tooltip" data-bs-html="true" data-bs-custom-class="breakdown-tooltip" data-bs-title="{!! $breakdownTitle !!}" style="cursor: help;" @endif>
+                                        @if (! empty($entry->breakdown)) tabindex="0" data-bs-toggle="tooltip" data-bs-html="true" data-bs-custom-class="breakdown-tooltip" data-bs-title="{!! $breakdownTitle !!}" style="cursor: help;" @endif>
                                         {{ number_format($entry->score, 1) }}
                                     </span>
                                 </td>

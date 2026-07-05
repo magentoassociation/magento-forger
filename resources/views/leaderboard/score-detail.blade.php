@@ -52,7 +52,7 @@
                                 <td class="text-muted small">{{ $row->date->toFormattedDateString() }}</td>
                                 <td class="text-end">
                                     <span class="badge text-bg-success rounded-pill"
-                                        @if ($row->formula) data-bs-toggle="tooltip" data-bs-title="{{ $row->formula }}" style="cursor: help;" @endif>
+                                        @if ($row->formula) tabindex="0" data-bs-toggle="tooltip" data-bs-title="{{ $row->formula }}" style="cursor: help;" @endif>
                                         {{ number_format($row->points, 1) }}
                                     </span>
                                 </td>

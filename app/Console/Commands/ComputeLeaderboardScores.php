@@ -248,8 +248,6 @@ class ComputeLeaderboardScores extends Command implements Isolatable
      */
     private function writeLineItems(LeaderboardScorer $scorer, array $events, Carbon $now): void
     {
-        LeaderboardLineItem::query()->delete();
-
         $rows = [];
         foreach ($events as $event) {
             $points = $scorer->points($event, $now);
@@ -276,9 +274,13 @@ class ComputeLeaderboardScores extends Command implements Isolatable
             ];
         }
 
-        foreach (array_chunk($rows, 500) as $chunk) {
-            LeaderboardLineItem::insert($chunk);
-        }
+        DB::transaction(function () use ($rows): void {
+            LeaderboardLineItem::query()->delete();
+
+            foreach (array_chunk($rows, 500) as $chunk) {
+                LeaderboardLineItem::insert($chunk);
+            }
+        });
     }
 
     /**
