@@ -1,0 +1,25 @@
+name: 'Run tests'
+description: 'Set up PHP, install dependencies, and run the PHPUnit suite'
+
+runs:
+  using: composite
+  steps:
+    - name: Set up PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.3'
+        extensions: mbstring, bcmath, xml, ctype, fileinfo, openssl, tokenizer, pdo, curl, zip, json
+        coverage: none
+
+    - name: Install Composer dependencies
+      uses: ramsey/composer-install@v4
+
+    - name: Prepare environment
+      shell: bash
+      run: |
+        cp .env.example .env
+        php artisan key:generate
+
+    - name: Run tests
+      shell: bash
+      run: composer test

@@ -13,7 +13,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
@@ -22,9 +22,9 @@ jobs:
           extensions: mbstring, bcmath, xml, ctype, fileinfo, openssl, tokenizer, pdo, curl, zip, json
 
       - name: Install Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: 18
+          node-version: 22
 
       - name: Add global composer bin to PATH
         run: echo "$HOME/.composer/vendor/bin" >> $GITHUB_PATH
