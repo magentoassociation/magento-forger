@@ -12,6 +12,14 @@
             .'<img src="'.e($avatar).'" alt="" width="20" height="20" class="rounded-circle me-2" loading="lazy" onerror="this.style.display=\'none\'">'
             .$label.'</a>';
     };
+
+    $humanGap = function (int $days) {
+        if ($days < 60) {
+            return number_format($days).' days';
+        }
+
+        return \Carbon\Carbon::now()->subDays($days)->diffForHumans(\Carbon\Carbon::now(), true, false, 2);
+    };
 @endphp
 
 @section('content')
@@ -34,7 +42,7 @@
                 <div class="col-md-6">
                     <div class="card h-100">
                         <div class="card-header">
-                            <strong>New contributor spotlight</strong>
+                            <strong>New Contributor Spotlight</strong>
                             <div class="small text-muted">People whose first-ever contribution to the project landed in the last 30 days, ranked by contributor score.</div>
                         </div>
                         <ul class="list-group list-group-flush">
@@ -53,6 +61,33 @@
                                 </li>
                             @empty
                                 <li class="list-group-item text-muted">Nobody new yet.</li>
+                            @endforelse
+                        </ul>
+                    </div>
+                </div>
+
+                {{-- Comebacks --}}
+                <div class="col-md-6">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <strong>Comebacks</strong>
+                            <div class="small text-muted">Contributors who have started up again after an absence.</div>
+                        </div>
+                        <ul class="list-group list-group-flush">
+                            @forelse ($comebacks as $stat)
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    {!! $userLink($stat->login) !!}
+                                    @if ($stat->comeback_url)
+                                        <a href="{{ $stat->comeback_url }}" target="_blank" rel="noopener noreferrer"
+                                           class="text-muted small text-decoration-none text-end" title="{{ $stat->comeback_title }}">
+                                            back after {{ $humanGap($stat->returned_after_days) }} &rarr;
+                                        </a>
+                                    @else
+                                        <span class="text-muted small">back after {{ $humanGap($stat->returned_after_days) }}</span>
+                                    @endif
+                                </li>
+                            @empty
+                                <li class="list-group-item text-muted">No comebacks yet.</li>
                             @endforelse
                         </ul>
                     </div>
@@ -78,39 +113,12 @@
                     </div>
                 </div>
 
-                {{-- Comebacks --}}
-                <div class="col-md-6">
-                    <div class="card h-100">
-                        <div class="card-header">
-                            <strong>Comebacks</strong>
-                            <div class="small text-muted">Contributors back after a long gap; the count is days of silence.</div>
-                        </div>
-                        <ul class="list-group list-group-flush">
-                            @forelse ($comebacks as $stat)
-                                <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    {!! $userLink($stat->login) !!}
-                                    @if ($stat->comeback_url)
-                                        <a href="{{ $stat->comeback_url }}" target="_blank" rel="noopener noreferrer"
-                                           class="text-muted small text-decoration-none text-end" title="{{ $stat->comeback_title }}">
-                                            back after {{ number_format($stat->returned_after_days) }} days &rarr;
-                                        </a>
-                                    @else
-                                        <span class="text-muted small">back after {{ number_format($stat->returned_after_days) }} days</span>
-                                    @endif
-                                </li>
-                            @empty
-                                <li class="list-group-item text-muted">No comebacks yet.</li>
-                            @endforelse
-                        </ul>
-                    </div>
-                </div>
-
                 {{-- Recently active --}}
                 <div class="col-md-6">
                     <div class="card h-100">
                         <div class="card-header">
-                            <strong>Recently active</strong>
-                            <div class="small text-muted">Opened a PR, had a PR merged, or opened an issue in the last 14 days, ranked by contributor score.</div>
+                            <strong>Recently Active</strong>
+                            <div class="small text-muted">Opened a PR, had a PR merged, or opened an issue in the last 30 days, ranked by contributor score.</div>
                         </div>
                         <ul class="list-group list-group-flush">
                             @forelse ($recentlyActive as $stat)

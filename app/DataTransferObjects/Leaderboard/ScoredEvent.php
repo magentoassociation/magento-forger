@@ -19,6 +19,8 @@ final class ScoredEvent
         public readonly CarbonInterface $date,
         public readonly float $impact = 1.0,
         public readonly ?CarbonInterface $attributionDate = null,
+        public readonly ?string $title = null,
+        public readonly ?string $url = null,
     ) {}
 
     /**

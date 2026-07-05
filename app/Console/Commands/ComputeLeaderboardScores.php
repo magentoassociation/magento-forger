@@ -12,6 +12,7 @@ use App\DataTransferObjects\Leaderboard\Board;
 use App\DataTransferObjects\Leaderboard\ScoredEvent;
 use App\Models\GithubUserStat;
 use App\Models\LeaderboardEntry;
+use App\Models\LeaderboardLineItem;
 use App\Models\Organization;
 use App\Models\OrgLeaderboardEntry;
 use App\Services\Leaderboard\ClaimRecordReader;
@@ -40,7 +41,6 @@ class ComputeLeaderboardScores extends Command implements Isolatable
     public function handle(
         ScoredEventReader $reader,
         ClaimRecordReader $claimReader,
-        ReviewLatencyAnalyzer $analyzer,
         FirstContributionReader $firstContributionReader,
         ContributionDetailReader $detailReader,
         ScoreSnapshotRepository $snapshots,
@@ -52,6 +52,8 @@ class ComputeLeaderboardScores extends Command implements Isolatable
         $this->info("Reading scored events since {$from->toDateString()} ...");
         $events = $reader->read($from, $now);
 
+        // Built with the repo so pr_claimed line items carry a PR link.
+        $analyzer = new ReviewLatencyAnalyzer((string) config('github.repo'));
         $latency = $analyzer->analyze($claimReader->read($from, $now));
         $events = array_merge($events, $latency['events']);
         $latencyStats = $latency['stats'];
@@ -187,6 +189,11 @@ class ComputeLeaderboardScores extends Command implements Isolatable
 
         $this->assignRanks($allowedMonths);
 
+        // Persist the per-event line items behind each score so the drill-down
+        // reconciles exactly with the board (rather than re-deriving a different
+        // set on demand).
+        $this->writeLineItems($scorer, $events, $now);
+
         $this->computeCompanyScores($events, $now);
 
         $this->info('Leaderboard scores computed for '.count($summary).' contributors.');
@@ -227,6 +234,51 @@ class ComputeLeaderboardScores extends Command implements Isolatable
 
             foreach (array_chunk($rows, 500) as $chunk) {
                 LeaderboardEntry::upsert($chunk, ['login', 'board', 'window'], ['score', 'breakdown', 'computed_at']);
+            }
+        });
+    }
+
+    /**
+     * Persist one row per scored (nonzero) event with its rolling points, so the
+     * per-user drill-down sums stored line items instead of re-deriving a
+     * different event set from OpenSearch. Rebuilt in full each run (delete all,
+     * re-insert) since the whole event set is recomputed.
+     *
+     * @param  list<ScoredEvent>  $events
+     */
+    private function writeLineItems(LeaderboardScorer $scorer, array $events, Carbon $now): void
+    {
+        $rows = [];
+        foreach ($events as $event) {
+            $points = $scorer->points($event, $now);
+
+            // Zero-point events (unweighted actions, or decayed out of the
+            // window) don't contribute to the board score, so they're not listed.
+            if ($points <= 0) {
+                continue;
+            }
+
+            $rows[] = [
+                'login' => $event->login,
+                'board' => $event->board->value,
+                'action' => $event->action->value,
+                'title' => $event->title,
+                'url' => $event->url,
+                'contributed_at' => $event->date,
+                'month' => $event->date->copy()->utc()->format('Y-m'),
+                'points' => round($points, 4),
+                'points_flat' => round($scorer->pointsFlat($event), 4),
+                'computed_at' => $now,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ];
+        }
+
+        DB::transaction(function () use ($rows): void {
+            LeaderboardLineItem::query()->delete();
+
+            foreach (array_chunk($rows, 500) as $chunk) {
+                LeaderboardLineItem::insert($chunk);
             }
         });
     }

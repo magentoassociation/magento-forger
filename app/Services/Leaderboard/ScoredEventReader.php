@@ -33,12 +33,13 @@ class ScoredEventReader
         $events = [];
         $impactMin = (float) config('leaderboard.impact.min', 1.0);
         $impactMax = (float) config('leaderboard.impact.max', 5.0);
+        $repo = (string) config('github.repo');
 
         // Contributor: PRs opened
         $this->scroll(
             OpenSearchService::OPENSEARCH_GITHUB_PULL_REQUESTS_INDEX,
             $this->rangeQuery('created_at', $from, $to),
-            ['author', 'created_at'],
+            ['author', 'created_at', 'title', 'url'],
             function (array $source) use (&$events): void {
                 if (! empty($source['author']) && ! empty($source['created_at'])) {
                     $events[] = new ScoredEvent(
@@ -46,6 +47,8 @@ class ScoredEventReader
                         Board::CONTRIBUTOR,
                         Action::PR_OPENED,
                         Carbon::parse($source['created_at']),
+                        title: $source['title'] ?? null,
+                        url: $source['url'] ?? null,
                     );
                 }
             }
@@ -55,7 +58,7 @@ class ScoredEventReader
         $this->scroll(
             OpenSearchService::OPENSEARCH_GITHUB_PULL_REQUESTS_INDEX,
             $this->rangeQuery('merged_at', $from, $to, [['term' => ['state.keyword' => 'MERGED']]]),
-            ['author', 'merged_at', 'created_at', 'additions', 'deletions'],
+            ['author', 'merged_at', 'created_at', 'additions', 'deletions', 'title', 'url'],
             function (array $source) use (&$events, $impactMin, $impactMax): void {
                 if (! empty($source['author']) && ! empty($source['merged_at'])) {
                     $impact = LeaderboardScorer::impactFromSize(
@@ -74,6 +77,8 @@ class ScoredEventReader
                         Carbon::parse($source['merged_at']),
                         $impact,
                         $attributionDate,
+                        title: $source['title'] ?? null,
+                        url: $source['url'] ?? null,
                     );
                 }
             }
@@ -83,7 +88,7 @@ class ScoredEventReader
         $this->scroll(
             OpenSearchService::OPENSEARCH_GITHUB_ISSUES_INDEX,
             $this->rangeQuery('created_at', $from, $to),
-            ['author', 'created_at'],
+            ['author', 'created_at', 'title', 'url'],
             function (array $source) use (&$events): void {
                 if (! empty($source['author']) && ! empty($source['created_at'])) {
                     $events[] = new ScoredEvent(
@@ -91,6 +96,8 @@ class ScoredEventReader
                         Board::CONTRIBUTOR,
                         Action::ISSUE_OPENED,
                         Carbon::parse($source['created_at']),
+                        title: $source['title'] ?? null,
+                        url: $source['url'] ?? null,
                     );
                 }
             }
@@ -100,7 +107,7 @@ class ScoredEventReader
         $this->scroll(
             OpenSearchService::OPENSEARCH_GITHUB_ISSUES_INDEX,
             $this->rangeQuery('closed_at', $from, $to, [['term' => ['closed_by_merged_pr' => true]]]),
-            ['author', 'closed_at', 'created_at'],
+            ['author', 'closed_at', 'created_at', 'title', 'url'],
             function (array $source) use (&$events): void {
                 if (! empty($source['author']) && ! empty($source['closed_at'])) {
                     // Attribute org credit to when the issue was opened, not its
@@ -113,6 +120,8 @@ class ScoredEventReader
                         Carbon::parse($source['closed_at']),
                         1.0,
                         $attributionDate,
+                        title: $source['title'] ?? null,
+                        url: $source['url'] ?? null,
                     );
                 }
             }
@@ -150,10 +159,10 @@ class ScoredEventReader
             }
         );
 
-        $events = array_merge($events, $this->reviewEvents($reviews, $impactMin, $impactMax));
+        $events = array_merge($events, $this->reviewEvents($reviews, $impactMin, $impactMax, $repo));
 
         // Maintainer: triage (labels applied to issues and PRs)
-        $events = array_merge($events, $this->labelAppliedEvents($from, $to));
+        $events = array_merge($events, $this->labelAppliedEvents($from, $to, $repo));
 
         return $events;
     }
@@ -166,7 +175,7 @@ class ScoredEventReader
      *
      * @return list<ScoredEvent>
      */
-    private function labelAppliedEvents(CarbonInterface $from, CarbonInterface $to): array
+    private function labelAppliedEvents(CarbonInterface $from, CarbonInterface $to, string $repo = ''): array
     {
         $excluded = (array) config('leaderboard.triage.excluded_labels', []);
         $rows = [];
@@ -233,7 +242,7 @@ class ScoredEventReader
             }
         );
 
-        return $this->buildLabelEvents($rows, $excluded);
+        return $this->buildLabelEvents($rows, $excluded, $repo);
     }
 
     /**
@@ -244,7 +253,7 @@ class ScoredEventReader
      * @param  list<string>  $excluded
      * @return list<ScoredEvent>
      */
-    private function buildLabelEvents(array $rows, array $excluded): array
+    private function buildLabelEvents(array $rows, array $excluded, string $repo = ''): array
     {
         $byKey = [];
 
@@ -260,16 +269,45 @@ class ScoredEventReader
             $key = $actor.'|'.$row['target'].'|'.$label;
 
             if (! isset($byKey[$key]) || $date->lessThan($byKey[$key]['date'])) {
-                $byKey[$key] = ['actor' => $actor, 'date' => $date];
+                $byKey[$key] = ['actor' => $actor, 'date' => $date, 'target' => $row['target'], 'label' => $label];
             }
         }
 
         $events = [];
         foreach ($byKey as $entry) {
-            $events[] = new ScoredEvent($entry['actor'], Board::MAINTAINER, Action::LABEL_APPLIED, $entry['date']);
+            [$title, $url] = $this->labelTargetDisplay($entry['target'], $entry['label'], $repo);
+            $events[] = new ScoredEvent(
+                $entry['actor'],
+                Board::MAINTAINER,
+                Action::LABEL_APPLIED,
+                $entry['date'],
+                title: $title,
+                url: $url,
+            );
         }
 
         return $events;
+    }
+
+    /**
+     * Display title + URL for a labelled target. PR targets link to the PR;
+     * issue targets carry only an internal id in the index, so they surface the
+     * label name without a link.
+     *
+     * @return array{0: string, 1: string|null}
+     */
+    private function labelTargetDisplay(string $target, string $label, string $repo): array
+    {
+        if (str_starts_with($target, 'pr:')) {
+            $number = substr($target, 3);
+
+            return [
+                "PR #{$number}",
+                $repo !== '' && $number !== '' ? "https://github.com/{$repo}/pull/{$number}" : null,
+            ];
+        }
+
+        return ["'{$label}' label", null];
     }
 
     /**
@@ -285,7 +323,7 @@ class ScoredEventReader
      * }>  $reviews
      * @return list<ScoredEvent>
      */
-    private function reviewEvents(array $reviews, float $impactMin, float $impactMax): array
+    private function reviewEvents(array $reviews, float $impactMin, float $impactMax, string $repo = ''): array
     {
         if ($reviews === []) {
             return [];
@@ -303,11 +341,16 @@ class ScoredEventReader
                 continue;
             }
 
+            $title = 'PR #'.$review['pr_number'];
+            $url = $repo !== '' ? "https://github.com/{$repo}/pull/{$review['pr_number']}" : null;
+
             $events[] = new ScoredEvent(
                 $review['author'],
                 Board::MAINTAINER,
                 $review['action'],
                 Carbon::parse($review['submitted_at']),
+                title: $title,
+                url: $url,
             );
 
             if ($review['state'] === 'APPROVED' && $pr !== null && $pr['merged']) {
@@ -317,6 +360,8 @@ class ScoredEventReader
                     Action::APPROVED_THEN_MERGED,
                     Carbon::parse($review['submitted_at']),
                     $pr['impact'],
+                    title: $title,
+                    url: $url,
                 );
             }
         }
@@ -377,8 +422,7 @@ class ScoredEventReader
         CarbonInterface $from,
         CarbonInterface $to,
         array $extraFilters = []
-    ): array
-    {
+    ): array {
         return [
             'bool' => [
                 'filter' => array_merge(

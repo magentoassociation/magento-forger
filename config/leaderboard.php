@@ -111,7 +111,7 @@ return [
      * are retained for retention_days.
      */
     'rising' => [
-        'window_days' => 7,
+        'window_days' => 30,
         'retention_days' => 60,
     ],
 
