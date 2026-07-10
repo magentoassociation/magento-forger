@@ -58,9 +58,9 @@ class SyncGitHubTeamsTest extends TestCase
         $this->assertDatabaseHas('role_eligibilities', ['login' => 'dave', 'role' => 'maintainer', 'active' => false]);  // stays inactive
     }
 
-    public function testHardCodedCouncilListReplacesRoster(): void
+    public function testHardCodedCouncilListActivatesMembersAndRetainsLeaversAsInactive(): void
     {
-        RoleEligibility::create(['login' => 'stale', 'role' => 'community-council']);
+        RoleEligibility::create(['login' => 'stale', 'role' => 'community-council', 'active' => true]);
 
         config([
             'leaderboard.teams.maintainers' => '',
@@ -69,13 +69,14 @@ class SyncGitHubTeamsTest extends TestCase
 
         $this->artisan('sync:github:teams')->assertExitCode(0);
 
-        $this->assertDatabaseHas('role_eligibilities', ['login' => 'ada', 'role' => 'community-council']);
-        $this->assertDatabaseHas('role_eligibilities', ['login' => 'grace', 'role' => 'community-council']);
-        $this->assertDatabaseHas('role_eligibilities', ['login' => 'linus', 'role' => 'community-council']);
-        $this->assertDatabaseMissing('role_eligibilities', ['login' => 'stale']);
+        $this->assertDatabaseHas('role_eligibilities', ['login' => 'ada', 'role' => 'community-council', 'active' => true]);
+        $this->assertDatabaseHas('role_eligibilities', ['login' => 'grace', 'role' => 'community-council', 'active' => true]);
+        $this->assertDatabaseHas('role_eligibilities', ['login' => 'linus', 'role' => 'community-council', 'active' => true]);
+        // Removed member is retained but marked inactive, not deleted.
+        $this->assertDatabaseHas('role_eligibilities', ['login' => 'stale', 'role' => 'community-council', 'active' => false]);
 
-        // Trimmed, de-duplicated, blanks dropped: exactly three rows.
-        $this->assertSame(3, RoleEligibility::where('role', 'community-council')->count());
+        // Trimmed, de-duplicated, blanks dropped: three active members.
+        $this->assertSame(3, RoleEligibility::where('role', 'community-council')->where('active', true)->count());
     }
 
     public function testEmptyHardCodedListLeavesRosterUnchanged(): void

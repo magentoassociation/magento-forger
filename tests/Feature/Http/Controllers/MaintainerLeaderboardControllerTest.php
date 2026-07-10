@@ -1,4 +1,5 @@
 <?php
+
 /*
  * @copyright Copyright (c) 2026 The Magento Association
  * @license https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
@@ -17,6 +18,12 @@ use Tests\TestCase;
 class MaintainerLeaderboardControllerTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->withoutVite();
+    }
 
     public function testInactiveMaintainerIsBadgedOnTheLeaderboard(): void
     {

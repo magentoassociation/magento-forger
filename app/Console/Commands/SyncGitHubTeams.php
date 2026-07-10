@@ -57,8 +57,8 @@ class SyncGitHubTeams extends Command implements Isolatable
                     continue;
                 }
 
-                $this->persistRoster($role, $logins);
-                $this->info("{$role}: ".count($logins).' members synced (hard-coded list).');
+                $deactivated = $this->reconcileTeamRoster($role, $logins);
+                $this->info("{$role}: ".count($logins)." active, {$deactivated} marked inactive (hard-coded list).");
 
                 continue;
             }
@@ -97,33 +97,7 @@ class SyncGitHubTeams extends Command implements Isolatable
     }
 
     /**
-     * Replace the stored roster for a role with the given logins, all active.
-     * Used for authoritative hard-coded lists.
-     *
-     * @param  list<string>  $logins
-     */
-    private function persistRoster(string $role, array $logins): void
-    {
-        DB::transaction(function () use ($role, $logins): void {
-            RoleEligibility::query()->where('role', $role)->delete();
-
-            foreach (array_chunk($logins, 500) as $chunk) {
-                RoleEligibility::query()->insert(array_map(
-                    fn (string $login): array => [
-                        'login' => $login,
-                        'role' => $role,
-                        'active' => true,
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ],
-                    $chunk,
-                ));
-            }
-        });
-    }
-
-    /**
-     * Reconcile a role against the current GitHub team roster without deleting.
+     * Reconcile a role against the current roster without deleting.
      * Everyone on the team is (re)activated; anyone previously eligible but no
      * longer on the team is retained and marked inactive. Returns the number of
      * members newly marked inactive.
