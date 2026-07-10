@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Models\RoleEligibility;
 use App\Queries\Dashboard\ReviewsApprovedLeaderboardQuery;
 use App\Queries\Dashboard\ReviewsRejectedLeaderboardQuery;
 use Carbon\Carbon;
@@ -60,8 +61,26 @@ class MaintainerLeaderboardController extends Controller
             'to' => $to,
             'period' => $period,
             'dataMissing' => $dataMissing,
+            'inactiveLogins' => $this->inactiveMaintainerLogins(),
             'githubUrl' => $this->buildGitHubUrlResolver($metric, $from->toDateString(), $to->toDateString()),
         ]);
+    }
+
+    /**
+     * Logins of maintainers retained in the roster but no longer on the team,
+     * keyed for O(1) lookup in the view.
+     *
+     * @return array<string, true>
+     */
+    private function inactiveMaintainerLogins(): array
+    {
+        return RoleEligibility::query()
+            ->where('role', 'maintainer')
+            ->where('active', false)
+            ->pluck('login')
+            ->flip()
+            ->map(fn (): bool => true)
+            ->all();
     }
 
     /**

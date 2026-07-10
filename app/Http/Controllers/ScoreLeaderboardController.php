@@ -448,7 +448,7 @@ class ScoreLeaderboardController extends Controller
      */
     private function maintainerRows(): Collection
     {
-        $roster = RoleEligibility::query()->where('role', 'maintainer')->pluck('login');
+        $roster = RoleEligibility::query()->where('role', 'maintainer')->get(['login', 'active']);
 
         if ($roster->isEmpty()) {
             return LeaderboardEntry::query()
@@ -464,17 +464,18 @@ class ScoreLeaderboardController extends Controller
         $scores = LeaderboardEntry::query()
             ->where('board', 'maintainer')
             ->where('window', 'rolling12')
-            ->whereIn('login', $roster)
+            ->whereIn('login', $roster->pluck('login'))
             ->get()
             ->keyBy('login');
 
         return $roster
-            ->map(fn (string $login): object => (object) [
-                'login' => $login,
-                'score' => (float) (optional($scores->get($login))->score ?? 0.0),
-                'breakdown' => optional($scores->get($login))->breakdown ?? [],
+            ->map(fn (RoleEligibility $member): object => (object) [
+                'login' => $member->login,
+                'active' => (bool) $member->active,
+                'score' => (float) (optional($scores->get($member->login))->score ?? 0.0),
+                'breakdown' => optional($scores->get($member->login))->breakdown ?? [],
             ])
-            ->sortByDesc('score')
+            ->sortBy([['active', 'desc'], ['score', 'desc']])
             ->values();
     }
 

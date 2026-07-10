@@ -10,11 +10,13 @@ namespace App\Console\Commands;
 
 use App\Models\RoleEligibility;
 use App\Services\GitHub\GitHubConnection;
+use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Exception\RequestException;
 use Illuminate\Console\Command;
 use Illuminate\Contracts\Console\Isolatable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use JsonException;
 use Throwable;
 
 /**
@@ -38,14 +40,31 @@ class SyncGitHubTeams extends Command implements Isolatable
             return 1;
         }
 
-        $teams = [
-            'maintainer' => (string) config('leaderboard.teams.maintainers'),
-            'community-council' => (string) config('leaderboard.teams.council'),
+        $sources = [
+            'maintainer' => config('leaderboard.teams.maintainers'),
+            'community-council' => config('leaderboard.teams.council'),
         ];
 
         $hadError = false;
 
-        foreach ($teams as $role => $slug) {
+        foreach ($sources as $role => $source) {
+            if (is_array($source)) {
+                $logins = $this->normalizeLogins($source);
+
+                if ($logins === []) {
+                    $this->warn("No members configured for {$role}; skipping.");
+
+                    continue;
+                }
+
+                $this->persistRoster($role, $logins);
+                $this->info("{$role}: ".count($logins).' members synced (hard-coded list).');
+
+                continue;
+            }
+
+            $slug = (string) $source;
+
             if ($slug === '') {
                 $this->warn("No team slug configured for {$role}; skipping.");
 
@@ -62,23 +81,8 @@ class SyncGitHubTeams extends Command implements Isolatable
                 continue;
             }
 
-            DB::transaction(function () use ($role, $logins): void {
-                RoleEligibility::query()->where('role', $role)->delete();
-
-                foreach (array_chunk($logins, 500) as $chunk) {
-                    RoleEligibility::query()->insert(array_map(
-                        fn (string $login): array => [
-                            'login' => $login,
-                            'role' => $role,
-                            'created_at' => now(),
-                            'updated_at' => now(),
-                        ],
-                        $chunk,
-                    ));
-                }
-            });
-
-            $this->info("{$role}: {$slug} → ".count($logins).' members synced.');
+            $deactivated = $this->reconcileTeamRoster($role, $logins);
+            $this->info("{$role}: {$slug} → ".count($logins)." active, {$deactivated} marked inactive.");
         }
 
         if ($hadError) {
@@ -93,7 +97,95 @@ class SyncGitHubTeams extends Command implements Isolatable
     }
 
     /**
+     * Replace the stored roster for a role with the given logins, all active.
+     * Used for authoritative hard-coded lists.
+     *
+     * @param  list<string>  $logins
+     */
+    private function persistRoster(string $role, array $logins): void
+    {
+        DB::transaction(function () use ($role, $logins): void {
+            RoleEligibility::query()->where('role', $role)->delete();
+
+            foreach (array_chunk($logins, 500) as $chunk) {
+                RoleEligibility::query()->insert(array_map(
+                    fn (string $login): array => [
+                        'login' => $login,
+                        'role' => $role,
+                        'active' => true,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ],
+                    $chunk,
+                ));
+            }
+        });
+    }
+
+    /**
+     * Reconcile a role against the current GitHub team roster without deleting.
+     * Everyone on the team is (re)activated; anyone previously eligible but no
+     * longer on the team is retained and marked inactive. Returns the number of
+     * members newly marked inactive.
+     *
+     * @param  list<string>  $logins
+     */
+    private function reconcileTeamRoster(string $role, array $logins): int
+    {
+        return DB::transaction(function () use ($role, $logins): int {
+            $now = now();
+
+            foreach (array_chunk($logins, 500) as $chunk) {
+                RoleEligibility::query()->upsert(
+                    array_map(
+                        fn (string $login): array => [
+                            'login' => $login,
+                            'role' => $role,
+                            'active' => true,
+                            'created_at' => $now,
+                            'updated_at' => $now,
+                        ],
+                        $chunk,
+                    ),
+                    ['login', 'role'],
+                    ['active', 'updated_at'],
+                );
+            }
+
+            return RoleEligibility::query()
+                ->where('role', $role)
+                ->where('active', true)
+                ->when($logins !== [], fn ($query) => $query->whereNotIn('login', $logins))
+                ->update(['active' => false, 'updated_at' => $now]);
+        });
+    }
+
+    /**
+     * Trim, drop blanks, and de-duplicate a hard-coded list of logins.
+     *
+     * @param  array<int|string, mixed>  $logins
      * @return list<string>
+     */
+    private function normalizeLogins(array $logins): array
+    {
+        $clean = [];
+
+        foreach ($logins as $login) {
+            $login = trim((string) $login);
+
+            if ($login !== '') {
+                $clean[] = $login;
+            }
+        }
+
+        return array_values(array_unique($clean));
+    }
+
+    /**
+     * @return list<string>
+     *
+     * @throws GuzzleException
+     * @throws JsonException
      */
     private function fetchMembers(GitHubConnection $connection, string $owner, string $slug): array
     {

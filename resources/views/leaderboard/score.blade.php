@@ -46,6 +46,9 @@
                                     @if ($profile?->name)
                                         <span class="text-muted small">{{ '@'.$entry->login }}</span>
                                     @endif
+                                    @if (($entry->active ?? true) === false)
+                                        <span class="badge text-bg-secondary ms-1" title="No longer on the maintainer team">Inactive</span>
+                                    @endif
                                 </td>
                                 <td class="text-end">
                                     @php($breakdownTitle = collect($entry->breakdown)->map(fn ($detail, $action) => e(\App\DataTransferObjects\Leaderboard\Action::labelFor($action)).' &mdash; '.number_format($detail['count'] ?? 0).'&times; &rarr; '.number_format($detail['points'] ?? 0, 1).' pts')->implode('<br>'))
