@@ -32,7 +32,7 @@ return [
      * and in-PHP checks. Add a bot here and it applies everywhere.
      */
     'bots' => [
-        'exact' => ['dependabot[bot]', 'github-actions[bot]', 'm2-assistant'],
+        'exact' => ['dependabot[bot]', 'github-actions[bot]', 'm2-assistant', 'magento-github-admin-beta'],
         'prefixes' => ['engcom-', 'magento-automated', 'm2-community', 'github-', 'ct-prd-projects', 'copilot-pull-request-reviewer'],
     ],
 
@@ -125,15 +125,28 @@ return [
     ],
 
     /*
-     * GitHub teams (under the repo owner org) whose members may earn maintainer
-     * points: the maintainer team and the community-council committee (who hold
-     * maintainer rights). Synced by sync:github:teams into role_eligibilities as
-     * roles `maintainer` and `community-council`. Contributor points are open to
-     * everyone. If both rosters are empty, gating is disabled and everyone counts.
+     * Rosters whose members may earn maintainer points: the maintainer team and
+     * the community-council committee (who hold maintainer rights). Synced by
+     * sync:github:teams into role_eligibilities as roles `maintainer` and
+     * `community-council`. Contributor points are open to everyone. If both
+     * rosters are empty, gating is disabled and everyone counts.
+     *
+     * Each entry is either a GitHub team slug (string, fetched from the org) or
+     * a hard-coded list of logins (array). The council has no dedicated GitHub
+     * team — its members are mixed into community-council-ma — so it is listed
+     * explicitly here.
      */
     'teams' => [
         'maintainers' => 'community-council-ma',
-        'council' => 'community-council',
+        'council' => [
+            'lfolco',
+            'sprankhub',
+            'IvanChepurnyi',
+            'jissereitsma',
+            'rhoerr',
+            'furan917',
+            'nithinterrific',
+        ],
     ],
 
     /*

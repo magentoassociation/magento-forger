@@ -70,6 +70,9 @@
                                     <a href="https://github.com/{{ $contributor->login }}" target="_blank" rel="noopener noreferrer" class="text-decoration-none fw-medium">
                                         {{ $contributor->login }}
                                     </a>
+                                    @isset($inactiveLogins[$contributor->login])
+                                        <span class="badge text-bg-secondary ms-1" title="No longer on the maintainer team">Inactive</span>
+                                    @endisset
                                 </td>
                                 <td class="text-end">
                                     <a href="{{ $githubUrl($contributor->login) }}" target="_blank" rel="noopener noreferrer" class="text-decoration-none">
