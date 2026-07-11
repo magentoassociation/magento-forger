@@ -10,7 +10,14 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-SINCE="-1 week"
+# Freeze a single absolute cutoff so every stage below filters from the same
+# instant. Passing the relative "-1 week" to each command would re-evaluate it
+# per stage, drifting the cutoff as the run progresses.
+if date -u -d "-1 week" '+%Y-%m-%d %H:%M:%S' >/dev/null 2>&1; then
+    SINCE="$(date -u -d '-1 week' '+%Y-%m-%d %H:%M:%S')"  # GNU date (Linux/CI/prod)
+else
+    SINCE="$(date -u -v-1w '+%Y-%m-%d %H:%M:%S')"         # BSD date (macOS dev host)
+fi
 
 # Pick how to reach artisan:
 #   - inside the ddev web container (`ddev sync-week`) → php artisan
@@ -35,6 +42,12 @@ echo "==> Syncing GitHub interactions (since: $SINCE)"
 
 echo "==> Syncing GitHub events (since: $SINCE)"
 "${ARTISAN[@]}" sync:github:events --since="$SINCE"
+
+echo "==> Syncing GitHub teams"
+"${ARTISAN[@]}" sync:github:teams
+
+echo "==> Syncing GitHub profies"
+"${ARTISAN[@]}" sync:github:profies
 
 echo "==> Computing leaderboard scores"
 "${ARTISAN[@]}" leaderboard:compute

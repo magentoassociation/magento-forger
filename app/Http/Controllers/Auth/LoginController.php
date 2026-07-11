@@ -67,6 +67,8 @@ class LoginController
 
             Auth::login($user);
 
+            request()->session()->regenerate();
+
             return redirect()->route('home');
 
         } catch (InvalidStateException $e) {
