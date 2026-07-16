@@ -14,7 +14,6 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:ital,wght@0,100..900;1,100..900&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <!-- Put in here because laravel stinks and nothing works as documented and frontend people are morons in general that just overcomplicate things for no reason -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     @stack('head')
 </head>
@@ -31,20 +30,9 @@
                 aria-label="Toggle navigation"><span class="navbar-toggler-icon"></span></button>
         <div class="collapse navbar-collapse" id="navbarSupportedContent">
             {!! $mainMenu !!}
-{{--            <ul class="navbar-nav me-auto mb-2 mb-lg-0">--}}
-{{--                <li class="nav-item">--}}
-{{--                    <a class="nav-link {{ request()->routeIs('leaderboard*') ? 'active' : '' }}"--}}
-{{--                       href="{{ route('leaderboard') }}">Contributor Leaderboard</a>--}}
-{{--                </li>--}}
-{{--                <li class="nav-item">--}}
-{{--                    <a class="nav-link {{ request()->routeIs('maintainer.leaderboard*') ? 'active' : '' }}"--}}
-{{--                       href="{{ route('maintainer.leaderboard') }}">Maintainer Leaderboard</a>--}}
-{{--                </li>--}}
-{{--            </ul>--}}
 
             {{-- Account area (login / logout / username / admin / companies) temporarily hidden,
                  leaving only the logo in the navbar. Remove this comment wrapper to restore it. --}}
-            {{--
             <div class="navbar-nav ms-auto align-items-lg-center">
                 <hr class="d-lg-none text-white my-2">
 
@@ -68,11 +56,11 @@
                             </a>
                         @endif
 
-                        @if(Auth::user()->companies()->exists())
-                            <a href="{{ route('company-owner.index') }}" class="btn btn-sm btn-outline-light">
-                                <i class="fas fa-building"></i> My Companies
-                            </a>
-                        @endif
+{{--                        @if(Auth::user()->companies()->exists())--}}
+{{--                            <a href="{{ route('company-owner.index') }}" class="btn btn-sm btn-outline-light">--}}
+{{--                                <i class="fas fa-building"></i> My Companies--}}
+{{--                            </a>--}}
+{{--                        @endif--}}
 
                         <form action="{{ route('logout') }}" method="POST" class="d-inline">
                             @csrf
@@ -91,7 +79,6 @@
                     </div>
                 @endguest
             </div>
-            --}}
         </div>
     </div>
 </nav>

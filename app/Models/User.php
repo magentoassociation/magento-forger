@@ -15,8 +15,19 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Carbon;
 
 /**
+ * @property int $id
+ * @property string $name
+ * @property string $email
+ * @property string|null $password
+ * @property string $github_id
+ * @property string|null $github_username
+ * @property bool $is_admin
+ * @property Carbon $created_at
+ * @property Carbon $updated_at
+ *
  * @mixin Builder
  */
 class User extends Authenticatable implements FilamentUser
@@ -52,7 +63,6 @@ class User extends Authenticatable implements FilamentUser
      */
     protected $hidden = [
         'password',
-        'remember_token',
     ];
 
     /**
@@ -63,7 +73,6 @@ class User extends Authenticatable implements FilamentUser
     protected function casts(): array
     {
         return [
-            'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
     }
