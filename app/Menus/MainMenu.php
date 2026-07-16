@@ -1,4 +1,5 @@
 <?php
+
 /*
  * @copyright Copyright (c) 2026 The Magento Association
  * @license https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
@@ -9,15 +10,14 @@ namespace App\Menus;
 
 use App\Helpers\RouteLabelHelper;
 use Illuminate\Support\Facades\Route;
-use Spatie\Menu\Laravel\Menu;
 use Spatie\Menu\Laravel\Html;
 use Spatie\Menu\Laravel\Link;
+use Spatie\Menu\Laravel\Menu;
 
 class MainMenu
 {
     // All nav links temporarily hidden — only the logo shows in the navbar.
-    // Restore one of the patterns below to bring the menu back ('leaderboard' was already omitted).
-    // private const MENU_ROUTE_PATTERN = '/^(home|leaderboard|issues|prs|labels|employment)(-[\w]+)?$/';
+    // Restore the pattern below to bring the menu back.
     // private const MENU_ROUTE_PATTERN = '/^(home|issues|prs|labels|employment)(-[\w]+)?$/';
     private const MENU_ROUTE_PATTERN = '/^$/';
 
@@ -25,12 +25,12 @@ class MainMenu
     {
         $currentRoute = Route::currentRouteName();
         $adminOnlyRoutes = [
-            'labels-processLabels'
+            'labels-processLabels',
         ];
 
         $routes = collect(Route::getRoutes())
-            ->filter(fn($route) => self::hasNoRequiredParameters($route))
-            ->filter(fn($route) => in_array('GET', $route->methods()))
+            ->filter(fn ($route) => self::hasNoRequiredParameters($route))
+            ->filter(fn ($route) => in_array('GET', $route->methods()))
             ->filter(function ($route) use ($adminOnlyRoutes) {
                 $name = $route->getName();
                 if (in_array($name, $adminOnlyRoutes)) {
@@ -39,19 +39,19 @@ class MainMenu
 
                 return true;
             })
-            ->map(fn($route) => $route->getName())
-            ->filter(fn($name) => preg_match(self::MENU_ROUTE_PATTERN, $name));
+            ->map(fn ($route) => $route->getName())
+            ->filter(fn ($name) => preg_match(self::MENU_ROUTE_PATTERN, $name));
 
         $menu = Menu::new()
             ->addClass('navbar-nav me-auto mb-2 mb-lg-0')
             ->setActiveClassOnLink()
             ->setActiveFromRequest();
 
-        $grouped = $routes->groupBy(fn($name) => explode('-', $name)[0]);
+        $grouped = $routes->groupBy(fn ($name) => explode('-', $name)[0]);
 
         foreach ($grouped as $mainItem => $subRoutes) {
             $mainRouteExists = $subRoutes->contains($mainItem);
-            $childRoutes = $subRoutes->filter(fn($name) => $name !== $mainItem);
+            $childRoutes = $subRoutes->filter(fn ($name) => $name !== $mainItem);
 
             if ($mainRouteExists && $childRoutes->isEmpty()) {
                 // Single item, no submenu
@@ -110,13 +110,13 @@ class MainMenu
     /**
      * Check if a route has no required parameters and has a name.
      *
-     * @param \Illuminate\Routing\Route $route The route to check
+     * @param  \Illuminate\Routing\Route  $route  The route to check
      * @return bool True if the route has no required parameters and has a name
      */
     private static function hasNoRequiredParameters(\Illuminate\Routing\Route $route): bool
     {
         $params = $route->parameterNames();
 
-        return empty($params) && !empty($route->getName());
+        return empty($params) && ! empty($route->getName());
     }
 }

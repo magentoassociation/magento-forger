@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+## Description: Sync the last week of GitHub data, then recompute leaderboard scores
+## Usage: sync-week
+## Example: ddev sync-week
+
+bash scripts/sync-week.sh

@@ -12,23 +12,19 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', [Controllers\WelcomeController::class, 'index'])->name('home');
 Route::middleware(['is_admin'])->group(function () {
-    // todo: we can't modify labels, remove
     Route::get('labels/process-labels', [Controllers\LabelController::class, 'processLabels'])->name('labels-processLabels');
     Route::post('labels/process-labels', [Controllers\LabelController::class, 'uploadLabels'])->name('labels-uploadLabels');
 });
+Route::get('/api/universe-bar', [Controllers\UniverseBarController::class, 'render']);
+Route::get('/api/charts/{method}', [Controllers\ChartController::class, 'dispatch']);
+
 // old routes
 Route::get('issuesByMonth', [Controllers\IssuesByMonthController::class, 'index'])->name('issues-issuesByMonth');
 Route::get('prsByMonth', [Controllers\PrsByMonthController::class, 'index'])->name('prs-PRsByMonth');
 Route::get('labels/allLabels', [Controllers\LabelController::class, 'listAllLabels'])->name('labels-listAllLabels');
 Route::get('labels/prsMissingComponent', [Controllers\LabelController::class, 'listPrWithoutComponentLabel'])->name('labels-PRsWithoutComponentLabel');
-Route::get('/api/charts/{method}', [Controllers\ChartController::class, 'dispatch']);
-Route::get('/api/universe-bar', [Controllers\UniverseBarController::class, 'render']);
 
 // new routes
-Route::get('leaderboard', [Controllers\LeaderboardController::class, 'index'])->name('leaderboard');
-Route::get('leaderboard/{metric}', [Controllers\LeaderboardController::class, 'show'])->name('leaderboard.show');
-Route::get('maintainer/leaderboard', [Controllers\MaintainerLeaderboardController::class, 'index'])->name('maintainer.leaderboard');
-Route::get('maintainer/leaderboard/{metric}', [Controllers\MaintainerLeaderboardController::class, 'show'])->name('maintainer.leaderboard.show');
 Route::get('scores', [Controllers\ScoreLeaderboardController::class, 'index'])->name('scores.index');
 Route::get('scores/highlights', [Controllers\ScoreLeaderboardController::class, 'highlights'])->name('scores.highlights');
 Route::get('scores/monthly/{board}', [Controllers\ScoreLeaderboardController::class, 'monthlyIndex'])->name('scores.monthly.index');
