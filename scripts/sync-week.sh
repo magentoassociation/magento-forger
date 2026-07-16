@@ -47,7 +47,7 @@ echo "==> Syncing GitHub teams"
 "${ARTISAN[@]}" sync:github:teams
 
 echo "==> Syncing GitHub profies"
-"${ARTISAN[@]}" sync:github:profies
+"${ARTISAN[@]}" sync:github:profiles
 
 echo "==> Computing leaderboard scores"
 "${ARTISAN[@]}" leaderboard:compute
