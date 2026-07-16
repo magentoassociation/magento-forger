@@ -11,10 +11,10 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [Controllers\WelcomeController::class, 'index'])->name('home');
-//Route::middleware(['is_admin'])->group(function () {
-//    Route::get('labels/process-labels', [Controllers\LabelController::class, 'processLabels'])->name('labels-processLabels');
-//    Route::post('labels/process-labels', [Controllers\LabelController::class, 'uploadLabels'])->name('labels-uploadLabels');
-//});
+Route::middleware(['is_admin'])->group(function () {
+    Route::get('labels/process-labels', [Controllers\LabelController::class, 'processLabels'])->name('labels-processLabels');
+    Route::post('labels/process-labels', [Controllers\LabelController::class, 'uploadLabels'])->name('labels-uploadLabels');
+});
 Route::get('/api/universe-bar', [Controllers\UniverseBarController::class, 'render']);
 Route::get('/api/charts/{method}', [Controllers\ChartController::class, 'dispatch']);
 
