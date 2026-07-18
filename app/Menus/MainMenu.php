@@ -25,9 +25,9 @@ class MainMenu
         $currentRoute = Route::currentRouteName();
 
         $routes = collect(Route::getRoutes())
-            ->filter(fn ($route) => self::hasNoRequiredParameters($route))
-            ->filter(fn ($route) => in_array('GET', $route->methods(), true))
-            ->filter(function ($route) {
+            ->filter(fn (\Illuminate\Routing\Route $route): bool => self::hasNoRequiredParameters($route))
+            ->filter(fn (\Illuminate\Routing\Route $route): bool => in_array('GET', $route->methods(), true))
+            ->filter(function (\Illuminate\Routing\Route $route): bool {
                 $adminOnlyRoutes = [
                     'labels.processLabels',
                     'leaderboard.index',
@@ -47,16 +47,13 @@ class MainMenu
             ->setActiveClassOnLink()
             ->setActiveFromRequest();
 
-        $grouped = $routes->groupBy(fn ($name) => explode('.', $name)[0]);
+        $grouped = $routes->groupBy(fn (string $name): string => explode('.', $name)[0]);
 
         foreach ($grouped as $mainItem => $subRoutes) {
-            // The group's landing route is either the bare group name (e.g. "home")
-            // or its ".index" child (e.g. "leaderboard.index").
-            $landingRoute = $subRoutes->first(fn ($name) => $name === $mainItem || $name === "{$mainItem}.index");
-            $childRoutes = $subRoutes->filter(fn ($name) => $name !== $landingRoute);
+            $landingRoute = $subRoutes->first(fn (string $name): bool => $name === $mainItem || $name === "{$mainItem}.index");
+            $childRoutes = $subRoutes->filter(fn (string $name): bool => $name !== $landingRoute);
 
             if ($landingRoute && $childRoutes->isEmpty()) {
-                // Single item, no submenu
                 $menu->add(
                     Link::toRoute($landingRoute, self::formatLabel($landingRoute))
                         ->addClass('nav-link')

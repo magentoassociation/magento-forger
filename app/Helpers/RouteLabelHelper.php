@@ -22,7 +22,6 @@ class RouteLabelHelper
             return self::$customLabels[$routeName];
         }
 
-        // Use the last dotted segment (e.g. "issuesByMonth" from "issues.issuesByMonth").
         $segments = explode('.', $routeName);
         $labelPart = end($segments);
 
