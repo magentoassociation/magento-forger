@@ -15,6 +15,8 @@ use App\Models\LeaderboardLineItem;
 use App\Models\Organization;
 use App\Models\OrgLeaderboardEntry;
 use App\Models\RoleEligibility;
+use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -27,17 +29,34 @@ class ScoreLeaderboardControllerTest extends TestCase
         parent::setUp();
 
         $this->withoutVite();
+
+        // Leaderboard is admin-only; every scenario below runs as an admin.
+        $this->actingAs(User::factory()->create(['is_admin' => true]));
+    }
+
+    public function testGuestIsRedirectedHome(): void
+    {
+        auth()->logout();
+
+        $this->get(route('leaderboard.index'))->assertRedirect(route('home'));
+    }
+
+    public function testNonAdminIsForbidden(): void
+    {
+        $this->actingAs(User::factory()->create(['is_admin' => false]));
+
+        $this->get(route('leaderboard.index'))->assertForbidden();
     }
 
     public function testIndexRedirectsToContributorBoard(): void
     {
-        $this->get(route('scores.index'))
-            ->assertRedirect(route('scores.show', ['board' => 'contributor']));
+        $this->get(route('leaderboard.index'))
+            ->assertRedirect(route('leaderboard.show', ['board' => 'contributor']));
     }
 
     public function testInvalidBoardReturns404(): void
     {
-        $this->get('/scores/nope')->assertNotFound();
+        $this->get('/leaderboard/nope')->assertNotFound();
     }
 
     public function testContributorBoardListsEntriesWithScore(): void
@@ -52,10 +71,10 @@ class ScoreLeaderboardControllerTest extends TestCase
             'computed_at' => now(),
         ]);
 
-        $this->get(route('scores.show', ['board' => 'contributor']))
+        $this->get(route('leaderboard.show', ['board' => 'contributor']))
             ->assertOk()
             ->assertSee('Contributor Leaderboard')
-            ->assertDontSee('Scores.show')
+            ->assertDontSee('Leaderboard.show')
             ->assertSee('jane')
             ->assertSee('42.5')
             // Breakdown shows proper English, not the raw action key.
@@ -67,7 +86,7 @@ class ScoreLeaderboardControllerTest extends TestCase
     {
         config()->set('leaderboard.weights.contributor', ['issue_opened' => 1, 'pr_opened' => 17, 'pr_merged' => 10]);
 
-        $this->get(route('scores.show', ['board' => 'contributor']))
+        $this->get(route('leaderboard.show', ['board' => 'contributor']))
             ->assertOk()
             ->assertSee('How are scores tallied?')
             ->assertSee('Opened a PR')
@@ -89,7 +108,7 @@ class ScoreLeaderboardControllerTest extends TestCase
             'computed_at' => now(),
         ]);
 
-        $this->get(route('scores.detail', ['board' => 'contributor', 'login' => 'jane']))
+        $this->get(route('leaderboard.detail', ['board' => 'contributor', 'login' => 'jane']))
             ->assertOk()
             ->assertSee('Contributor Contributions')
             ->assertSee('jane')
@@ -128,7 +147,7 @@ class ScoreLeaderboardControllerTest extends TestCase
 
         $this->travel(40)->days();
 
-        $this->get(route('scores.detail', ['board' => 'maintainer', 'login' => 'jane']))
+        $this->get(route('leaderboard.detail', ['board' => 'maintainer', 'login' => 'jane']))
             ->assertOk()
             ->assertSee('24.5')
             ->assertDontSee('99.0');
@@ -151,7 +170,7 @@ class ScoreLeaderboardControllerTest extends TestCase
             'computed_at' => now(),
         ]);
 
-        $this->get(route('scores.detail', ['board' => 'maintainer', 'login' => 'maint']))
+        $this->get(route('leaderboard.detail', ['board' => 'maintainer', 'login' => 'maint']))
             ->assertOk()
             ->assertSee('Applied a triage label')
             ->assertSee("'bug' label");
@@ -172,7 +191,7 @@ class ScoreLeaderboardControllerTest extends TestCase
             'computed_at' => now(),
         ]);
 
-        $this->get(route('scores.detail', ['board' => 'contributor', 'login' => 'jane']))
+        $this->get(route('leaderboard.detail', ['board' => 'contributor', 'login' => 'jane']))
             ->assertOk()
             ->assertSee('data-bs-toggle="tooltip"', false)
             ->assertSee('10 base × 2× impact × 0.55× recency = 11 pts');
@@ -193,14 +212,14 @@ class ScoreLeaderboardControllerTest extends TestCase
             'computed_at' => now(),
         ]);
 
-        $this->get(route('scores.detail', ['board' => 'contributor', 'login' => 'jane']))
+        $this->get(route('leaderboard.detail', ['board' => 'contributor', 'login' => 'jane']))
             ->assertOk()
             ->assertDontSee('data-bs-title', false);
     }
 
     public function testDetailRejectsInvalidBoard(): void
     {
-        $this->get('/scores/company/user/jane')->assertNotFound();
+        $this->get('/leaderboard/company/user/jane')->assertNotFound();
     }
 
     public function testHighlightsShowsEachSegment(): void
@@ -225,7 +244,7 @@ class ScoreLeaderboardControllerTest extends TestCase
             'computed_at' => now(),
         ]);
 
-        $this->get(route('scores.highlights'))
+        $this->get(route('leaderboard.highlights'))
             ->assertOk()
             ->assertSee('Leaderboard Highlights')
             ->assertSee('newbie')
@@ -255,7 +274,7 @@ class ScoreLeaderboardControllerTest extends TestCase
             'computed_at' => now(),
         ]);
 
-        $this->get(route('scores.highlights'))
+        $this->get(route('leaderboard.highlights'))
             ->assertOk()
             ->assertSee('activecontrib')
             ->assertDontSee('recentreviewer');
@@ -278,7 +297,7 @@ class ScoreLeaderboardControllerTest extends TestCase
             'fetched_at' => now(),
         ]);
 
-        $this->get(route('scores.show', ['board' => 'contributor']))
+        $this->get(route('leaderboard.show', ['board' => 'contributor']))
             ->assertOk()
             ->assertSee('Jane Doe')
             ->assertSee('@janedoe');
@@ -303,7 +322,7 @@ class ScoreLeaderboardControllerTest extends TestCase
             'computed_at' => now(),
         ]);
 
-        $this->get(route('scores.show', ['board' => 'maintainer']))
+        $this->get(route('leaderboard.show', ['board' => 'maintainer']))
             ->assertOk()
             ->assertSee('realmaintainer')
             ->assertDontSee('justacontributor');
@@ -332,34 +351,34 @@ class ScoreLeaderboardControllerTest extends TestCase
             'computed_at' => now(),
         ]);
 
-        $this->get(route('scores.show', ['board' => 'maintainer']))
+        $this->get(route('leaderboard.show', ['board' => 'maintainer']))
             ->assertOk()
             ->assertSee('idlemaintainer')    // on roster, zero score
             ->assertSee('activemaintainer')
             ->assertDontSee('outsider')      // scored but not on roster
             // Details links only for non-zero scores.
-            ->assertSee(route('scores.detail', ['board' => 'maintainer', 'login' => 'activemaintainer']))
-            ->assertDontSee(route('scores.detail', ['board' => 'maintainer', 'login' => 'idlemaintainer']));
+            ->assertSee(route('leaderboard.detail', ['board' => 'maintainer', 'login' => 'activemaintainer']))
+            ->assertDontSee(route('leaderboard.detail', ['board' => 'maintainer', 'login' => 'idlemaintainer']));
     }
 
     public function testMonthlyIndexRedirectsToCurrentMonth(): void
     {
-        \Carbon\Carbon::setTestNow('2026-07-15T12:00:00Z');
+        Carbon::setTestNow('2026-07-15T12:00:00Z');
 
-        $this->get(route('scores.monthly.index', ['board' => 'contributor']))
-            ->assertRedirect(route('scores.monthly', ['board' => 'contributor', 'ym' => '2026-07']));
+        $this->get(route('leaderboard.monthly.index', ['board' => 'contributor']))
+            ->assertRedirect(route('leaderboard.monthly', ['board' => 'contributor', 'ym' => '2026-07']));
 
-        \Carbon\Carbon::setTestNow();
+        Carbon::setTestNow();
     }
 
     public function testMonthlyIndexRejectsInvalidBoard(): void
     {
-        $this->get('/scores/monthly/company')->assertNotFound();
+        $this->get('/leaderboard/monthly/company')->assertNotFound();
     }
 
     public function testMonthlyBoardListsEntriesForTheMonth(): void
     {
-        \Carbon\Carbon::setTestNow('2026-07-15T12:00:00Z');
+        Carbon::setTestNow('2026-07-15T12:00:00Z');
 
         LeaderboardEntry::create([
             'login' => 'jane',
@@ -380,7 +399,7 @@ class ScoreLeaderboardControllerTest extends TestCase
             'computed_at' => now(),
         ]);
 
-        $this->get(route('scores.monthly', ['board' => 'contributor', 'ym' => '2026-07']))
+        $this->get(route('leaderboard.monthly', ['board' => 'contributor', 'ym' => '2026-07']))
             ->assertOk()
             ->assertSee('Contributor Leaderboard — Jul 2026')
             ->assertSee('jane')
@@ -389,44 +408,44 @@ class ScoreLeaderboardControllerTest extends TestCase
             // No recency decay copy on monthly boards.
             ->assertDontSee('no longer counts')
             // Each scored row links to its monthly drill-down.
-            ->assertSee(route('scores.monthly.detail', ['board' => 'contributor', 'ym' => '2026-07', 'login' => 'jane']));
+            ->assertSee(route('leaderboard.monthly.detail', ['board' => 'contributor', 'ym' => '2026-07', 'login' => 'jane']));
 
-        \Carbon\Carbon::setTestNow();
+        Carbon::setTestNow();
     }
 
     public function testMonthlyBoardOffersMonthNavigation(): void
     {
-        \Carbon\Carbon::setTestNow('2026-07-15T12:00:00Z');
+        Carbon::setTestNow('2026-07-15T12:00:00Z');
 
-        $this->get(route('scores.monthly', ['board' => 'contributor', 'ym' => '2026-07']))
+        $this->get(route('leaderboard.monthly', ['board' => 'contributor', 'ym' => '2026-07']))
             ->assertOk()
             ->assertSee('Jul 2026')
             ->assertSee('Jun 2026')
-            ->assertSee(route('scores.monthly', ['board' => 'contributor', 'ym' => '2026-06']));
+            ->assertSee(route('leaderboard.monthly', ['board' => 'contributor', 'ym' => '2026-06']));
 
-        \Carbon\Carbon::setTestNow();
+        Carbon::setTestNow();
     }
 
     public function testMonthlyBoardRejectsMonthOutsideWindow(): void
     {
-        \Carbon\Carbon::setTestNow('2026-07-15T12:00:00Z');
+        Carbon::setTestNow('2026-07-15T12:00:00Z');
 
         // Too old (more than 12 months back) and in the future both 404.
-        $this->get('/scores/monthly/contributor/2020-01')->assertNotFound();
-        $this->get('/scores/monthly/contributor/2026-08')->assertNotFound();
+        $this->get('/leaderboard/monthly/contributor/2020-01')->assertNotFound();
+        $this->get('/leaderboard/monthly/contributor/2026-08')->assertNotFound();
 
-        \Carbon\Carbon::setTestNow();
+        Carbon::setTestNow();
     }
 
     public function testMonthlyBoardRejectsMalformedMonth(): void
     {
         // Route constraint rejects non-YYYY-MM before the controller runs.
-        $this->get('/scores/monthly/contributor/nope')->assertNotFound();
+        $this->get('/leaderboard/monthly/contributor/nope')->assertNotFound();
     }
 
     public function testMonthlyDetailListsMonthItemsAndReconcilesOnFlatPoints(): void
     {
-        \Carbon\Carbon::setTestNow('2026-07-15T12:00:00Z');
+        Carbon::setTestNow('2026-07-15T12:00:00Z');
 
         // July items sum to 13 on flat points (rolling points differ — must be ignored).
         LeaderboardLineItem::create([
@@ -449,7 +468,7 @@ class ScoreLeaderboardControllerTest extends TestCase
             'points' => 3.0, 'points_flat' => 3.0, 'computed_at' => now(),
         ]);
 
-        $this->get(route('scores.monthly.detail', ['board' => 'contributor', 'ym' => '2026-07', 'login' => 'jane']))
+        $this->get(route('leaderboard.monthly.detail', ['board' => 'contributor', 'ym' => '2026-07', 'login' => 'jane']))
             ->assertOk()
             ->assertSee('Contributor Contributions — Jul 2026')
             ->assertSee('Add feature')
@@ -457,18 +476,18 @@ class ScoreLeaderboardControllerTest extends TestCase
             ->assertDontSee('June work')
             ->assertSee('13.0');   // flat total, not the rolling 11.8
 
-        \Carbon\Carbon::setTestNow();
+        Carbon::setTestNow();
     }
 
     public function testMonthlyDetailRejectsInvalidBoardAndOutOfWindowMonth(): void
     {
-        \Carbon\Carbon::setTestNow('2026-07-15T12:00:00Z');
+        Carbon::setTestNow('2026-07-15T12:00:00Z');
 
-        $this->get('/scores/monthly/company/2026-07/user/jane')->assertNotFound();
-        $this->get('/scores/monthly/contributor/2020-01/user/jane')->assertNotFound();
-        $this->get('/scores/monthly/contributor/2026-08/user/jane')->assertNotFound();
+        $this->get('/leaderboard/monthly/company/2026-07/user/jane')->assertNotFound();
+        $this->get('/leaderboard/monthly/contributor/2020-01/user/jane')->assertNotFound();
+        $this->get('/leaderboard/monthly/contributor/2026-08/user/jane')->assertNotFound();
 
-        \Carbon\Carbon::setTestNow();
+        Carbon::setTestNow();
     }
 
     public function testCompanyBoardMergesOrgRows(): void
@@ -493,7 +512,7 @@ class ScoreLeaderboardControllerTest extends TestCase
             'computed_at' => now(),
         ]);
 
-        $this->get(route('scores.show', ['board' => 'company']))
+        $this->get(route('leaderboard.show', ['board' => 'company']))
             ->assertOk()
             ->assertSee('Acme');
     }

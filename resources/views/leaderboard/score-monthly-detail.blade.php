@@ -16,7 +16,7 @@
                     Every scored contribution in {{ $monthLabel }} behind this month's score &mdash;
                     <strong>{{ number_format($total, 1) }}</strong> pts total (impact-weighted, no recency decay).
                 </p>
-                <a href="{{ route('scores.monthly', ['board' => $board, 'ym' => $ym]) }}" class="btn btn-sm btn-outline-secondary mb-2">
+                <a href="{{ route('leaderboard.monthly', ['board' => $board, 'ym' => $ym]) }}" class="btn btn-sm btn-outline-secondary mb-2">
                     &larr; Back to {{ $monthLabel }} board
                 </a>
             </div>

@@ -17,7 +17,7 @@
                     <strong>{{ number_format($total, 1) }}</strong> pts total, reconciling with the board. Hover over
                     the score to see the points breakdown.
                 </p>
-                <a href="{{ route('scores.show', ['board' => $board]) }}" class="btn btn-sm btn-outline-secondary mb-2">
+                <a href="{{ route('leaderboard.show', ['board' => $board]) }}" class="btn btn-sm btn-outline-secondary mb-2">
                     &larr; Back to {{ $boards[$board] }} board
                 </a>
             </div>

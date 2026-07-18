@@ -115,10 +115,6 @@
                 </li>
                 <li><a href="#choose-how">Claim an issue above</a> and open your first PR</li>
             </ol>
-{{--            <p class="text-gray-600 mb-0">--}}
-{{--                Tidy-up win: help by--}}
-{{--                <a href="{{ route('labels-PRsWithoutComponentLabel') }}">labeling PRs that are missing a component</a>.--}}
-{{--            </p>--}}
         </div>
     </section>
 

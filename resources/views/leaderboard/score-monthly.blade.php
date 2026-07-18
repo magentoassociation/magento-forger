@@ -18,7 +18,7 @@
 
         <div class="mb-4 d-flex flex-wrap gap-2">
             @foreach ($months as $month)
-                <a href="{{ route('scores.monthly', ['board' => $board, 'ym' => $month['ym']]) }}"
+                <a href="{{ route('leaderboard.monthly', ['board' => $board, 'ym' => $month['ym']]) }}"
                    class="btn btn-sm {{ $month['active'] ? 'btn-primary' : 'btn-outline-secondary' }}">
                     {{ $month['label'] }}
                 </a>
@@ -66,7 +66,7 @@
                                 <td class="text-end">
                                     <div class="d-flex gap-2 justify-content-end flex-nowrap">
                                         @if ($entry->score > 0)
-                                            <a href="{{ route('scores.monthly.detail', ['board' => $board, 'ym' => $ym, 'login' => $entry->login]) }}" class="btn btn-sm btn-outline-primary text-nowrap">
+                                            <a href="{{ route('leaderboard.monthly.detail', ['board' => $board, 'ym' => $ym, 'login' => $entry->login]) }}" class="btn btn-sm btn-outline-primary text-nowrap">
                                                 Details
                                             </a>
                                         @endif

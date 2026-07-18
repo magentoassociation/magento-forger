@@ -60,7 +60,7 @@
                                 <td class="text-end">
                                     <div class="d-flex gap-2 justify-content-end flex-nowrap">
                                         @if ($entry->score > 0)
-                                            <a href="{{ route('scores.detail', ['board' => $board, 'login' => $entry->login]) }}" class="btn btn-sm btn-outline-primary text-nowrap">
+                                            <a href="{{ route('leaderboard.detail', ['board' => $board, 'login' => $entry->login]) }}" class="btn btn-sm btn-outline-primary text-nowrap">
                                                 Details
                                             </a>
                                         @endif

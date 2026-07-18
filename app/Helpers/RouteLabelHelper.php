@@ -12,6 +12,7 @@ class RouteLabelHelper
 {
     private static array $customLabels = [
         'prs' => 'PRs',
+        'leaderboard.index' => 'Leaderboard',
     ];
 
     public static function formatLabel(string $routeName): string
@@ -21,13 +22,8 @@ class RouteLabelHelper
             return self::$customLabels[$routeName];
         }
 
-        // If there's no dash, just format the whole route name
-        if (! str_contains($routeName, '-')) {
-            return ucwords(preg_replace('/([a-z])([A-Z])/', '$1 $2', $routeName));
-        }
-
-        // If there is a dash, split and use the second part
-        [, $labelPart] = explode('-', $routeName, 2);
+        $segments = explode('.', $routeName);
+        $labelPart = end($segments);
 
         return ucwords(preg_replace('/([a-z])([A-Z])/', '$1 $2', $labelPart));
     }
