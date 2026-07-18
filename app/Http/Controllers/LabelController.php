@@ -9,10 +9,10 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Queries\Dashboard\OpenLabelsByIssueQuery;
-use App\Queries\Dashboard\PrsWithoutComponentLabelQuery;
 use App\Services\Label\LabelOrchestrator;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class LabelController extends Controller
@@ -34,23 +34,6 @@ class LabelController extends Controller
         return view('labels/allLabels', ['labels' => $nestedLabels, 'dataMissing' => $dataMissing]);
     }
 
-    public function listPrWithoutComponentLabel(PrsWithoutComponentLabelQuery $query): View
-    {
-        $dataMissing = false;
-
-        try {
-            $prs = $query->execute();
-        } catch (\Exception $e) {
-            if (! $this->isMissingIndex($e)) {
-                abort(500, 'Error fetching PR data: '.$e->getMessage());
-            }
-            $prs = [];
-            $dataMissing = true;
-        }
-
-        return view('labels/prsWithoutComponentLabel', ['prs' => $prs, 'dataMissing' => $dataMissing]);
-    }
-
     public function processLabels(): View
     {
         return view('labels/processLabels');
@@ -63,7 +46,7 @@ class LabelController extends Controller
      * @param  LabelOrchestrator  $orchestrator  Handles spreadsheet parsing and GitHub orchestration.
      * @return RedirectResponse Redirects back with a success, warning, or error flash message.
      *
-     * @throws \Illuminate\Validation\ValidationException When the uploaded file is missing or has an invalid mime type.
+     * @throws ValidationException When the uploaded file is missing or has an invalid mime type.
      * @throws \PhpOffice\PhpSpreadsheet\Reader\Exception When the spreadsheet cannot be loaded.
      * @throws \RuntimeException When the configured GitHub repository value is missing or invalid.
      */

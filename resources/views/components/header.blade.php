@@ -9,20 +9,20 @@
     }
 
     // Weighted score routes: show a readable, board-aware heading.
-    if ($currentRouteName === 'scores.show') {
+    if ($currentRouteName === 'leaderboard.show') {
         $boardName = (isset($boards, $board) && isset($boards[$board])) ? $boards[$board] : null;
         $formattedLabel = $boardName ? $boardName . ' Leaderboard' : 'Leaderboard';
-    } elseif ($currentRouteName === 'scores.highlights') {
+    } elseif ($currentRouteName === 'leaderboard.highlights') {
         $formattedLabel = 'Leaderboard Highlights';
-    } elseif ($currentRouteName === 'scores.monthly') {
+    } elseif ($currentRouteName === 'leaderboard.monthly') {
         $boardName = (isset($boards, $board) && isset($boards[$board])) ? $boards[$board] : null;
         $base = $boardName ? $boardName . ' Leaderboard' : 'Leaderboard';
         $formattedLabel = isset($monthLabel) ? $base . ' — ' . $monthLabel : $base;
-    } elseif ($currentRouteName === 'scores.monthly.detail') {
+    } elseif ($currentRouteName === 'leaderboard.monthly.detail') {
         $boardName = (isset($boards, $board) && isset($boards[$board])) ? $boards[$board] : null;
         $base = $boardName ? $boardName . ' Contributions' : 'Contributions';
         $formattedLabel = isset($monthLabel) ? $base . ' — ' . $monthLabel : $base;
-    } elseif ($currentRouteName === 'scores.detail') {
+    } elseif ($currentRouteName === 'leaderboard.detail') {
         $boardName = (isset($boards, $board) && isset($boards[$board])) ? $boards[$board] : null;
         $formattedLabel = $boardName ? $boardName . ' Contributions' : 'Contributions';
     }

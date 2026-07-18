@@ -35,7 +35,7 @@
                         </div>
                     @endif
 
-                    <form method="POST" action="{{ route('labels-uploadLabels') }}" enctype="multipart/form-data">
+                    <form method="POST" action="{{ route('labels.uploadLabels') }}" enctype="multipart/form-data">
                         @csrf
 
                         <div class="form-group mb-3">

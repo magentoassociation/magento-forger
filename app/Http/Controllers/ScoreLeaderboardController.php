@@ -33,7 +33,7 @@ class ScoreLeaderboardController extends Controller
 
     public function index(): RedirectResponse
     {
-        return redirect()->route('scores.show', ['board' => 'contributor']);
+        return redirect()->route('leaderboard.show', ['board' => 'contributor']);
     }
 
     public function show(string $board): View
@@ -71,7 +71,7 @@ class ScoreLeaderboardController extends Controller
     }
 
     /**
-     * Redirect to the current month's board so /scores/monthly/{board} is a
+     * Redirect to the current month's board so /leaderboard/monthly/{board} is a
      * stable entry point that always lands on the newest month.
      */
     public function monthlyIndex(string $board): RedirectResponse
@@ -80,7 +80,7 @@ class ScoreLeaderboardController extends Controller
             abort(404);
         }
 
-        return redirect()->route('scores.monthly', ['board' => $board, 'ym' => MonthlyWindow::allowed()[0]]);
+        return redirect()->route('leaderboard.monthly', ['board' => $board, 'ym' => MonthlyWindow::allowed()[0]]);
     }
 
     /**

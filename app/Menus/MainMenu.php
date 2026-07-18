@@ -18,22 +18,22 @@ class MainMenu
 {
     // All nav links temporarily hidden — only the logo shows in the navbar.
     // Restore the pattern below to bring the menu back.
-    // private const MENU_ROUTE_PATTERN = '/^(home|issues|prs|labels|employment)(-[\w]+)?$/';
-    private const MENU_ROUTE_PATTERN = '/^$/';
+    private const MENU_ROUTE_PATTERN = '/^(home|leaderboard\.index|issues|prs|labels|employment)(\.[\w]+)?$/';
 
     public static function build(): Menu
     {
         $currentRoute = Route::currentRouteName();
-        $adminOnlyRoutes = [
-            'labels-processLabels',
-        ];
 
         $routes = collect(Route::getRoutes())
             ->filter(fn ($route) => self::hasNoRequiredParameters($route))
-            ->filter(fn ($route) => in_array('GET', $route->methods()))
-            ->filter(function ($route) use ($adminOnlyRoutes) {
+            ->filter(fn ($route) => in_array('GET', $route->methods(), true))
+            ->filter(function ($route) {
+                $adminOnlyRoutes = [
+                    'labels.processLabels',
+                    'leaderboard.index',
+                ];
                 $name = $route->getName();
-                if (in_array($name, $adminOnlyRoutes)) {
+                if (in_array($name, $adminOnlyRoutes, true)) {
                     return auth()->check() && auth()->user()->is_admin == 1;
                 }
 
@@ -47,16 +47,18 @@ class MainMenu
             ->setActiveClassOnLink()
             ->setActiveFromRequest();
 
-        $grouped = $routes->groupBy(fn ($name) => explode('-', $name)[0]);
+        $grouped = $routes->groupBy(fn ($name) => explode('.', $name)[0]);
 
         foreach ($grouped as $mainItem => $subRoutes) {
-            $mainRouteExists = $subRoutes->contains($mainItem);
-            $childRoutes = $subRoutes->filter(fn ($name) => $name !== $mainItem);
+            // The group's landing route is either the bare group name (e.g. "home")
+            // or its ".index" child (e.g. "leaderboard.index").
+            $landingRoute = $subRoutes->first(fn ($name) => $name === $mainItem || $name === "{$mainItem}.index");
+            $childRoutes = $subRoutes->filter(fn ($name) => $name !== $landingRoute);
 
-            if ($mainRouteExists && $childRoutes->isEmpty()) {
+            if ($landingRoute && $childRoutes->isEmpty()) {
                 // Single item, no submenu
                 $menu->add(
-                    Link::toRoute($mainItem, self::formatLabel($mainItem))
+                    Link::toRoute($landingRoute, self::formatLabel($landingRoute))
                         ->addClass('nav-link')
                         ->addParentClass('nav-item')
                 );
@@ -87,7 +89,7 @@ class MainMenu
             %s
         </ul>
     </li>',
-                        $isActive,             // %1$s
+                        $isActive,     // %1$s
                         $mainItem,             // %2$s
                         self::formatLabel($mainItem),    // %3$s
                         $mainItem,             // %4$s again for aria-labelledby

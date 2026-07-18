@@ -76,7 +76,7 @@ class LabelControllerTest extends TestCase
 
         $adminUser = $this->createUser(true);
 
-        $response = $this->actingAs($adminUser)->get(route('labels-listAllLabels'));
+        $response = $this->actingAs($adminUser)->get(route('labels.listAllLabels'));
 
         $response->assertOk();
         $response->assertViewIs('labels.allLabels');
@@ -91,106 +91,11 @@ class LabelControllerTest extends TestCase
         })($labels));
     }
 
-    public function testListPrsWithoutComponentLabelBuildsMonthlyRanges(): void
-    {
-        $client = Mockery::mock(Client::class);
-        $client->shouldReceive('search')->once()->with(Mockery::on(static function (array $params): bool {
-            return $params['index'] === 'github-pull-requests'
-                && $params['body']['query']['bool']['must'][0]['term']['is_open'] === true
-                && $params['body']['query']['bool']['must_not'][0]['regexp']['labels.keyword'] === 'Component:.*';
-        }))->andReturn([
-            'aggregations' => [
-                'by_year' => [
-                    'buckets' => [
-                        [
-                            'key_as_string' => '2024',
-                            'doc_count' => 4,
-                            'by_month' => [
-                                'buckets' => [
-                                    ['key_as_string' => '02', 'doc_count' => 1],
-                                    ['key_as_string' => '11', 'doc_count' => 3],
-                                ],
-                            ],
-                        ],
-                    ],
-                ],
-            ],
-        ]);
-        $this->app->instance(Client::class, $client);
-
-        $response = $this->get(route('labels-PRsWithoutComponentLabel'));
-
-        $response->assertOk();
-        $response->assertViewIs('labels.prsWithoutComponentLabel');
-
-        $prs = $response->viewData('prs');
-
-        $this->assertTrue((static function (array $prs): bool {
-            return $prs['2024']['total'] === 4
-                && $prs['2024']['months']['01'] === [
-                    'month_number' => '01',
-                    'total' => 0,
-                    'start' => null,
-                    'end' => null,
-                ]
-                && $prs['2024']['months']['02']['total'] === 1
-                && $prs['2024']['months']['02']['start'] === '2024-02-01T00:00:00Z'
-                && $prs['2024']['months']['02']['end'] === '2024-02-29T23:59:59Z'
-                && $prs['2024']['months']['11']['total'] === 3
-                && $prs['2024']['months']['11']['start'] === '2024-11-01T00:00:00Z'
-                && $prs['2024']['months']['11']['end'] === '2024-11-30T23:59:59Z';
-        })($prs));
-    }
-
-    public function testListPrsWithoutComponentLabelSkipsInvalidMonthDates(): void
-    {
-        Log::spy();
-
-        $client = Mockery::mock(Client::class);
-        $client->shouldReceive('search')->once()->andReturn([
-            'aggregations' => [
-                'by_year' => [
-                    'buckets' => [
-                        [
-                            'key_as_string' => 'invalid-year',
-                            'doc_count' => 1,
-                            'by_month' => [
-                                'buckets' => [
-                                    ['key_as_string' => '02', 'doc_count' => 1],
-                                ],
-                            ],
-                        ],
-                    ],
-                ],
-            ],
-        ]);
-        $this->app->instance(Client::class, $client);
-
-        $response = $this->get(route('labels-PRsWithoutComponentLabel'));
-
-        $response->assertOk();
-        $response->assertViewIs('labels.prsWithoutComponentLabel');
-
-        $prs = $response->viewData('prs');
-
-        $this->assertSame(1, $prs['invalid-year']['months']['02']['total']);
-        $this->assertNull($prs['invalid-year']['months']['02']['start']);
-        $this->assertNull($prs['invalid-year']['months']['02']['end']);
-
-        Log::shouldHaveReceived('warning')->once()->with(
-            'Skipping PR month date range because the bucket date could not be parsed.',
-            Mockery::on(static function (array $context): bool {
-                return $context['year'] === 'invalid-year'
-                    && $context['month'] === '02';
-            })
-        );
-    }
-
     public function testProcessLabelsPageIsAvailableToAdmins(): void
     {
         $adminUser = $this->createUser(true);
 
-        $response = $this->actingAs($adminUser)->get(route('labels-processLabels'));
+        $response = $this->actingAs($adminUser)->get(route('labels.processLabels'));
 
         $response->assertOk();
         $response->assertViewIs('labels.processLabels');
@@ -201,7 +106,7 @@ class LabelControllerTest extends TestCase
         $user = $this->createUser(false);
 
         $this->actingAs($user)
-            ->get(route('labels-processLabels'))
+            ->get(route('labels.processLabels'))
             ->assertForbidden();
     }
 
@@ -225,7 +130,7 @@ class LabelControllerTest extends TestCase
 
         $this->app->instance(GitHubLabelService::class, $github);
 
-        $response = $this->actingAs($adminUser)->post(route('labels-uploadLabels'), [
+        $response = $this->actingAs($adminUser)->post(route('labels.uploadLabels'), [
             'label_sheet' => $this->createLabelSpreadsheet([
                 ['A' => 'Area: Foo'],
             ]),
@@ -275,7 +180,7 @@ class LabelControllerTest extends TestCase
 
         $this->app->instance(GitHubLabelService::class, $github);
 
-        $response = $this->actingAs($adminUser)->post(route('labels-uploadLabels'), [
+        $response = $this->actingAs($adminUser)->post(route('labels.uploadLabels'), [
             'label_sheet' => $this->createLabelSpreadsheet([
                 ['A' => 'Area: Old', 'E' => 'Area: New'],
             ]),
@@ -329,7 +234,7 @@ class LabelControllerTest extends TestCase
 
         $this->app->instance(GitHubLabelService::class, $github);
 
-        $response = $this->actingAs($adminUser)->post(route('labels-uploadLabels'), [
+        $response = $this->actingAs($adminUser)->post(route('labels.uploadLabels'), [
             'label_sheet' => $this->createLabelSpreadsheet([
                 ['A' => 'Area: Good'],
                 ['A' => 'Area: Bad'],
@@ -370,7 +275,7 @@ class LabelControllerTest extends TestCase
 
         $this->app->instance(GitHubLabelService::class, $github);
 
-        $response = $this->actingAs($adminUser)->post(route('labels-uploadLabels'), [
+        $response = $this->actingAs($adminUser)->post(route('labels.uploadLabels'), [
             'label_sheet' => $this->createLabelSpreadsheet(
                 [
                     ['A' => 'Area: New'],
@@ -402,7 +307,7 @@ class LabelControllerTest extends TestCase
 
         $this->app->instance(GitHubLabelService::class, $github);
 
-        $response = $this->actingAs($adminUser)->post(route('labels-uploadLabels'), [
+        $response = $this->actingAs($adminUser)->post(route('labels.uploadLabels'), [
             'label_sheet' => $this->createLabelSpreadsheet(
                 [
                     ['A' => 'Area: Old', 'D' => 'no', 'F' => 'Area: New'],
@@ -457,7 +362,7 @@ class LabelControllerTest extends TestCase
         $user = $this->createUser(false);
 
         $this->actingAs($user)
-            ->post(route('labels-uploadLabels'), [
+            ->post(route('labels.uploadLabels'), [
                 'label_sheet' => $this->createLabelSpreadsheet([
                     ['A' => 'Area: Foo'],
                 ]),
