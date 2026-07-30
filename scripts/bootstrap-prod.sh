@@ -26,11 +26,14 @@ fi
 
 # Pick how to reach artisan:
 #   - inside the ddev web container (`ddev bootstrap-prod`) → php artisan
-#   - on a dev host with ddev installed                     → ddev artisan
+#   - on a dev host, in a ddev project, with ddev installed → ddev artisan
 #   - anywhere else (plain server, CI, prod)                → php artisan
+#
+# The ddev binary alone is not enough: a checkout without .ddev/config.yaml has
+# no project for `ddev artisan` to attach to.
 if [ "${IS_DDEV_PROJECT:-}" = "true" ]; then
     ARTISAN=(php artisan)
-elif command -v ddev >/dev/null 2>&1; then
+elif [ -f .ddev/config.yaml ] && command -v ddev >/dev/null 2>&1; then
     ARTISAN=(ddev artisan)
 else
     ARTISAN=(php artisan)

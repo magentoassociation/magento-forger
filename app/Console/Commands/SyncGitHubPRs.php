@@ -80,6 +80,6 @@ class SyncGitHubPRs extends Command implements Isolatable
         $this->reportCutoffReached($result, $cutoff, 'PR');
         $this->reportDone($errorOccurred, 'Done syncing PRs.');
 
-        return 0;
+        return $errorOccurred ? 1 : 0;
     }
 }
