@@ -22,6 +22,18 @@ cd "$(dirname "$0")/.."
 
 PERIOD="${1:-1 week ago}"
 
+# Validate once, for both date implementations. GNU date would happily accept
+# expressions BSD date cannot express, and reads a bare "1 week" as a *future*
+# offset — so pin the input to the documented form and normalise the trailing
+# "ago" in, keeping the cutoff in the past on either host.
+if [[ ! "$PERIOD" =~ ^([0-9]+)[[:space:]]+(second|minute|hour|day|week|month|year)s?([[:space:]]+ago)?$ ]]; then
+    echo "Error: could not parse period '$PERIOD' (expected e.g. \"1 week ago\")" >&2
+    exit 1
+fi
+PERIOD_COUNT="${BASH_REMATCH[1]}"
+PERIOD_UNIT="${BASH_REMATCH[2]}"
+PERIOD="$PERIOD_COUNT $PERIOD_UNIT ago"
+
 # Freeze a single absolute cutoff so every stage below filters from the same
 # instant. Passing the relative period to each command would re-evaluate it
 # per stage, drifting the cutoff as the run progresses.
@@ -34,11 +46,7 @@ if date -u -d '-1 week' '+%Y-%m-%d %H:%M:%S' >/dev/null 2>&1; then
 else
     # BSD date (macOS dev host) has no expression parser: translate the period
     # into a -v adjustment.
-    if [[ ! "$PERIOD" =~ ^([0-9]+)[[:space:]]+(second|minute|hour|day|week|month|year)s?([[:space:]]+ago)?$ ]]; then
-        echo "Error: could not parse period '$PERIOD' (expected e.g. \"1 week ago\")" >&2
-        exit 1
-    fi
-    case "${BASH_REMATCH[2]}" in
+    case "$PERIOD_UNIT" in
         second) UNIT=S ;;
         minute) UNIT=M ;;
         hour)   UNIT=H ;;
@@ -47,7 +55,7 @@ else
         month)  UNIT=m ;;
         year)   UNIT=y ;;
     esac
-    SINCE="$(date -u -v-"${BASH_REMATCH[1]}${UNIT}" '+%Y-%m-%d %H:%M:%S')"
+    SINCE="$(date -u -v-"${PERIOD_COUNT}${UNIT}" '+%Y-%m-%d %H:%M:%S')"
 fi
 
 # Pick how to reach artisan:
