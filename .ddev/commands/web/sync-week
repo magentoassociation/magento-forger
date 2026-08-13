@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 
-## Description: Sync the last week of GitHub data, then recompute leaderboard scores
-## Usage: sync-week
+## Description: Sync a window of GitHub data (default last week), then recompute leaderboard scores
+## Usage: sync-week ["<n> <unit> ago"]
 ## Example: ddev sync-week
+## Example: ddev sync-week "1 month ago"
 
-bash scripts/sync-week.sh
+bash scripts/sync-week.sh "$@"

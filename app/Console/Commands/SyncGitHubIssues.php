@@ -77,6 +77,6 @@ class SyncGitHubIssues extends Command implements Isolatable
         $this->reportCutoffReached($result, $cutoff, 'issue');
         $this->reportDone($errorOccurred, 'Done syncing issues.');
 
-        return 0;
+        return $errorOccurred ? 1 : 0;
     }
 }

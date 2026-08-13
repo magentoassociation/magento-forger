@@ -110,7 +110,7 @@ class SyncGitHubInteractionsTest extends TestCase
             ->expectsOutputToContain('Done syncing interactions.');
     }
 
-    public function testPageErrorShowsErrorMessageAndSuppressesDoneMessage(): void
+    public function testPageErrorExitsWithCode1AndSuppressesDoneMessage(): void
     {
         $this->mock(GitHubInteractionService::class);
         $this->mock(GitHubIssueService::class);
@@ -124,7 +124,7 @@ class SyncGitHubInteractionsTest extends TestCase
             });
 
         $this->artisan('sync:github:interactions')
-            ->assertExitCode(0)
+            ->assertExitCode(1)
             ->expectsOutputToContain('Page 3 failed: Connection refused')
             ->doesntExpectOutputToContain('Done syncing interactions.');
     }
@@ -145,7 +145,7 @@ class SyncGitHubInteractionsTest extends TestCase
             });
 
         $this->artisan('sync:github:interactions')
-            ->assertExitCode(0)
+            ->assertExitCode(1)
             ->expectsOutputToContain('Page 2 failed: GitHub GraphQL API error')
             ->expectsOutputToContain('GraphQL error: Could not resolve to a Repository');
     }
