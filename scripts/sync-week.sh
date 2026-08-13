@@ -7,6 +7,12 @@
 # Sync a window of GitHub data, then recompute leaderboard scores.
 # Runs every sync:github:* command that accepts a --since date filter.
 #
+# The syncs are independent, so a failing one does not abort the rest: each
+# status is captured and reported at the end, and the script exits non-zero if
+# anything failed. leaderboard:compute is the exception — it reads what the data
+# syncs wrote, so it is skipped when one of them failed rather than publishing a
+# board computed from an incomplete window.
+#
 # Usage: sync-week.sh ["<n> <unit> ago"]   e.g. "1 week ago" (default), "1 month ago"
 #        Units: second, minute, hour, day, week, month, year (plural optional,
 #        trailing "ago" optional).
@@ -59,25 +65,77 @@ else
     ARTISAN=(php artisan)
 fi
 
-echo "==> Syncing GitHub issues (since: $SINCE)"
-"${ARTISAN[@]}" sync:github:issues --since="$SINCE"
+FAILED=()
+DATA_SYNC_FAILED=0
 
-echo "==> Syncing GitHub PRs (since: $SINCE)"
-"${ARTISAN[@]}" sync:github:prs --since="$SINCE"
+# Run one stage, record its failure instead of aborting the run, and pass the
+# status back so the caller can decide whether it also gates later stages.
+run_step() {
+    local label="$1"
+    shift
+    local status=0
 
-echo "==> Syncing GitHub interactions (since: $SINCE)"
-"${ARTISAN[@]}" sync:github:interactions --since="$SINCE"
+    echo "==> $label"
+    "$@" || status=$?
 
-echo "==> Syncing GitHub events (since: $SINCE)"
-"${ARTISAN[@]}" sync:github:events --since="$SINCE"
+    if [ "$status" -ne 0 ]; then
+        echo "!! $label failed (exit $status)" >&2
+        FAILED+=("$label")
+    fi
 
-echo "==> Syncing GitHub teams"
-"${ARTISAN[@]}" sync:github:teams
+    return "$status"
+}
 
-echo "==> Syncing GitHub profiles"
-"${ARTISAN[@]}" sync:github:profiles
+# sync:github:profiles exits 0 even when individual fetches error out: it logs
+# each one and reports the tally as "failed: N". Read that count back so API
+# failures still register, while keeping the command's output streaming.
+run_profiles() {
+    local status=0 log
+    log="$(mktemp)"
 
-echo "==> Computing leaderboard scores"
-"${ARTISAN[@]}" leaderboard:compute
+    echo "==> Syncing GitHub profiles"
+    "${ARTISAN[@]}" sync:github:profiles 2>&1 | tee "$log" || status=$?
+
+    if [ "$status" -ne 0 ]; then
+        echo "!! Syncing GitHub profiles failed (exit $status)" >&2
+        FAILED+=("Syncing GitHub profiles")
+    elif [[ "$(cat "$log")" =~ failed:\ ([0-9]+) ]] && [ "${BASH_REMATCH[1]}" -gt 0 ]; then
+        echo "!! ${BASH_REMATCH[1]} GitHub profile fetch(es) failed" >&2
+        FAILED+=("GitHub profile fetches (${BASH_REMATCH[1]} failed)")
+    fi
+
+    rm -f "$log"
+}
+
+run_step "Syncing GitHub issues (since: $SINCE)" \
+    "${ARTISAN[@]}" sync:github:issues --since="$SINCE" || DATA_SYNC_FAILED=1
+
+run_step "Syncing GitHub PRs (since: $SINCE)" \
+    "${ARTISAN[@]}" sync:github:prs --since="$SINCE" || DATA_SYNC_FAILED=1
+
+run_step "Syncing GitHub interactions (since: $SINCE)" \
+    "${ARTISAN[@]}" sync:github:interactions --since="$SINCE" || DATA_SYNC_FAILED=1
+
+run_step "Syncing GitHub events (since: $SINCE)" \
+    "${ARTISAN[@]}" sync:github:events --since="$SINCE" || DATA_SYNC_FAILED=1
+
+# Teams and profiles do not gate the compute: a failed roster sync leaves the
+# previous rosters in place (the command says so), and profiles only supply
+# display names and avatars. Both still count toward the exit status.
+run_step "Syncing GitHub teams" "${ARTISAN[@]}" sync:github:teams || true
+
+run_profiles
+
+if [ "$DATA_SYNC_FAILED" -eq 0 ]; then
+    run_step "Computing leaderboard scores" "${ARTISAN[@]}" leaderboard:compute || true
+else
+    echo "!! Skipping leaderboard:compute — a data sync failed, so the window is incomplete" >&2
+fi
+
+if [ "${#FAILED[@]}" -gt 0 ]; then
+    echo "==> Finished with failures:" >&2
+    printf '  - %s\n' "${FAILED[@]}" >&2
+    exit 1
+fi
 
 echo "==> Done"
