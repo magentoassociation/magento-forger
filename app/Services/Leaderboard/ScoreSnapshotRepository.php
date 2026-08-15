@@ -10,6 +10,7 @@ namespace App\Services\Leaderboard;
 
 use App\Models\GithubScoreSnapshot;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Persists periodic contributor-score snapshots so "Rising" can be measured over
@@ -18,26 +19,63 @@ use Carbon\Carbon;
 class ScoreSnapshotRepository
 {
     /**
-     * Store one snapshot row per login at the given time.
+     * Store one snapshot row per login for the UTC day of the given time.
+     *
+     * The compute runs many times a day, but the rising window is measured in
+     * days — so a day holds a single snapshot per login rather than one row per
+     * run, which keeps the baseline lookup on a fixed daily grid and the table
+     * proportional to the retention horizon.
+     *
+     * The day keeps each login's *highest* score, not the last one written: a
+     * run that reads a partly-imported window scores low, and with one row per
+     * day that dip would otherwise be the baseline every later run measures
+     * against. For the same reason a login already recorded today is kept even
+     * when it is absent from this run.
      *
      * @param  array<string, float>  $scoresByLogin
      */
     public function record(array $scoresByLogin, Carbon $at): void
     {
-        $rows = [];
-        foreach ($scoresByLogin as $login => $score) {
-            $rows[] = [
-                'login' => $login,
-                'contributor_score' => $score,
-                'captured_at' => $at,
-                'created_at' => $at,
-                'updated_at' => $at,
-            ];
+        if ($scoresByLogin === []) {
+            return;
         }
 
-        foreach (array_chunk($rows, 1000) as $chunk) {
-            GithubScoreSnapshot::insert($chunk);
-        }
+        $day = $at->copy()->utc();
+        $dayStart = $day->copy()->startOfDay();
+        $dayEnd = $day->copy()->endOfDay();
+
+        DB::transaction(function () use ($scoresByLogin, $at, $dayStart, $dayEnd): void {
+            $scores = $scoresByLogin;
+
+            GithubScoreSnapshot::query()
+                ->whereBetween('captured_at', [$dayStart, $dayEnd])
+                ->each(function (GithubScoreSnapshot $snapshot) use (&$scores): void {
+                    $recorded = (float) $snapshot->contributor_score;
+
+                    $scores[$snapshot->login] = isset($scores[$snapshot->login])
+                        ? max($scores[$snapshot->login], $recorded)
+                        : $recorded;
+                });
+
+            GithubScoreSnapshot::query()
+                ->whereBetween('captured_at', [$dayStart, $dayEnd])
+                ->delete();
+
+            $rows = [];
+            foreach ($scores as $login => $score) {
+                $rows[] = [
+                    'login' => $login,
+                    'contributor_score' => $score,
+                    'captured_at' => $at,
+                    'created_at' => $at,
+                    'updated_at' => $at,
+                ];
+            }
+
+            foreach (array_chunk($rows, 1000) as $chunk) {
+                GithubScoreSnapshot::insert($chunk);
+            }
+        });
     }
 
     /**
