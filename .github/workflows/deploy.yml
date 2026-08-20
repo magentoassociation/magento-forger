@@ -97,6 +97,6 @@ jobs:
           OPENSEARCH_USERNAME: ${{ secrets.OPENSEARCH_USERNAME }}
           OPENSEARCH_PASSWORD: ${{ secrets.OPENSEARCH_PASSWORD }}
           GITHUB_TOKEN: ${{ secrets.GH_APP_TOKEN }}
-          GITHUB_CLIENT_ID: ${{ secrets.GH_APP_CLIENT_ID }}
-          GITHUB_CLIENT_SECRET: ${{ secrets.GH_APP_CLIENT_SECRET }}
+          GITHUB_CLIENT_ID: ${{ secrets.OAUTH_CLIENT_ID }}
+          GITHUB_CLIENT_SECRET: ${{ secrets.OAUTH_CLIENT_SECRET }}
           GITHUB_REDIRECT_URI: https://forger.magento-opensource.com/auth/github/callback
