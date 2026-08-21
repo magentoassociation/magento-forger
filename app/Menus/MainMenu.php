@@ -29,7 +29,6 @@ class MainMenu
             ->filter(fn (\Illuminate\Routing\Route $route): bool => in_array('GET', $route->methods(), true))
             ->filter(function (\Illuminate\Routing\Route $route): bool {
                 $adminOnlyRoutes = [
-                    'labels.processLabels',
                     'leaderboard.index',
                 ];
                 $name = $route->getName();

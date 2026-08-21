@@ -27,7 +27,7 @@ php artisan make:user:admin {email}
 ```
 
 Admin users gain access to:
-- Label processing upload form (`/labels/process-labels`)
+- The leaderboard (`/leaderboard`)
 - Filament admin panel (`/admin`)
 
 The `AdminMiddleware` checks `Auth::user()->is_admin`.
@@ -52,6 +52,8 @@ The OAuth callback route is rate-limited to **10 requests per minute** per IP.
 | `GITHUB_CLIENT_ID` | OAuth app client ID |
 | `GITHUB_CLIENT_SECRET` | OAuth app client secret |
 | `GITHUB_REDIRECT_URI` | Callback URL registered in the GitHub OAuth app |
+
+These are a separate GitHub OAuth App registration — not the personal access token used for data sync (`GITHUB_TOKEN`, see `docs/features/github-sync.md`). In production, `GITHUB_CLIENT_ID`/`GITHUB_CLIENT_SECRET` come from the `OAUTH_CLIENT_ID`/`OAUTH_CLIENT_SECRET` deploy secrets — names differ between the secret and the env var.
 
 ## Gotchas / constraints
 

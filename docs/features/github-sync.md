@@ -32,20 +32,31 @@ Incremental syncs pause between 23:40–00:20 to avoid overlapping with the week
 
 - `app/Console/Commands/SyncGitHubIssues.php` — Issues sync command
 - `app/Console/Commands/SyncGitHubPRs.php` — PRs sync command
+- `app/Console/Commands/SyncGitHubInteractions.php` — Comments/reviews sync command
+- `app/Console/Commands/SyncGitHubEvents.php` — Issue timeline events sync command
+- `app/Console/Commands/SyncGitHubTeams.php` — Maintainer/council roster sync command
+- `app/Console/Commands/SyncGitHubProfiles.php` — Display name + avatar sync command
 - `app/Services/GitHub/GitHubSyncer.php` — Pagination engine
 - `app/Services/GitHub/GitHubIssueService.php` — GraphQL fetcher for issues
 - `app/Services/GitHub/GitHubPullRequestService.php` — GraphQL fetcher for PRs
-- `app/Services/GitHub/GitHubConnection.php` — GitHub API client + auth
+- `app/Services/GitHub/GitHubInteractionService.php` — GraphQL + REST fetcher for comments/reviews/events (`fetchEventsForIssue()` uses REST; the rest use GraphQL)
+- `app/Services/GitHub/GitHubConnection.php` — GitHub API client + auth (every command above goes through this)
 - `resources/graphql/github/` — Raw GraphQL query files
 - `routes/console.php` — Schedule definitions
 - `config/github.php` — `repo` (owner/name), API token
 
 ## Configuration
 
-| Key | Description |
-|-----|-------------|
-| `github.repo` | Target repository in `owner/name` format |
-| `GITHUB_TOKEN` (env) | Personal access token with `repo` scope |
+Every `sync:github:*` command authenticates through `GitHubConnection`, which reads these two keys — no command-specific credentials exist below this level.
+
+| Key | Description | Required scope |
+|-----|-------------|-----------------|
+| `github.repo` / `GITHUB_REPO` (env) | Target repository in `owner/name` format | — |
+| `GITHUB_TOKEN` (env) | Classic personal access token used by GraphQL + REST clients | `public_repo`, `read:org`. `read:org` also covers `sync:github:teams`' team-roster reads — a token missing it 404s on that command only (see `SyncGitHubTeams::describe()`), the rest are unaffected. |
+
+**Not used by any `sync:github:*` command:** `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `GITHUB_REDIRECT_URI` — those are OAuth login credentials, unrelated to data sync. See `docs/features/authentication.md`.
+
+In production, `GITHUB_TOKEN` is populated from the `GH_APP_TOKEN` GitHub Actions secret at deploy time (`.github/workflows/deploy.yml`) — the secret name and the env var name differ.
 
 ## Gotchas / constraints
 
