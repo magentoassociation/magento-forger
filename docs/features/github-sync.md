@@ -39,7 +39,7 @@ Incremental syncs pause between 23:40–00:20 to avoid overlapping with the week
 - `app/Services/GitHub/GitHubSyncer.php` — Pagination engine
 - `app/Services/GitHub/GitHubIssueService.php` — GraphQL fetcher for issues
 - `app/Services/GitHub/GitHubPullRequestService.php` — GraphQL fetcher for PRs
-- `app/Services/GitHub/GitHubInteractionService.php` — GraphQL fetcher for comments/reviews/events
+- `app/Services/GitHub/GitHubInteractionService.php` — GraphQL + REST fetcher for comments/reviews/events (`fetchEventsForIssue()` uses REST; the rest use GraphQL)
 - `app/Services/GitHub/GitHubConnection.php` — GitHub API client + auth (every command above goes through this)
 - `resources/graphql/github/` — Raw GraphQL query files
 - `routes/console.php` — Schedule definitions
@@ -52,7 +52,7 @@ Every `sync:github:*` command authenticates through `GitHubConnection`, which re
 | Key | Description | Required scope |
 |-----|-------------|-----------------|
 | `github.repo` / `GITHUB_REPO` (env) | Target repository in `owner/name` format | — |
-| `GITHUB_TOKEN` (env) | Personal access token used by GraphQL + REST clients | `public_repo`, `read:org`. `sync:github:teams` additionally needs org **Members: read** to list team rosters — a token without it 404s on that command only, the rest are unaffected. |
+| `GITHUB_TOKEN` (env) | Classic personal access token used by GraphQL + REST clients | `public_repo`, `read:org`. `read:org` also covers `sync:github:teams`' team-roster reads — a token missing it 404s on that command only (see `SyncGitHubTeams::describe()`), the rest are unaffected. |
 
 **Not used by any `sync:github:*` command:** `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `GITHUB_REDIRECT_URI` — those are OAuth login credentials, unrelated to data sync. See `docs/features/authentication.md`.
 

@@ -2,25 +2,20 @@
 
 ## Purpose
 
-View which GitHub labels are in use on the tracked repository, and surface PRs missing a component label.
+View which GitHub labels are in use on the tracked repository.
 
 ## How it works
 
-Two public views under `/labels`. Read-only — the token in use lacks `repo` scope, so bulk label creates/renames are not supported.
+One public view under `/labels`. Read-only — the token in use lacks `repo` scope, so bulk label creates/renames are not supported.
 
 ### View: All Labels (`/labels/allLabels`)
 
 Queries `OpenLabelsByIssueQuery` to aggregate open issues by label, grouped into sections. Renders as a browsable label directory.
 
-### View: PRs Without Component Label (`/labels/prsMissingComponent`)
-
-Queries `PrsWithoutComponentLabelQuery` to find open PRs that have no label matching the `Component:` prefix. Used to identify PRs that need triage.
-
 ## Key files
 
 - `app/Http/Controllers/LabelController.php` — All label routes
 - `app/Queries/Dashboard/OpenLabelsByIssueQuery.php` — All-labels aggregation
-- `app/Queries/Dashboard/PrsWithoutComponentLabelQuery.php` — Missing-component PR query
 - `resources/views/labels/` — Blade views
 
 ## Configuration

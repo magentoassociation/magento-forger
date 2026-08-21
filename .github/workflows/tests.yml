@@ -7,11 +7,17 @@ on:
 
 permissions:
   contents: read
+  actions: write
   statuses: write
   pull-requests: write
 
 concurrency:
-  group: tests-${{ github.event.issue.number || github.ref }}
+  group: >-
+    ${{
+      github.event_name == 'workflow_dispatch' && format('tests-{0}', github.ref)
+      || contains(github.event.comment.body, '@forger run all tests') && format('tests-{0}', github.event.issue.number)
+      || format('tests-noop-{0}', github.run_id)
+    }}
   cancel-in-progress: true
 
 jobs:
@@ -23,6 +29,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      actions: write
     steps:
       - uses: actions/checkout@v7
 
