@@ -1,10 +1,9 @@
 name: Tests
 
 on:
-  pull_request:
-    types: [opened, ready_for_review, synchronize, reopened]
   issue_comment:
     types: [created]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -12,44 +11,24 @@ permissions:
   pull-requests: write
 
 concurrency:
-  group: tests-${{ github.event.pull_request.number || github.event.issue.number }}
+  group: tests-${{ github.event.issue.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
-  # Runs on every non-draft PR and on every push to an open PR.
-  auto:
-    name: Tests (auto)
-    if: github.event_name == 'pull_request' && github.event.pull_request.draft == false
+  # Run the suite on any branch from the Actions tab. Needs no secrets, so a
+  # fork owner can run it on their own fork without being a collaborator here.
+  manual:
+    name: Tests (manual)
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
-    env:
-      GH_TOKEN: ${{ github.token }}
-      SHA: ${{ github.event.pull_request.head.sha }}
-      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v7
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-
-      - name: Mark status pending
-        run: |
-          gh api "repos/${{ github.repository }}/statuses/$SHA" \
-            -f state=pending -f context=tests -f target_url="$RUN_URL" -f description="Running tests"
 
       - uses: ./.github/actions/run-tests
 
-      - name: Report result
-        if: always()
-        run: |
-          state=success
-          description="Tests passed"
-          if [ "${{ job.status }}" != "success" ]; then
-            state=failure
-            description="Tests failed"
-          fi
-          gh api "repos/${{ github.repository }}/statuses/$SHA" \
-            -f state="$state" -f context=tests -f target_url="$RUN_URL" -f description="$description"
-
-  # Runs when an authorized user comments the trigger phrase on a PR.
+  # Runs only when an authorized user comments the trigger phrase on a PR.
   comment:
     name: Tests (comment)
     if: >
@@ -69,7 +48,7 @@ jobs:
           triggered=false
           while IFS= read -r line; do
             trimmed="$(printf '%s' "$line" | tr -d '\r' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' | tr '[:upper:]' '[:lower:]')"
-            if [ "$trimmed" = "run all tests" ]; then
+            if [ "$trimmed" = "@forger run all tests" ]; then
               triggered=true
               break
             fi

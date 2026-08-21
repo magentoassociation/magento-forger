@@ -272,12 +272,27 @@ File → Invalidate Caches → Invalidate and Restart. After restart, PhpStorm r
 
 ### Running Tests
 
+Locally:
+
 ```bash
 # Run the test suite
 ddev artisan test
 
 # Run tests with coverage
 ddev composer test
+```
+
+In CI (`.github/workflows/tests.yml`), the PHPUnit suite runs two ways, neither of them automatically on push or PR open:
+
+- **On demand, any branch**: Actions tab → "Tests" → "Run workflow" → pick your branch. No secrets required, works on forks. This is the only way to exercise a workflow-file change before it's merged to `main` — GitHub always resolves the `issue_comment` trigger below against `main`'s copy of the file, not your branch's.
+- **PR comment**: comment `@forger run all tests` on an open PR. Requires OWNER/MEMBER/COLLABORATOR association (`author_association` check in the workflow). Reports a commit status (`tests`) back onto the PR's head SHA.
+
+```bash
+# Trigger manually via gh CLI
+gh workflow run tests.yml --ref <branch>
+
+# Trigger via PR comment
+gh pr comment <PR#> --body "@forger run all tests"
 ```
 
 ### Code Style

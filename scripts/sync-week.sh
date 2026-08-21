@@ -18,6 +18,12 @@
 #        trailing "ago" optional).
 set -euo pipefail
 
+# run_step/run_profiles capture a step's exit status into a variable rather than
+# letting it propagate, so `set -e` never sees a SIGINT'd step (exit 130) and the
+# script moves on to the next stage. Trap INT explicitly so Ctrl-C kills the
+# whole run, not just the step in flight.
+trap 'echo "!! Interrupted" >&2; exit 130' INT
+
 cd "$(dirname "$0")/.."
 
 PERIOD="${1:-1 week ago}"
