@@ -56,7 +56,7 @@ Every `sync:github:*` command authenticates through `GitHubConnection`, which re
 
 **Not used by any `sync:github:*` command:** `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `GITHUB_REDIRECT_URI` — those are OAuth login credentials, unrelated to data sync. See `docs/features/authentication.md`.
 
-In production, `GITHUB_TOKEN` is populated from the `GH_SYNC_FGPAT` GitHub Actions secret at deploy time (`.github/workflows/deploy.yml`) — the secret name and the env var name differ.
+In production, `GITHUB_TOKEN` is populated from the `GH_SYNC_PAT_CLASSIC` GitHub Actions secret at deploy time (`.github/workflows/deploy.yml`) — the secret name and the env var name differ.
 
 ## Gotchas / constraints
 
