@@ -16,7 +16,6 @@ use App\Models\LeaderboardLineItem;
 use App\Models\OrgLeaderboardEntry;
 use App\Models\RoleEligibility;
 use App\Services\Leaderboard\LeaderboardScorer;
-use App\Services\Leaderboard\ReviewLatencyAnalyzer;
 use App\Support\MonthlyWindow;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
@@ -186,8 +185,7 @@ class ScoreLeaderboardController extends Controller
      *     scoredList: string,
      *     decay: bool,
      *     impactExamples: list<array{label: string, factor: float}>,
-     *     recencyExamples: list<array{label: string, factor: float}>,
-     *     stalenessExamples: list<array{label: string, factor: float}>
+     *     recencyExamples: list<array{label: string, factor: float}>
      * }
      */
     private function scoringExplainer(string $board, bool $decay = true): array
@@ -229,7 +227,6 @@ class ScoreLeaderboardController extends Controller
             'decay' => $decay,
             'impactExamples' => $this->impactExamples($impact),
             'recencyExamples' => $decay ? $this->recencyExamples($recency) : [],
-            'stalenessExamples' => $board === 'maintainer' ? $this->stalenessExamples($impact) : [],
         ];
     }
 
@@ -273,28 +270,6 @@ class ScoreLeaderboardController extends Controller
             ['label' => 2 * $halfLife.' days ago', 'factor' => round(2 ** (-2), 2)],
             ['label' => 'more than '.$window.' days ago', 'factor' => 0.0],
         ];
-    }
-
-    /**
-     * Worked "wait → multiplier" rows for the maintainer staleness explainer, run
-     * through the real analyzer and clamped to the impact bounds.
-     *
-     * @param  array{min: int|float, max: int|float}  $impact
-     * @return list<array{label: string, factor: float}>
-     */
-    private function stalenessExamples(array $impact): array
-    {
-        $min = (float) $impact['min'];
-        $max = (float) $impact['max'];
-
-        return array_map(fn (array $row): array => [
-            'label' => $row['label'],
-            'factor' => round(max($min, min($max, ReviewLatencyAnalyzer::stalenessFromDays((float) $row['days']))), 1),
-        ], [
-            ['label' => 'claimed within a day', 'days' => 1],
-            ['label' => 'waiting ~2 weeks', 'days' => 14],
-            ['label' => 'waiting ~3 months', 'days' => 90],
-        ]);
     }
 
     /**
@@ -366,15 +341,14 @@ class ScoreLeaderboardController extends Controller
             return null;
         }
 
-        // points_flat = base × (impact|staleness); points = points_flat × recency.
+        // points_flat = base × impact; points = points_flat × recency.
         $sizeFactor = $item->points_flat / $base;
         $recency = $item->points / $item->points_flat;
 
         $parts = [$this->trimNumber($base).' base'];
 
         if (abs($sizeFactor - 1.0) >= 0.05) {
-            $label = $item->action === 'pr_claimed' ? 'staleness' : 'impact';
-            $parts[] = '× '.$this->trimNumber(round($sizeFactor, 1)).'× '.$label;
+            $parts[] = '× '.$this->trimNumber(round($sizeFactor, 1)).'× impact';
         }
 
         if (abs($recency - 1.0) >= 0.05) {

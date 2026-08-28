@@ -36,9 +36,6 @@
                                     @if (in_array($action, $scoring['impactActions'], true))
                                         <span class="badge text-bg-light border ms-1" title="Scaled by the size of the change">× impact</span>
                                     @endif
-                                    @if ($action === 'pr_claimed')
-                                        <span class="badge text-bg-light border ms-1" title="Scaled by how long the PR sat unclaimed">× staleness</span>
-                                    @endif
                                 </td>
                                 <td class="text-end"><code>{{ $points }}</code></td>
                             </tr>
@@ -87,27 +84,6 @@
                                     <tr>
                                         <td>{{ ucfirst($example['label']) }}</td>
                                         <td class="text-end" style="width: 90px"><code>{{ rtrim(rtrim(number_format($example['factor'], 2), '0'), '.') }}×</code></td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                @endif
-
-                @if ($board === 'maintainer')
-                    <div class="mb-4">
-                        <p class="mb-1"><strong>Picking up neglected work counts for more.</strong></p>
-                        <p class="text-muted small mb-2">
-                            Claiming a PR tagged <span class="badge text-bg-light border">× staleness</span> is
-                            boosted by how long it waited for review before you took it (same
-                            {{ $scoring['impact']['max'] }}× cap).
-                        </p>
-                        <table class="table table-sm align-middle small mb-0">
-                            <tbody>
-                                @foreach ($scoring['stalenessExamples'] as $example)
-                                    <tr>
-                                        <td>{{ ucfirst($example['label']) }}</td>
-                                        <td class="text-end" style="width: 90px"><code>{{ rtrim(rtrim(number_format($example['factor'], 1), '0'), '.') }}×</code></td>
                                     </tr>
                                 @endforeach
                             </tbody>

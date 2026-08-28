@@ -17,7 +17,7 @@ use Tests\TestCase;
 
 class ReviewLatencyAnalyzerTest extends TestCase
 {
-    public function testPrClaimedImpactScalesWithTimeToClaim(): void
+    public function testPrClaimedScoresFlatRegardlessOfTimeToClaim(): void
     {
         $claimed = Carbon::parse('2026-06-01T00:00:00Z');
         $pending = $claimed->copy()->subDays(100);
@@ -29,7 +29,8 @@ class ReviewLatencyAnalyzerTest extends TestCase
         $event = $result['events'][0];
         $this->assertSame(Action::PR_CLAIMED, $event->action);
         $this->assertSame(Board::MAINTAINER, $event->board);
-        $this->assertEqualsWithDelta(3.0, $event->impact, 0.05); // 1 + log10(100)
+        $this->assertSame(1.0, $event->impact); // flat — no staleness scaling
+        // Time-to-claim is still measured for the responsiveness stat.
         $this->assertEqualsWithDelta(100.0, $result['stats']['maint']['median_time_to_claim_days'], 0.1);
     }
 

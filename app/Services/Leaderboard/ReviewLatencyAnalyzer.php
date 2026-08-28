@@ -15,9 +15,8 @@ use App\DataTransferObjects\Leaderboard\ScoredEvent;
 
 /**
  * Pure analysis of review-claim timing. Produces:
- *  - `pr_claimed` scored events whose impact grows with how long the PR sat in
- *    the review pool before the maintainer claimed it (rewards clearing backlog).
- *    Only emitted when the maintainer actually reviewed the claimed PR — a claim
+ *  - `pr_claimed` scored events at a flat weight (no staleness scaling). Only
+ *    emitted when the maintainer actually reviewed the claimed PR — a claim
  *    without a follow-up review earns nothing.
  *  - per-maintainer responsiveness stats (median time-to-review, median
  *    time-to-claim, count of claimed PRs that were reviewed in the window).
@@ -57,11 +56,9 @@ class ReviewLatencyAnalyzer
 
             $bucket = $perMaintainer[$claim->maintainer] ?? ['ttr' => [], 'ttc' => [], 'reviews' => 0];
 
-            $staleness = 1.0;
+            // Still measured for the responsiveness stat, but no longer scored.
             if ($claim->pendingReviewAt !== null) {
-                $days = max(0.0, $claim->pendingReviewAt->diffInHours($claim->claimedAt, false) / 24);
-                $bucket['ttc'][] = $days;
-                $staleness = self::stalenessFromDays($days);
+                $bucket['ttc'][] = max(0.0, $claim->pendingReviewAt->diffInHours($claim->claimedAt, false) / 24);
             }
 
             $events[] = new ScoredEvent(
@@ -69,7 +66,7 @@ class ReviewLatencyAnalyzer
                 Board::MAINTAINER,
                 Action::PR_CLAIMED,
                 $claim->claimedAt,
-                $staleness,
+                1.0,
                 title: 'PR #'.$claim->prNumber,
                 url: $this->repo !== null && $this->repo !== ''
                     ? "https://github.com/{$this->repo}/pull/{$claim->prNumber}"
@@ -92,15 +89,6 @@ class ReviewLatencyAnalyzer
         }
 
         return ['events' => $events, 'stats' => $stats];
-    }
-
-    /**
-     * Reward grows ~+1 per 10× age (1 day → 1.0, 10 → 2.0, 100 → 3.0, 1000 → 4.0).
-     * The scorer clamps to the configured impact bounds, so very old PRs cap out.
-     */
-    public static function stalenessFromDays(float $days): float
-    {
-        return 1.0 + log10(max($days, 1.0));
     }
 
     /**

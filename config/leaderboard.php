@@ -18,7 +18,7 @@ return [
      * Bump when weights change so a recompute can be triggered. Stored alongside
      * computed rows is not required yet, but keep this authoritative.
      */
-    'version' => 1,
+    'version' => 3,
 
     /*
      * The label Adobe applies when a PR enters the review pool. Time a PR spends
@@ -44,7 +44,7 @@ return [
     'weights' => [
         'contributor' => [
             'issue_opened' => 1,
-            'pr_opened' => 3,
+            'pr_opened' => 2,             // kept well below pr_merged: opening is farmable, merging is the reward
             'pr_merged' => 10,             // author bonus, multiplied by impact
             'issue_resolved_by_merge' => 4,
         ],
@@ -53,7 +53,7 @@ return [
             'review_rejected' => 3,
             'review_commented' => 1,
             'approved_then_merged' => 6,   // bonus, multiplied by impact, when an approved PR merges
-            'pr_claimed' => 2,             // bonus, multiplied by staleness, for self-assigning a pending-review PR
+            'pr_claimed' => 2,             // flat bonus for self-assigning (and then reviewing) a pending-review PR
             'label_applied' => 1,          // triage: applying a label (deduped per actor/target/label)
         ],
     ],
