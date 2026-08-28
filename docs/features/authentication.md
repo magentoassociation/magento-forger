@@ -20,17 +20,20 @@ Email fallback: if GitHub returns no verified email (rare), the user record is s
 
 ### Admin role
 
-Users are promoted to admin manually via the `make:user:admin` Artisan command:
+Two promotion paths:
+
+- **Automatic:** on login, `LoginController::grantAdminToCouncilMember()` promotes any user whose `github_username` matches an active `community-council` `RoleEligibility`. The `app:promote-council-admins` command (`PromoteCouncilAdmins`) backfills existing users.
+- **Manual:** the `app:make-user-admin` Artisan command (prompts for email interactively — no argument):
 
 ```bash
-php artisan make:user:admin {email}
+php artisan app:make-user-admin
 ```
 
 Admin users gain access to:
 - The leaderboard (`/leaderboard`)
 - Filament admin panel (`/admin`)
 
-The `AdminMiddleware` checks `Auth::user()->is_admin`.
+The `AdminMiddleware` (alias `is_admin`) redirects guests home, then `abort(403)` unless `auth()->user()->is_admin`.
 
 ### Rate limiting
 

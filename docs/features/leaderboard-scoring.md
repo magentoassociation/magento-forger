@@ -1,6 +1,6 @@
 # Weighted Scoring & Point-in-Time Company Leaderboards
 
-> **Status:** Build spec. **Supersedes** the raw-count-only direction of ADR 0001 and ADR 0002 by decision (2026-06-20). The existing per-metric raw-count boards are *kept* for transparency; this adds a weighted **Score** layer and a **Company** board on top of them.
+> **Status:** Build spec. **Supersedes** the raw-count-only direction of ADR 0001 and ADR 0002 by decision (2026-06-20). The per-metric raw-count boards were never shipped (see [contributor-leaderboards.md](contributor-leaderboards.md) / [maintainer-leaderboards.md](maintainer-leaderboards.md)); the live boards are this weighted **Score** layer plus a **Company** board, all served by `ScoreLeaderboardController`.
 >
 > **Repo tracked:** `magento/magento2` (not this app). **Adobe** merges and closes; maintainers and contributors cannot. A merge/close is therefore **never a scored action** — it is an *outcome signal* that boosts the people who did the work.
 
@@ -36,8 +36,8 @@ A maintainer who also authors PRs accrues a Contributor Score *and* a Maintainer
 | 5 | Maintainer | Review approved | `github-pr-reviews` | `submitted_at`, `state=APPROVED` | ✅ exists |
 | 6 | Maintainer | Review rejected | `github-pr-reviews` | `submitted_at`, `state=CHANGES_REQUESTED` | ✅ exists |
 | 7 | Maintainer | Review commented | `github-pr-reviews` | `submitted_at`, `state=COMMENTED` | ✅ exists |
-| 8 | Maintainer | **Approved PR later merged** (approver bonus) | join reviews → PR `merged_at` | derivable | ✅ `ScoredEventReader::approvedThenMergedEvents()` (impact-weighted, self-review guarded) |
-| 9 | Maintainer | **Label applied** (triage) | `github-events` + `github-pr-timeline` | event date | ✅ `labelAppliedEvents()` (deduped per actor/target/label; excludes configured labels) |
+| 8 | Maintainer | **Approved PR later merged** (approver bonus) | join reviews → PR `merged_at` | derivable | ✅ emitted by `ScoredEventReader` (`Action::APPROVED_THEN_MERGED`, impact-weighted, self-review guarded) |
+| 9 | Maintainer | **Label applied** (triage) | `github-events` + `github-pr-timeline` | event date | ✅ `ScoredEventReader` label events (deduped per actor/target/label; excludes configured labels) |
 | 10 | Contributor | Comment on issue/PR | `github-interactions` (`type=comment`) | `created_at` | ✅ available — optional, see caveat |
 | 11 | Maintainer | **Claimed & reviewed a pending-review PR** (staleness bonus) | `github-pr-timeline` + `github-pr-reviews` | claim `created_at` | ✅ `ReviewLatencyAnalyzer` (impact grows with time-to-claim; only credited if the claim is reviewed) |
 
@@ -114,30 +114,31 @@ When a login has overlapping memberships, `MembershipResolver` returns the first
 
 ## New data model
 
+> **Keyed by `login`, not a surrogate `github_user_id`.** There is no `github_users` table. The individual dimension is the GitHub `login` string itself, carried directly on every row; `github_profiles` is only thin display metadata fetched per login.
+
 ```
 organizations
-  id, name, slug, type [agency|merchant|adobe|independent|unknown],
+  id, name, slug (unique), type [agency|merchant|adobe|independent|unknown],
   domains json, created_at, updated_at
 
-github_users                          # contributor/maintainer dimension (distinct from auth Users)
-  id, login (unique), github_id, display_name, avatar_url,
-  is_bot bool, profile_company_raw nullable,
-  excluded bool, excluded_reason nullable, created_at, updated_at
+github_profiles                       # thin display metadata per login (not a scoring dimension)
+  id, login (unique), name nullable, avatar_url nullable,
+  fetched_at nullable, created_at, updated_at
 
-user_org_memberships                  # point-in-time
-  id, github_user_id, organization_id,
-  from_date, to_date nullable,
-  source [manual|domain|profile|user], confidence tinyint,
+user_org_memberships                  # point-in-time, keyed by login
+  id, login, organization_id,
+  from_date nullable, to_date nullable,
+  source [manual|domain|profile], confidence tinyint (default 100),
   created_at, updated_at
 
 leaderboard_entries                   # precomputed individual scores
-  id, github_user_id, board [contributor|maintainer],
-  window [rolling12|period], period_key nullable,
-  score decimal, breakdown json, computed_at
+  id, login, board [contributor|maintainer],
+  window (default rolling12), score decimal, breakdown json,
+  rank nullable, computed_at
 
 org_leaderboard_entries               # precomputed company scores
-  id, organization_id, board, window, period_key nullable,
-  score decimal, member_count int, breakdown json, computed_at
+  id, organization_id, board, window,
+  score decimal, member_count int, rank nullable, computed_at
 ```
 
 ## Compute architecture
@@ -153,13 +154,13 @@ org_leaderboard_entries               # precomputed company scores
 - Impact weight is **capped at 5.0** → splitting one PR into ten pays less than one solid PR.
 - Bot exclusion reuses the existing list (`engcom-*`, `dependabot[bot]`, `github-actions[bot]`, `m2-assistant`), applied in the compute job.
 - Decay stops anyone (or any org) camping the top after going quiet.
-- `github_users.excluded` flag (set in Filament, Drupal-style) removes bad actors from all score boards.
+- **(Planned)** a per-login `excluded` flag (set in Filament, Drupal-style) to remove bad actors from all score boards — not built yet; only the bot list above is enforced today.
 - Guard `author == reviewer` so self-reviews earn nothing (all review actions, not just the approver bonus).
 - Team eligibility (`EligibilityGate`): maintainer points require `maintainer` or `community-council` membership; contributor points are open.
 
 ## UI
 
-- **Public:** new "Contributor Score", "Maintainer Score", and "Company" boards, defaulting to the rolling-12 window and reusing the Calendar Period selector. Each row is **expandable to show its breakdown** (action counts → weighted points) so the score stays transparent — this directly answers ADR 0001's "opaque weights" objection. The board subtitle lists, in plain language, which actions earn points (derived from the same configured weights, so it can't drift). A **"How are scores tallied?" modal** on each board lists the configured base points per action (read live from `config('leaderboard.weights.{board}')`) plus the impact, recency, and (maintainer) staleness multipliers, so the point values shown always match config. Modal data is assembled in `ScoreLeaderboardController::scoringExplainer()` and passed to the view as `$scoring` — not built inside a Blade `@php` block (a Blade `@php`/`@endphp` block pairs with any earlier inline `@php(...)` and breaks the template). Human-readable action names (board breakdown rows, drill-down items, modal, subtitle) all come from one place — `Action::label()` / `Action::labelFor()` on the `Action` enum — so raw keys like `pr_opened` never reach the UI.
+- **Public:** new "Contributor Score", "Maintainer Score", and "Company" boards, defaulting to the rolling-12 window and reusing the Calendar Period selector. Each row exposes its **breakdown** (action counts → weighted points) via a hover tooltip on the score badge, so the score stays transparent — this directly answers ADR 0001's "opaque weights" objection. The board subtitle lists, in plain language, which actions earn points (derived from the same configured weights, so it can't drift). A **"How are scores tallied?" modal** on each board lists the configured base points per action (read live from `config('leaderboard.weights.{board}')`) plus the impact, recency, and (maintainer) staleness multipliers, so the point values shown always match config. Modal data is assembled in `ScoreLeaderboardController::scoringExplainer()` and passed to the view as `$scoring` — not built inside a Blade `@php` block (a Blade `@php`/`@endphp` block pairs with any earlier inline `@php(...)` and breaks the template). Human-readable action names (board breakdown rows, drill-down items, modal, subtitle) all come from one place — `Action::label()` / `Action::labelFor()` on the `Action` enum — so raw keys like `pr_opened` never reach the UI.
 - **Filament admin:** `Organizations` resource; `Memberships` resource with a point-in-time editor and a needs-review filter; a read-only scoring-weights view (with version); an exclusions/abuse tool.
 
 ## Engagement signals (re-engagement layer)

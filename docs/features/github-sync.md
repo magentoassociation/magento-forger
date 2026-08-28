@@ -9,7 +9,7 @@ Pull GitHub issues and pull requests into OpenSearch via GraphQL so all analytic
 Two Artisan commands — `sync:github:issues` and `sync:github:prs` — share a single `GitHubSyncer` engine that drives paginated GraphQL queries. Each run:
 
 1. Fetches a count of total items (for progress display only).
-2. Pages through results 100 nodes at a time via cursor pagination.
+2. Pages through results via cursor pagination — issues 100 nodes/page, PRs 10 nodes/page (PRs carry heavier timeline sub-queries, so a smaller page keeps node cost down).
 3. Passes each page to `OpenSearchService::indexIssues()` / `indexPullRequests()` for bulk upsert.
 4. Stops early when the last node's `updatedAt` is older than the `--since` cutoff (incremental mode).
 
@@ -21,12 +21,14 @@ Both commands implement `Isolatable` so Laravel prevents concurrent runs of the 
 
 | Job | Trigger | Notes |
 |-----|---------|-------|
-| Full sync (issues) | Weekly | No cutoff — syncs entire history |
-| Incremental sync (issues) | Every 15 min | `--since "1 hour ago"` |
-| Full sync (PRs) | Weekly | No cutoff |
-| Incremental sync (PRs) | Every 15 min | `--since "1 hour ago"` |
+| Full + incremental sync (issues) | Weekly full (00:00) + every 15 min | Full has no cutoff; incremental `--since "1 hour ago"` |
+| Full + incremental sync (PRs) | Weekly full (01:00) + every 15 min | `SyncGitHubPRs` |
+| Full + incremental sync (interactions) | Weekly full (02:00) + every 15 min | `SyncGitHubInteractions` |
+| Full + incremental sync (events) | Weekly full (03:00) + every 15 min | `SyncGitHubEvents` |
+| Teams roster | Daily (10:00) | `SyncGitHubTeams` |
+| `leaderboard:compute` | Every 15 min + weekly full | `ComputeLeaderboardScores` (see [Leaderboard Rollout](leaderboard-rollout.md)) |
 
-Incremental syncs pause between 23:40–00:20 to avoid overlapping with the weekly full sync. Both run in the background with `withoutOverlapping()`.
+Each incremental pauses in a ±20-min window around *its own* full-sync time (issues 23:40–00:20, PRs 00:40–01:20, interactions 01:40–02:20, events 02:40–03:20) via `skip($duringWeeklyFullSync(...))`. All run in the background with `withoutOverlapping()`.
 
 ## Key files
 
@@ -60,7 +62,7 @@ In production, `GITHUB_TOKEN` is populated from the `GH_SYNC_PAT_CLASSIC` GitHub
 
 ## Gotchas / constraints
 
-- `--since` accepts any string Carbon can parse (e.g. `"2 days ago"`, `"2026-01-01"`). Issues command uses `Carbon::parse`; PRs command uses `Carbon::parse` — behaviour on invalid input differs slightly.
+- `--since` accepts any string Carbon can parse (e.g. `"2 days ago"`, `"2026-01-01"`). Both commands use the same `parseCutoff()` on the `SyncsWithGitHub` trait, which wraps `Carbon::parse` in try/catch and throws `InvalidSyncCutoffException` on bad input — identical behaviour across commands.
 - Cutoff is checked against `updatedAt` of the *last node on each page*, not per-node. If a page ends on a node just inside the cutoff, the next page still runs.
-- PR indexing also triggers two side effects: review indexing (`github-pr-reviews` index) and flagging issues closed by merged PRs (`closed_by_merged_pr` field).
+- PR indexing (`indexPullRequests()`) also triggers three side effects: review indexing (`github-pr-reviews`), timeline indexing (`github-pr-timeline`, via `indexPullRequestTimeline()`), and flagging issues closed by merged PRs (`closed_by_merged_pr` field).
 - Re-running a full sync is safe — issues are upserted by `number`; PRs are indexed by `number` (full replace).

@@ -58,6 +58,10 @@ $openSearch->searchPRs($builder);
 | `opensearch.host` | OpenSearch host |
 | `opensearch.port` | OpenSearch port (default 9200) |
 | `opensearch.index_prefix` | Prefix applied to all index names (e.g. `dev_`) |
+| `opensearch.username` / `OPENSEARCH_USERNAME` | Basic-auth username (optional) |
+| `opensearch.password` / `OPENSEARCH_PASSWORD` | Basic-auth password (optional) |
+| `opensearch.tls` / `OPENSEARCH_TLS` | Use HTTPS |
+| `opensearch.verify_tls` / `OPENSEARCH_VERIFY_TLS` | Verify the TLS certificate |
 
 ## Gotchas / constraints
 

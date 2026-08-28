@@ -32,6 +32,7 @@ timelineItems(first: 100, itemTypes: [
   LABELED_EVENT, UNLABELED_EVENT,
   REVIEW_REQUESTED_EVENT, REVIEW_REQUEST_REMOVED_EVENT
 ]) {
+  pageInfo { hasNextPage endCursor }
   nodes {
     __typename
     ... on LabeledEvent          { id actor { login } createdAt label { name } }
@@ -60,10 +61,10 @@ Note `id` on every node (used as the OpenSearch `_id`, same upsert pattern as re
 - **Self-assignment is via reviewers** → `REVIEW_REQUESTED_EVENT` with `requestedReviewer` is the right signal (self-assign means `actor == requestedReviewer`). `ASSIGNED_EVENT` is not needed.
 - **Label string is `Progress: pending review`** — still read it from config rather than hard-coding, so a rename doesn't require a code change.
 
-### Still to tune
+### Resolved
 
-- **Page-size / rate-limit**: adding `timelineItems(first: 100)` to `pullRequests(first: 100)` raises node cost. If GitHub returns node-limit or secondary-rate-limit errors, drop PR page size (the issue query already uses `first: 25` for this reason) or narrow `itemTypes` further.
-- **Pagination**: `timelineItems(first: 100)` is not paginated here. A PR with >100 relevant events would truncate; acceptable for labels/review-requests but note it.
+- **Page-size / rate-limit** — done. The PR query already runs at `pullRequests(first: 10)` to keep node cost down with the timeline sub-query attached.
+- **Pagination** — done. `timelineItems` carries `pageInfo`, and `GitHubPullRequestService::expandTimelineItems()` (via `github_pr_timeline_items.graphql`, wired into `SyncGitHubPRs`) pages the remaining items, so PRs with >100 relevant events no longer truncate.
 
 ## New index: `github-pr-timeline`
 

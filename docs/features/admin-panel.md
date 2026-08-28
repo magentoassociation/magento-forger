@@ -10,24 +10,25 @@ Filament v3 panel configured via `AdminPanelProvider`. Single resource: `UserRes
 
 ### UserResource
 
-- **List**: searchable/sortable table of `name`, `github_username`, `email`.
-- **Edit**: read-only form (name, email, github_username, github_id are disabled — data syncs from GitHub on login and cannot be manually edited).
+- **List**: searchable/sortable table of `name`, `github_username`, `github_id`, `email`.
 - **Delete**: available per-row and as a bulk action.
-- **Create**: disabled. All users are created via GitHub OAuth only.
+- **Create**: disabled (`canCreate()` returns `false`). All users are created via GitHub OAuth only.
+- **Edit**: *not implemented.* Only the list page is registered in `getPages()`; there is no edit page and `form()` returns an empty schema. **(Planned)** a read-only form showing GitHub-sourced fields.
 
 ### Access control
 
-Only users with `is_admin = true` can access the panel. Enforced by Filament's `FilamentUser` contract on the `User` model — or via `AdminPanelProvider` gate configuration. Promote users with:
+Only users with `is_admin = true` can access the panel. Enforced by Filament's `FilamentUser` contract on the `User` model (`User::canAccessPanel()` checks `is_admin`). Promote users with:
 
 ```bash
-php artisan make:user:admin {email}
+php artisan app:make-user-admin
 ```
+
+The command takes no argument — it prompts for the user email interactively.
 
 ## Key files
 
-- `app/Filament/Resources/UserResource.php` — CRUD resource
+- `app/Filament/Resources/UserResource.php` — list + delete resource (no create/edit)
 - `app/Filament/Resources/UserResource/Pages/ListUsers.php`
-- `app/Filament/Resources/UserResource/Pages/EditUser.php`
 - `app/Providers/Filament/AdminPanelProvider.php` — Panel registration, path, auth
 
 ## Configuration
@@ -36,6 +37,5 @@ Panel path: `/admin` (default Filament). Change in `AdminPanelProvider::panel()`
 
 ## Gotchas / constraints
 
-- User form fields are `disabled()` + `dehydrated(false)` — they display current values but submit nothing. This prevents accidental overwrites of GitHub-sourced data.
-- The `CreateUser` page class exists in the filesystem but is not registered in `getPages()`. Do not register it — user creation goes through OAuth.
+- User creation goes through OAuth only; `canCreate()` returns `false` and no create/edit page is registered.
 - Filament requires `php artisan filament:optimize` before production deploys for asset compilation.

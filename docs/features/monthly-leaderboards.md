@@ -4,7 +4,7 @@
 
 ## Goal
 
-Give each calendar month its own board with a stable, shareable URL (`scores/monthly/{board}/2026-06`) and month-to-month navigation. A month is a discrete bucket, so — unlike a free date-range picker — there is no recency-decay ambiguity and the result is cheap to precompute and cache.
+Give each calendar month its own board with a stable, shareable URL (`leaderboard/monthly/{board}/2026-06`) and month-to-month navigation. A month is a discrete bucket, so — unlike a free date-range picker — there is no recency-decay ambiguity and the result is cheap to precompute and cache.
 
 ## Scope
 
@@ -30,7 +30,7 @@ Reuse `leaderboard_entries` as-is — **no migration**. The existing `window` co
 - Rolling board rows: `window = 'rolling12'` (unchanged).
 - Monthly rows: `window = 'YYYY-MM'` (e.g. `'2026-06'`).
 
-Unique key stays `(login, board, window)`; `score`, `breakdown`, `rank`, `computed_at` are reused. `github_user_stats` is **not** touched (no engagement signals on monthly boards). Verify an index on `(board, window, rank)` exists for fast reads; add one if not.
+Unique key stays `(login, board, window)`; `score`, `breakdown`, `rank`, `computed_at` are reused. `github_user_stats` is **not** touched (no engagement signals on monthly boards). The read index is `(board, window, score)` (`leaderboard_entries` migration); reads order by `rank` then `score`.
 
 `config/leaderboard.php`:
 
@@ -66,13 +66,13 @@ Recompute all 12 months every run (free — events are in memory). This self-hea
 ## Routes
 
 ```php
-Route::get('scores/monthly/{board}', [ScoreLeaderboardController::class, 'monthlyIndex'])->name('scores.monthly.index'); // → redirect to current month
-Route::get('scores/monthly/{board}/{ym}', [ScoreLeaderboardController::class, 'monthly'])
+Route::get('leaderboard/monthly/{board}', [ScoreLeaderboardController::class, 'monthlyIndex'])->name('leaderboard.monthly.index'); // → redirect to current month
+Route::get('leaderboard/monthly/{board}/{ym}', [ScoreLeaderboardController::class, 'monthly'])
     ->where('ym', '[0-9]{4}-[0-9]{2}')
-    ->name('scores.monthly');
+    ->name('leaderboard.monthly');
 ```
 
-`board ∈ {contributor, maintainer}`. `monthlyIndex` redirects to `scores.monthly` for the current `Y-m`.
+`board ∈ {contributor, maintainer}`. `monthlyIndex` redirects to `leaderboard.monthly` for the current `Y-m`.
 
 ## Controller
 
@@ -88,10 +88,10 @@ Route::get('scores/monthly/{board}/{ym}', [ScoreLeaderboardController::class, 'm
 New `resources/views/leaderboard/score-monthly.blade.php` (reuses the rolling board's row markup — avatar, name + handle, score badge, per-row month-scoped breakdown expansion):
 
 - **Subtitle:** "June 2026 — points earned that month (impact-weighted, no recency decay)."
-- **Month nav:** a horizontal, wrapping list of the 12 months (newest → oldest), current highlighted, each linking to `scores.monthly`; matches the package-maven affordance and is bounded to the 12-month window.
-- **Breakdown** stays (the row's `breakdown` JSON is already month-scoped and accurate). **"Details" drill-down now shipped** (`scores.monthly.detail`, `monthlyDetail()`): it reads the persisted line items, filters by `month`, and sums flat `points_flat`, so it reconciles with the monthly board. This sidesteps the reason it was deferred — the rolling `detail()` couldn't be reused because it applies recency decay anchored to `computed_at`, wrong on both scoring mode and timestamp for a month.
-- **Header h1:** extend `components/header.blade.php` so `scores.monthly` renders "{Board} Leaderboard — {Month Year}".
-- **Discoverability:** add a "Monthly" entry to `_tabs` (links to `scores.monthly.index` for the current board) so the rolling and monthly views cross-link.
+- **Month nav:** a horizontal, wrapping list of the 12 months (newest → oldest), current highlighted, each linking to `leaderboard.monthly`; matches the package-maven affordance and is bounded to the 12-month window.
+- **Breakdown** stays (the row's `breakdown` JSON is already month-scoped and accurate). **"Details" drill-down now shipped** (`leaderboard.monthly.detail`, `monthlyDetail()`): it reads the persisted line items, filters by `month`, and sums flat `points_flat`, so it reconciles with the monthly board. This sidesteps the reason it was deferred — the rolling `detail()` couldn't be reused because it applies recency decay anchored to `computed_at`, wrong on both scoring mode and timestamp for a month.
+- **Header h1:** extend `components/header.blade.php` so `leaderboard.monthly` renders "{Board} Leaderboard — {Month Year}".
+- **Discoverability:** add a "Monthly" entry to `_tabs` (links to `leaderboard.monthly.index` for the current board) so the rolling and monthly views cross-link.
 
 The "How are scores tallied?" modal is reused, but for monthly it must **drop the recency bullet** and state impact still applies — pass a `decay = false` flag into `scoringExplainer()`/the modal partial. The per-action point list (`scoredList`) is unchanged.
 
@@ -109,5 +109,5 @@ The "How are scores tallied?" modal is reused, but for monthly it must **drop th
 - **No decay** means monthly numbers differ from the rolling board by design — label them as month totals.
 - **`months_back` is coupled to `recency.window_days`** (see Data model note).
 - **Late merges/edits** within the 365-day read window are corrected because all 12 months are recomputed each run.
-- **Company monthly and per-month drill-down are explicitly deferred.**
-- **Monthly drill-down is built.** `leaderboard:compute` persists per-contribution line items (`leaderboard_line_items`) carrying both rolling `points` and flat `points_flat` plus the UTC `month`. The rolling `detail()` sums `points` and the monthly `monthlyDetail()` (`scores.monthly.detail`) filters by `month` and sums `points_flat`, so each drill-down reconciles with its board. See [rollout](leaderboard-rollout.md).
+- **Company monthly rollup is explicitly deferred.** (Per-month drill-down is built — see next bullet.)
+- **Monthly drill-down is built.** `leaderboard:compute` persists per-contribution line items (`leaderboard_line_items`) carrying both rolling `points` and flat `points_flat` plus the UTC `month`. The rolling `detail()` sums `points` and the monthly `monthlyDetail()` (`leaderboard.monthly.detail`) filters by `month` and sums `points_flat`, so each drill-down reconciles with its board. See [rollout](leaderboard-rollout.md).

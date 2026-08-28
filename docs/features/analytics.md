@@ -25,7 +25,7 @@ Same as issues, `PrsByMonthController` calls `OpenItemsByMonthQuery` against the
 
 ### Chart API (`/api/charts/{method}`)
 
-`ChartController` dispatches to named methods. Caller passes `{method}` in the URL; controller resolves it to a method call that returns JSON. Used by blade views to load chart data asynchronously.
+`ChartController::dispatch` resolves `{method}` to one of an allowlist of handlers (currently `prAgeOverTime` / `issueAgeOverTime`) that return JSON. **Not yet wired into any view** — the endpoint exists but nothing in `resources/` consumes it today.
 
 ### Universe Bar (`/api/universe-bar`)
 
@@ -63,6 +63,6 @@ Same as issues, `PrsByMonthController` calls `OpenItemsByMonthQuery` against the
 
 ## Gotchas / constraints
 
-- The "Momentum" chart (monthly PR opened/closed) is disabled. `WelcomeController::prsOverTime()` exists but is commented out — do not remove it, it's intentionally preserved for restoration.
+- The "Momentum" chart (monthly PR opened/closed) is disabled. `WelcomeController::prsOverTime()` is live code, but its *call* (and the `monthlyStats`/`dataMissing` view keys) is commented out in `index()` — do not remove the method, it's intentionally preserved for restoration.
 - Homepage counts cache key is `homepage_label_counts`, TTL 1 hour. Clear with `php artisan cache:clear` if counts seem stale after a major sync.
 - Universe bar DDEV bypass: any request whose `Host` contains `ddev.site` is allowed regardless of `Origin`. This is a dev convenience — do not replicate in production.
