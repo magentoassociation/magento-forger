@@ -10,12 +10,13 @@
             <div class="modal-body">
                 @if ($decay)
                     <p class="text-muted small">
-                        Each action earns a base number of points. Every point is then multiplied by a
+                        Each action earns a base number of points, scaled by the issue/PR's
+                        <strong>priority label</strong>. Every point is then multiplied by a
                         <strong>recency factor</strong> that decays over time, so recent work counts for more.
                     </p>
                 @else
                     <p class="text-muted small">
-                        Each action earns a base number of points, scaled by the size of the change.
+                        Each action earns a base number of points, scaled by the issue/PR's priority label.
                         Monthly totals have <strong>no recency decay</strong> — every action within the
                         month counts at full value.
                     </p>
@@ -34,7 +35,7 @@
                                 <td>
                                     {{ $scoring['labels'][$action] ?? \Illuminate\Support\Str::headline($action) }}
                                     @if (in_array($action, $scoring['impactActions'], true))
-                                        <span class="badge text-bg-light border ms-1" title="Scaled by the size of the change">× impact</span>
+                                        <span class="badge text-bg-light border ms-1" title="Scaled by the issue/PR priority label">× priority</span>
                                     @endif
                                 </td>
                                 <td class="text-end"><code>{{ $points }}</code></td>
@@ -52,11 +53,12 @@
                 </p>
 
                 <div class="mb-4">
-                    <p class="mb-1"><strong>Bigger changes count for more.</strong></p>
+                    <p class="mb-1"><strong>Higher-priority work counts for more.</strong></p>
                     <p class="text-muted small mb-2">
-                        Anything tagged <span class="badge text-bg-light border">× impact</span> is scaled by how
-                        many lines it changed, from {{ $scoring['impact']['min'] }}× up to a
-                        {{ $scoring['impact']['max'] }}× cap (the cap stops one huge PR from dominating).
+                        Anything tagged <span class="badge text-bg-light border">× priority</span> is scaled by the
+                        issue/PR's priority label (applied by maintainers). Work with no priority label stays at
+                        1×. Confirmed issues add <strong>+{{ rtrim(rtrim(number_format($scoring['impact']['confirmed_bonus'] ?? 0, 1), '0'), '.') }}</strong>
+                        on top for the person who opened them, up to a {{ $scoring['impact']['max'] }}× cap.
                     </p>
                     <table class="table table-sm align-middle small mb-0">
                         <tbody>
@@ -94,13 +96,13 @@
                 <h6 class="mt-4">Example</h6>
                 <p class="text-muted small mb-0">
                     @if ($board === 'maintainer')
-                        Approving a ~100-line PR that later merges earns
-                        <code>6</code> base × <code>2×</code> impact
-                        @if ($decay) × <code>0.5×</code> recency (≈6 months old) = <strong>6 pts</strong>@else = <strong>12 pts</strong>@endif.
+                        Approving a <code>Priority: P1</code> PR that later merges earns
+                        <code>6</code> base × <code>3×</code> priority
+                        @if ($decay) × <code>0.5×</code> recency (≈6 months old) = <strong>9 pts</strong>@else = <strong>18 pts</strong>@endif.
                     @else
-                        Getting a ~100-line PR merged earns
-                        <code>10</code> base × <code>2×</code> impact
-                        @if ($decay) × <code>0.5×</code> recency (≈6 months old) = <strong>10 pts</strong>@else = <strong>20 pts</strong>@endif.
+                        Getting a <code>Priority: P1</code> PR merged earns
+                        <code>10</code> base × <code>3×</code> priority
+                        @if ($decay) × <code>0.5×</code> recency (≈6 months old) = <strong>15 pts</strong>@else = <strong>30 pts</strong>@endif.
                     @endif
                     The same work today, before any decay, would be worth twice as much.
                 </p>

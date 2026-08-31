@@ -45,7 +45,7 @@ A maintainer who also authors PRs accrues a Contributor Score *and* a Maintainer
 
 ### Required sync additions before build
 
-- **PR size** for impact weighting — ✅ done: `additions`, `deletions`, `changedFiles` added to `github_pull_requests` GraphQL and persisted as `additions`/`deletions`/`changed_files` in `toPullRequestDocument()`. Re-sync PRs to backfill.
+- **Priority labels** for impact weighting — ✅ available: both PR and issue documents already index a `labels` array (`toPullRequestDocument()` / `toIssueDocument()`), which the scorer reads for the `Priority: Px` / `Issue: Confirmed` multipliers. (`additions`/`deletions`/`changed_files` are still indexed but no longer used for scoring.)
 - **Author profile company** to seed org resolution — ✅ done: captured via `author { ... on User { company } }` on the PR and issue queries, persisted as `author_company` on both documents.
 - **(Deferred)** A timeline-events index to event-source label application (#9). Until then, maintainer scoring uses reviews only.
 
@@ -55,33 +55,37 @@ A maintainer who also authors PRs accrues a Contributor Score *and* a Maintainer
 points(event) = base_weight[action] × impact_weight(event) × recency_factor(event_date)
 ```
 
-> **Why multiply instead of add flat values?** The factors are *ratios* — `impact ∈ [1, 5]`, `recency ∈ [0, 1]` — that scale each action relative to its own base weight, and that buys four things a flat `+bonus` can't:
-> - **Action ranking is preserved.** `base × impact` keeps a merged PR (base 10) above an opened issue (base 1) at every impact level. A flat `+impact` bump is the same absolute size for both, so a large issue could out-earn a real merge. `base` encodes how much a *kind* of work matters; `impact` encodes how much of it there is — multiplying keeps neither from overriding the other.
-> - **Bounded, predictable range.** Each action's points stay in a known band (`base` to `5 × base`, decaying toward 0). Flat additions are unbounded and unit-mismatched — `+log10(size)` is not in the same currency as base points, so caps become impossible to reason about.
-> - **Clean composition.** Three independent ratios multiply order-independently, each tunable alone. `recency = 0` correctly zeroes a dead contribution; a flat `+recency` can never zero anything, so a stale typo would still bank points.
-> - **Anti-gaming holds.** Because `impact` is capped at 5, splitting one 400-line PR into ten pays *less* than the single PR. With flat adds each split keeps its full base weight, so splitting still pays.
+> **Why multiply instead of add flat values?** The factors are *ratios* — `impact ∈ [1, 5.5]`, `recency ∈ [0, 1]` — that scale each action relative to its own base weight, and that buys things a flat `+bonus` can't:
+> - **Action ranking is preserved.** `base × impact` keeps a merged PR (base 10) above an opened issue (base 1) at every impact level. A flat `+impact` bump is the same absolute size for both, so a high-priority issue could out-earn a real merge. `base` encodes how much a *kind* of work matters; `impact` (priority) encodes how urgent this instance is — multiplying keeps neither from overriding the other.
+> - **Bounded, predictable range.** Each action's points stay in a known band (`base` to `max × base`, decaying toward 0). Flat additions are unbounded and unit-mismatched, so caps become impossible to reason about.
+> - **Clean composition.** Three independent ratios multiply order-independently, each tunable alone. `recency = 0` correctly zeroes a dead contribution; a flat `+recency` can never zero anything, so a stale contribution would still bank points.
+>
+> The one intentional exception is the confirmed-issue bonus, which is *additive* on top of the priority multiplier — a flat quality bump, kept additive precisely so it can't multiply P0/P1/P2 confirmed issues all into the cap.
 
 Base weights live in **`config/leaderboard.php`** with a `version` integer (bump → recompute). Starting defaults:
 
 | Action | Base weight |
 |---|---|
 | Issue opened (1) | 1 |
-| PR opened (2) | 3 |
+| PR opened (2) | 2 |
 | PR merged — author bonus (3) | 10 |
 | Issue resolved by merged PR — author bonus (4) | 4 |
 | Review approved (5) | 3 |
 | Review rejected (6) | 3 |
 | Review commented (7) | 1 |
 | Approved-then-merged — approver bonus (8) | 6 |
+| Label applied — triage (9) | 1 |
+| Claimed & reviewed a pending-review PR (11) | 2 |
 
-**Impact weight** — `1.0` for all non-PR events. For PR merge bonuses (#3, #8), scale by size so a 400-line fix outweighs a typo and PR-splitting doesn't pay:
+**Impact weight** — from the issue/PR's **priority labels**, not lines of code. Applied to every issue/PR event (issue opened, PR opened, PR merged, issue-resolved-by-merge, and the approver's approved-then-merged bonus). The highest `Priority: Px` label on the item sets the multiplier; unlabeled work stays at `1.0` (so it still earns its base). Issues additionally carrying the confirmed label get an additive bonus, but only on `issue_opened` (rewarding the person who filed a bug a maintainer later confirmed). The sum is clamped to `[min, max]`.
 
 ```
-size   = additions + deletions
-impact = clamp(1 + log10(max(size, 1)) / 2, 1.0, 5.0)
+priority_mult = max(priority[label] for label in labels, default 1.0)
+confirmed     = (issue_opened and "Issue: Confirmed" in labels) ? confirmed_bonus : 0
+impact        = clamp(priority_mult + confirmed, min, max)
 ```
 
-Optionally add a small additive bump when `labels` include hot components (config-driven allowlist), capped so impact never exceeds 5.0.
+Config (`config/leaderboard.php` → `impact`): `Priority: P0..P4` → `3.5 / 3.0 / 2.5 / 2.0 / 1.5`, `confirmed_bonus` `2.0`, `min` `1.0`, `max` `5.5` (so `P0 + confirmed = 5.5` is the true ceiling). See `LeaderboardScorer::impactFromLabels()`. Priority labels are applied by **maintainers**, so a contributor can't self-inflate their own multiplier.
 
 **Recency factor** — rolling 12-month window with a 6-month half-life, so dormant leaders fade and returning contributors climb fast:
 
@@ -157,7 +161,7 @@ org_leaderboard_entries               # precomputed company scores
 ## Anti-gaming
 
 - Big points require a **merge**, not just opening a PR (#3, #8).
-- Impact weight is **capped at 5.0** → splitting one PR into ten pays less than one solid PR.
+- Impact comes from **maintainer-applied priority labels**, capped at 5.5 → a contributor can't self-inflate their multiplier, and unprioritised work stays at 1×.
 - Bot exclusion reuses the existing list (`engcom-*`, `dependabot[bot]`, `github-actions[bot]`, `m2-assistant`), applied in the compute job.
 - Decay stops anyone (or any org) camping the top after going quiet.
 - **(Planned)** a per-login `excluded` flag (set in Filament, Drupal-style) to remove bad actors from all score boards — not built yet; only the bot list above is enforced today.

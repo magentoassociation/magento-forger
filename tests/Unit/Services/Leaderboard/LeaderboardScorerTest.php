@@ -107,11 +107,39 @@ class LeaderboardScorerTest extends TestCase
         );
     }
 
-    public function testImpactFromSizeFloorsAndCaps(): void
+    public function testImpactFromLabelsUsesPriorityConfirmedAndClamp(): void
     {
-        $this->assertSame(1.0, LeaderboardScorer::impactFromSize(0, 0));
-        $this->assertSame(5.0, LeaderboardScorer::impactFromSize(100_000_000, 100_000_000));
-        $this->assertGreaterThan(1.0, LeaderboardScorer::impactFromSize(200, 200));
+        $priority = [
+            'Priority: P0' => 3.5,
+            'Priority: P1' => 3.0,
+            'Priority: P4' => 1.5,
+        ];
+
+        // No priority label → base 1.0 (unprioritised work still counts).
+        $this->assertSame(1.0, LeaderboardScorer::impactFromLabels(['bug'], $priority, 'Issue: Confirmed', 2.0, false));
+
+        // Highest matching priority wins when several are present.
+        $this->assertSame(3.5, LeaderboardScorer::impactFromLabels(
+            ['Priority: P4', 'Priority: P0'], $priority, 'Issue: Confirmed', 2.0, false,
+        ));
+
+        // Confirmed adds only when allowed (issue-opened); ignored otherwise.
+        $this->assertSame(5.0, LeaderboardScorer::impactFromLabels(
+            ['Priority: P1', 'Issue: Confirmed'], $priority, 'Issue: Confirmed', 2.0, true,
+        ));
+        $this->assertSame(3.0, LeaderboardScorer::impactFromLabels(
+            ['Priority: P1', 'Issue: Confirmed'], $priority, 'Issue: Confirmed', 2.0, false,
+        ));
+
+        // Confirmed with no priority → 1.0 + bonus.
+        $this->assertSame(3.0, LeaderboardScorer::impactFromLabels(
+            ['Issue: Confirmed'], $priority, 'Issue: Confirmed', 2.0, true,
+        ));
+
+        // Clamp to max (P0 + confirmed = 5.5).
+        $this->assertSame(5.5, LeaderboardScorer::impactFromLabels(
+            ['Priority: P0', 'Issue: Confirmed'], $priority, 'Issue: Confirmed', 2.0, true, 1.0, 5.5,
+        ));
     }
 
     public function testSummarizeKeepsRolesSeparateWithBreakdown(): void

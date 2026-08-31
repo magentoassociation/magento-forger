@@ -15,7 +15,6 @@ use App\Models\LeaderboardEntry;
 use App\Models\LeaderboardLineItem;
 use App\Models\OrgLeaderboardEntry;
 use App\Models\RoleEligibility;
-use App\Services\Leaderboard\LeaderboardScorer;
 use App\Support\MonthlyWindow;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
@@ -222,7 +221,7 @@ class ScoreLeaderboardController extends Controller
             'labels' => collect(Action::cases())
                 ->mapWithKeys(fn (Action $action): array => [$action->value => $action->label()])
                 ->all(),
-            'impactActions' => ['pr_merged', 'issue_resolved_by_merge', 'approved_then_merged'],
+            'impactActions' => ['issue_opened', 'pr_opened', 'pr_merged', 'issue_resolved_by_merge', 'approved_then_merged'],
             'scoredList' => $this->humanJoin($scored),
             'decay' => $decay,
             'impactExamples' => $this->impactExamples($impact),
@@ -231,25 +230,24 @@ class ScoreLeaderboardController extends Controller
     }
 
     /**
-     * Worked "size → multiplier" rows for the impact (complexity) explainer, run
-     * through the real scorer so the modal can never drift from the formula.
+     * "Priority label → multiplier" rows for the impact explainer, read straight
+     * from config so the modal can never drift from the configured priorities.
+     * The trailing row shows the unlabeled default.
      *
-     * @param  array{min: int|float, max: int|float}  $impact
+     * @param  array{priority?: array<string, int|float>}  $impact
      * @return list<array{label: string, factor: float}>
      */
     private function impactExamples(array $impact): array
     {
-        $min = (float) $impact['min'];
-        $max = (float) $impact['max'];
+        $rows = [];
 
-        return array_map(fn (array $row): array => [
-            'label' => $row['label'],
-            'factor' => round(LeaderboardScorer::impactFromSize($row['lines'], 0, $min, $max), 1),
-        ], [
-            ['label' => 'a small fix (~10 lines)', 'lines' => 10],
-            ['label' => 'a medium change (~100 lines)', 'lines' => 100],
-            ['label' => 'a large change (~1,000 lines)', 'lines' => 1000],
-        ]);
+        foreach ((array) ($impact['priority'] ?? []) as $label => $multiplier) {
+            $rows[] = ['label' => $label, 'factor' => (float) $multiplier];
+        }
+
+        $rows[] = ['label' => 'No priority label', 'factor' => 1.0];
+
+        return $rows;
     }
 
     /**
@@ -341,14 +339,14 @@ class ScoreLeaderboardController extends Controller
             return null;
         }
 
-        // points_flat = base × impact; points = points_flat × recency.
-        $sizeFactor = $item->points_flat / $base;
+        // points_flat = base × priority; points = points_flat × recency.
+        $priorityFactor = $item->points_flat / $base;
         $recency = $item->points / $item->points_flat;
 
         $parts = [$this->trimNumber($base).' base'];
 
-        if (abs($sizeFactor - 1.0) >= 0.05) {
-            $parts[] = '× '.$this->trimNumber(round($sizeFactor, 1)).'× impact';
+        if (abs($priorityFactor - 1.0) >= 0.05) {
+            $parts[] = '× '.$this->trimNumber(round($priorityFactor, 1)).'× priority';
         }
 
         if (abs($recency - 1.0) >= 0.05) {

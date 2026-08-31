@@ -16,7 +16,7 @@ Give each calendar month its own board with a stable, shareable URL (`leaderboar
 
 A monthly score is **`Σ weight × impact`** for the events whose event-date falls in that calendar month — **with recency decay turned off**. The month *is* the window, so decaying toward "now" makes no sense and would make closed months drift every run.
 
-- **Impact weighting is kept** (a 400-line PR still outscores a typo; the cap still prevents PR-splitting).
+- **Impact weighting is kept** (a `Priority: P0` item still outscores an unlabeled one; the cap still bounds it) — sourced from priority labels, same as the rolling board.
 - **Bucketing is by event date in UTC** (`date->format('Y-m')`), matching how timestamps are indexed. Document the UTC choice; a contribution near a month boundary lands deterministically.
 - **Merge bonuses bucket by the merge event's date**, so a PR opened in May and merged in June contributes `pr_opened` to May and the `pr_merged` author bonus to June. That is the intended behaviour, and it matches activity-date bucketing.
 - **Same weights, same `Action` enum, same self-review exclusion, same eligibility gating and bot filtering** — events are gated/filtered exactly once (as today) before being bucketed, so a monthly board can never include an action the rolling board would have rejected.

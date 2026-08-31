@@ -178,7 +178,7 @@ class ScoreLeaderboardControllerTest extends TestCase
 
     public function testDetailShowsPointsBreakdownTooltip(): void
     {
-        // pr_merged base is 10. Flat 20 → 2x impact; decayed 11 → 0.55x recency.
+        // pr_merged base is 10. Flat 20 → 2x priority; decayed 11 → 0.55x recency.
         LeaderboardLineItem::create([
             'login' => 'jane',
             'board' => 'contributor',
@@ -194,7 +194,7 @@ class ScoreLeaderboardControllerTest extends TestCase
         $this->get(route('leaderboard.detail', ['board' => 'contributor', 'login' => 'jane']))
             ->assertOk()
             ->assertSee('data-bs-toggle="tooltip"', false)
-            ->assertSee('10 base × 2× impact × 0.55× recency = 11 pts');
+            ->assertSee('10 base × 2× priority × 0.55× recency = 11 pts');
     }
 
     public function testDetailOmitsTooltipWhenPointsCannotBeDecomposed(): void

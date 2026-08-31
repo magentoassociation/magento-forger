@@ -32,21 +32,47 @@ class ScoredEventReader
     {
         $events = [];
         $impactMin = (float) config('leaderboard.impact.min', 1.0);
-        $impactMax = (float) config('leaderboard.impact.max', 5.0);
+        $impactMax = (float) config('leaderboard.impact.max', 5.5);
+        $priority = (array) config('leaderboard.impact.priority', []);
+        $confirmedLabel = (string) config('leaderboard.impact.confirmed_label', '');
+        $confirmedBonus = (float) config('leaderboard.impact.confirmed_bonus', 0.0);
         $repo = (string) config('github.repo');
 
-        // Contributor: PRs opened
+        // Impact from an item's priority labels (see LeaderboardScorer). Confirmed
+        // bonus is only granted where $allowConfirmed — the issue-opened event.
+        $impactFn = function (array $labels, bool $allowConfirmed) use (
+            $priority,
+            $confirmedLabel,
+            $confirmedBonus,
+            $impactMin,
+            $impactMax,
+        ): float {
+            return LeaderboardScorer::impactFromLabels(
+                $labels,
+                $priority,
+                $confirmedLabel,
+                $confirmedBonus,
+                $allowConfirmed,
+                $impactMin,
+                $impactMax,
+            );
+        };
+
+        // Contributor: PRs opened. Not gated on merge — contributors don't control
+        // merging (Adobe does), so a good PR sitting in the queue still earns the
+        // open credit. The pr_merged bonus stacks on top once it lands.
         $this->scroll(
             OpenSearchService::OPENSEARCH_GITHUB_PULL_REQUESTS_INDEX,
             $this->rangeQuery('created_at', $from, $to),
-            ['author', 'created_at', 'title', 'url'],
-            function (array $source) use (&$events): void {
+            ['author', 'created_at', 'title', 'url', 'labels'],
+            function (array $source) use (&$events, $impactFn): void {
                 if (! empty($source['author']) && ! empty($source['created_at'])) {
                     $events[] = new ScoredEvent(
                         $source['author'],
                         Board::CONTRIBUTOR,
                         Action::PR_OPENED,
                         Carbon::parse($source['created_at']),
+                        $impactFn($source['labels'] ?? [], false),
                         title: $source['title'] ?? null,
                         url: $source['url'] ?? null,
                     );
@@ -58,15 +84,10 @@ class ScoredEventReader
         $this->scroll(
             OpenSearchService::OPENSEARCH_GITHUB_PULL_REQUESTS_INDEX,
             $this->rangeQuery('merged_at', $from, $to, [['term' => ['state.keyword' => 'MERGED']]]),
-            ['author', 'merged_at', 'created_at', 'additions', 'deletions', 'title', 'url'],
-            function (array $source) use (&$events, $impactMin, $impactMax): void {
+            ['author', 'merged_at', 'created_at', 'labels', 'title', 'url'],
+            function (array $source) use (&$events, $impactFn): void {
                 if (! empty($source['author']) && ! empty($source['merged_at'])) {
-                    $impact = LeaderboardScorer::impactFromSize(
-                        (int) ($source['additions'] ?? 0),
-                        (int) ($source['deletions'] ?? 0),
-                        $impactMin,
-                        $impactMax,
-                    );
+                    $impact = $impactFn($source['labels'] ?? [], false);
                     // Attribute org credit to the authoring date, not merged_at,
                     // which can land months later under a different employer.
                     $attributionDate = empty($source['created_at']) ? null : Carbon::parse($source['created_at']);
@@ -88,14 +109,15 @@ class ScoredEventReader
         $this->scroll(
             OpenSearchService::OPENSEARCH_GITHUB_ISSUES_INDEX,
             $this->rangeQuery('created_at', $from, $to),
-            ['author', 'created_at', 'title', 'url'],
-            function (array $source) use (&$events): void {
+            ['author', 'created_at', 'title', 'url', 'labels'],
+            function (array $source) use (&$events, $impactFn): void {
                 if (! empty($source['author']) && ! empty($source['created_at'])) {
                     $events[] = new ScoredEvent(
                         $source['author'],
                         Board::CONTRIBUTOR,
                         Action::ISSUE_OPENED,
                         Carbon::parse($source['created_at']),
+                        $impactFn($source['labels'] ?? [], true),
                         title: $source['title'] ?? null,
                         url: $source['url'] ?? null,
                     );
@@ -107,8 +129,8 @@ class ScoredEventReader
         $this->scroll(
             OpenSearchService::OPENSEARCH_GITHUB_ISSUES_INDEX,
             $this->rangeQuery('closed_at', $from, $to, [['term' => ['closed_by_merged_pr' => true]]]),
-            ['author', 'closed_at', 'created_at', 'title', 'url'],
-            function (array $source) use (&$events): void {
+            ['author', 'closed_at', 'created_at', 'title', 'url', 'labels'],
+            function (array $source) use (&$events, $impactFn): void {
                 if (! empty($source['author']) && ! empty($source['closed_at'])) {
                     // Attribute org credit to when the issue was opened, not its
                     // close date, which can fall under a later employer.
@@ -118,7 +140,7 @@ class ScoredEventReader
                         Board::CONTRIBUTOR,
                         Action::ISSUE_RESOLVED_BY_MERGE,
                         Carbon::parse($source['closed_at']),
-                        1.0,
+                        $impactFn($source['labels'] ?? [], false),
                         $attributionDate,
                         title: $source['title'] ?? null,
                         url: $source['url'] ?? null,
@@ -159,7 +181,7 @@ class ScoredEventReader
             }
         );
 
-        $events = array_merge($events, $this->reviewEvents($reviews, $impactMin, $impactMax, $repo));
+        $events = array_merge($events, $this->reviewEvents($reviews, $impactFn, $repo));
 
         // Maintainer: triage (labels applied to issues and PRs)
         $events = array_merge($events, $this->labelAppliedEvents($from, $to, $repo));
@@ -321,16 +343,17 @@ class ScoredEventReader
      *     state: string,
      *     submitted_at: string
      * }>  $reviews
+     * @param  callable(list<string>, bool): float  $impactFn
      * @return list<ScoredEvent>
      */
-    private function reviewEvents(array $reviews, float $impactMin, float $impactMax, string $repo = ''): array
+    private function reviewEvents(array $reviews, callable $impactFn, string $repo = ''): array
     {
         if ($reviews === []) {
             return [];
         }
 
         $prNumbers = array_values(array_unique(array_column($reviews, 'pr_number')));
-        $prs = $this->pullRequestsInfo($prNumbers, $impactMin, $impactMax);
+        $prs = $this->pullRequestsInfo($prNumbers, $impactFn);
 
         $events = [];
         foreach ($reviews as $review) {
@@ -371,11 +394,14 @@ class ScoredEventReader
 
     /**
      * Author, merge status and impact for the given PRs, keyed by PR number.
+     * Impact is the PR's priority-label multiplier (no confirmed bonus — that is
+     * issue-only), so an approver's merge bonus scales with the PR's priority.
      *
      * @param  list<int|string>  $prNumbers
+     * @param  callable(list<string>, bool): float  $impactFn
      * @return array<int|string, array{author: string|null, merged: bool, impact: float}>
      */
-    private function pullRequestsInfo(array $prNumbers, float $impactMin, float $impactMax): array
+    private function pullRequestsInfo(array $prNumbers, callable $impactFn): array
     {
         $info = [];
 
@@ -386,7 +412,7 @@ class ScoredEventReader
                 ),
                 'body' => [
                     'size' => count($chunk),
-                    '_source' => ['id', 'author', 'state', 'additions', 'deletions'],
+                    '_source' => ['id', 'author', 'state', 'labels'],
                     'query' => ['bool' => ['filter' => [['terms' => ['id' => $chunk]]]]],
                 ],
             ]);
@@ -400,12 +426,7 @@ class ScoredEventReader
                 $info[$source['id']] = [
                     'author' => $source['author'] ?? null,
                     'merged' => ($source['state'] ?? null) === 'MERGED',
-                    'impact' => LeaderboardScorer::impactFromSize(
-                        (int) ($source['additions'] ?? 0),
-                        (int) ($source['deletions'] ?? 0),
-                        $impactMin,
-                        $impactMax,
-                    ),
+                    'impact' => $impactFn($source['labels'] ?? [], false),
                 ];
             }
         }

@@ -36,8 +36,6 @@ class ContributionDetailReader
     {
         $items = [];
         $repo = (string) config('github.repo');
-        $impactMin = (float) config('leaderboard.impact.min', 1.0);
-        $impactMax = (float) config('leaderboard.impact.max', 5.0);
 
         $openedPullRequests = $this->search(
             OpenSearchService::OPENSEARCH_GITHUB_PULL_REQUESTS_INDEX,
@@ -64,21 +62,18 @@ class ContributionDetailReader
             'merged_at',
             $from,
             $to,
-            ['title', 'url', 'merged_at', 'additions', 'deletions'],
+            ['title', 'url', 'merged_at'],
             [['term' => ['state.keyword' => 'MERGED']]],
         );
         foreach ($mergedPullRequests as $s) {
-            $impact = LeaderboardScorer::impactFromSize(
-                (int) ($s['additions'] ?? 0),
-                (int) ($s['deletions'] ?? 0),
-                $impactMin,
-                $impactMax,
-            );
+            // This reader is only used to find the earliest in-window item's
+            // date/title/url (comeback / first-contribution links); the impact
+            // value is never read, so it stays at the neutral 1.0.
             $items[] = new ContributionItem(
                 Board::CONTRIBUTOR,
                 Action::PR_MERGED,
                 Carbon::parse($s['merged_at']),
-                $impact,
+                1.0,
                 $s['title'] ?? '',
                 $s['url'] ?? '',
             );
@@ -167,8 +162,7 @@ class ContributionDetailReader
         CarbonInterface $to,
         array $source,
         array $extraFilters = []
-    ): array
-    {
+    ): array {
         $query = [
             'bool' => [
                 'filter' => array_merge([

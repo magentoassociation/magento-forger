@@ -44,15 +44,37 @@ class LeaderboardScorer
     }
 
     /**
-     * Impact weight from PR size, clamped to [min, max]. A typo and a 400-line
-     * change should not be worth the same, but the cap prevents PR-splitting farming.
+     * Impact weight from a contribution's labels, clamped to [min, max]. The
+     * highest matching "Priority: Px" label sets the multiplier (1.0 when the
+     * item carries none, so unprioritised work still earns its base); an issue's
+     * confirmed label adds a flat bonus on top, but only when $allowConfirmed
+     * (the issue-authoring event). Replaces the old lines-of-code heuristic so
+     * impact tracks triaged priority, not diff size, and can't be self-inflated.
+     *
+     * @param  list<string>  $labels
+     * @param  array<string, float|int>  $priority  label => multiplier
      */
-    public static function impactFromSize(int $additions, int $deletions, float $min = 1.0, float $max = 5.0): float
-    {
-        $size = max($additions + $deletions, 1);
-        $impact = 1.0 + (log10($size) / 2);
+    public static function impactFromLabels(
+        array $labels,
+        array $priority,
+        string $confirmedLabel,
+        float $confirmedBonus,
+        bool $allowConfirmed,
+        float $min = 1.0,
+        float $max = 5.5,
+    ): float {
+        $multiplier = 1.0;
+        foreach ($labels as $label) {
+            if (isset($priority[$label])) {
+                $multiplier = max($multiplier, (float) $priority[$label]);
+            }
+        }
 
-        return max($min, min($max, $impact));
+        if ($allowConfirmed && $confirmedLabel !== '' && in_array($confirmedLabel, $labels, true)) {
+            $multiplier += $confirmedBonus;
+        }
+
+        return max($min, min($max, $multiplier));
     }
 
     public function recencyFactor(CarbonInterface $date, CarbonInterface $now): float

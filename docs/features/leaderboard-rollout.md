@@ -70,7 +70,7 @@ Living checklist for the weighted contributor/maintainer leaderboard. Source-of-
 - **Recency**: 365-day window, 182-day half-life.
 - **Monthly window**: `monthly.months_back` (default 12) — how many trailing calendar months are built/served/linked. Coupled to `recency.window_days`: the compute job only reads events from the last 365 days, so raising `months_back` much past 12 would under-fill the oldest month unless `recency.window_days` is raised too.
 - **Rising window**: `rising.window_days` (default 7) — the timeframe the "Rising" delta is measured over, against `github_score_snapshots`. `rising.retention_days` (default 60) bounds the snapshot table. Each `leaderboard:compute` records one snapshot per contributor, so the window only means a true N days once `compute` runs at least daily. Until N days of history exist, the baseline is 0 and everyone shows their full score as their gain.
-- **Impact**: `1 + log10(additions + deletions) / 2`, clamped [1, 5].
+- **Impact**: priority-label multipliers in `config('leaderboard.impact')` — `Priority: P0..P4` → 3.5/3.0/2.5/2.0/1.5, `Issue: Confirmed` → +2.0 (issue-opened only), unlabeled → 1.0, clamped [1, 5.5]. Applied to every issue/PR event. (Replaced the old lines-of-code `log10` heuristic.)
 - **`current_streak_weeks`**: anchored to now with a 1-week grace; remove the grace for strict behavior.
 - **Comments** are intentionally **not** scored (gaming risk) — open decision.
 - **`author_company`** is free-text GitHub profile data (unreliable) — a seed for org resolution, not a key; manual mapping is the intended source of truth.
