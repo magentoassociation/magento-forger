@@ -44,9 +44,9 @@ return [
     'weights' => [
         'contributor' => [
             'issue_opened' => 1,
-            'pr_opened' => 2,              // encourage contributing; merging is out of the contributor's control
-            'pr_merged' => 10,             // author bonus, multiplied by impact
-            'issue_resolved_by_merge' => 4,
+            'pr_opened' => 2,               // PR: encourage contributing; merging is out of the contributor's control
+            'pr_merged' => 10,              // PR only: author bonus, multiplied by impact
+            'issue_resolved_by_merge' => 4, // Issue
         ],
         'maintainer' => [
             'review_approved' => 3,
@@ -55,6 +55,7 @@ return [
             'approved_then_merged' => 6,   // bonus, multiplied by impact, when an approved PR merges
             'pr_claimed' => 2,             // flat bonus for self-assigning (and then reviewing) a pending-review PR
             'label_applied' => 1,          // triage: applying a label (deduped per actor/target/label)
+            // todo: put back the old PR?
         ],
     ],
 

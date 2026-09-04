@@ -96,13 +96,15 @@
                 <h6 class="mt-4">Example</h6>
                 <p class="text-muted small mb-0">
                     @if ($board === 'maintainer')
-                        Approving a <code>Priority: P1</code> PR that later merges earns
-                        <code>6</code> base × <code>3×</code> priority
-                        @if ($decay) × <code>0.5×</code> recency (≈6 months old) = <strong>9 pts</strong>@else = <strong>18 pts</strong>@endif.
+                        When a <code>Priority: P1</code> PR you approved later merges, the
+                        <strong>merge bonus</strong> alone earns <code>6</code> base × <code>3×</code> priority
+                        @if ($decay) × <code>0.5×</code> recency (≈6 months old) = <strong>9 pts</strong>@else = <strong>18 pts</strong>@endif,
+                        on top of the points for the approval itself.
                     @else
-                        Getting a <code>Priority: P1</code> PR merged earns
-                        <code>10</code> base × <code>3×</code> priority
-                        @if ($decay) × <code>0.5×</code> recency (≈6 months old) = <strong>15 pts</strong>@else = <strong>30 pts</strong>@endif.
+                        When a <code>Priority: P1</code> PR you opened merges, the author
+                        <strong>merge bonus</strong> alone earns <code>10</code> base × <code>3×</code> priority
+                        @if ($decay) × <code>0.5×</code> recency (≈6 months old) = <strong>15 pts</strong>@else = <strong>30 pts</strong>@endif,
+                        on top of the points for opening it.
                     @endif
                     The same work today, before any decay, would be worth twice as much.
                 </p>
