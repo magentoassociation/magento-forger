@@ -18,7 +18,7 @@ class MainMenu
 {
     // All nav links temporarily hidden — only the logo shows in the navbar.
     // Restore the pattern below to bring the menu back.
-    private const MENU_ROUTE_PATTERN = '/^(home|leaderboard\.index|issues|prs|labels|employment)(\.[\w]+)?$/';
+    private const MENU_ROUTE_PATTERN = '/^(home|leaderboard\.index|issues|prs|employment)(\.[\w]+)?$/';
 
     public static function build(): Menu
     {

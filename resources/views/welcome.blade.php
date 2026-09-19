@@ -114,7 +114,7 @@
                 <li>Set up your
                     <a href="{{ $links['dev_setup'] }}" target="_blank" rel="noopener">development environment</a>
                 </li>
-                <li><a href="#choose-how">Claim an issue above</a> and open your first PR</li>
+                <li><a href="{{ collect($paths)->firstWhere('cta', 'Browse Ready for Work')['url'] ?? '#choose-how' }}" target="_blank" rel="noopener">Claim an issue</a> and open your first PR</li>
             </ol>
         </div>
     </section>

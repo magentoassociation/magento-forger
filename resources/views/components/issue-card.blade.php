@@ -32,8 +32,8 @@
     @endif
 
     @if ($cta)
-        <a href="{{ $href }}" class="text-primary fw-medium mt-3">{{ $cta }} →</a>
+        <a href="{{ $href }}" target="_blank" rel="noopener" class="text-primary fw-medium mt-3">{{ $cta }} →</a>
     @else
-        <a href="{{ $href }}" class="stretched-link" aria-label="{{ $title }}"></a>
+        <a href="{{ $href }}" target="_blank" rel="noopener" class="stretched-link" aria-label="{{ $title }}"></a>
     @endif
 </div>

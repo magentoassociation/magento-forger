@@ -30,9 +30,8 @@ class ScoreLeaderboardControllerTest extends TestCase
 
         $this->withoutVite();
 
-        // The leaderboard is public. Most scenarios run as an admin, who — like
-        // maintainers and council members — sees the full maintainer roster;
-        // the public-visibility rules are covered by their own tests.
+        // Most scenarios run as an admin, who sees the full maintainer roster;
+        // public-visibility rules have their own tests.
         $this->actingAs(User::factory()->create(['is_admin' => true]));
     }
 
@@ -399,7 +398,6 @@ class ScoreLeaderboardControllerTest extends TestCase
             'computed_at' => now(),
         ]);
 
-        // Public viewer: only maintainers who are actually scoring.
         $this->get(route('leaderboard.show', ['board' => 'maintainer']))
             ->assertOk()
             ->assertSee('activemaintainer')
