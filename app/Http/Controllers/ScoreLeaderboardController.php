@@ -49,7 +49,7 @@ class ScoreLeaderboardController extends Controller
         }
 
         $entries = $board === 'maintainer'
-            ? $this->maintainerRows()
+            ? $this->maintainerRows((bool) auth()->user()?->canViewFullMaintainerBoard())
             : LeaderboardEntry::query()
                 ->where('board', $board)
                 ->where('window', 'rolling12')
@@ -418,9 +418,13 @@ class ScoreLeaderboardController extends Controller
      * maintainer, even with a zero score — and excludes non-roster reviewers.
      * Falls back to "everyone with a maintainer score" when no roster is set.
      *
+     * $includeZeros keeps idle (zero-score) maintainers on the list; it's true
+     * for admins, maintainers, and community council members and false for the
+     * public, who only see maintainers who are actually scoring.
+     *
      * @return Collection<int, object>
      */
-    private function maintainerRows(): Collection
+    private function maintainerRows(bool $includeZeros): Collection
     {
         $roster = RoleEligibility::query()->where('role', 'maintainer')->get(['login', 'active']);
 
@@ -449,6 +453,9 @@ class ScoreLeaderboardController extends Controller
                 'score' => (float) (optional($scores->get($member->login))->score ?? 0.0),
                 'breakdown' => optional($scores->get($member->login))->breakdown ?? [],
             ])
+            ->when(! $includeZeros, fn (Collection $rows): Collection => $rows->filter(
+                fn (object $row): bool => $row->score > 0,
+            ))
             ->sortBy([['active', 'desc'], ['score', 'desc']])
             ->values();
     }

@@ -18,7 +18,7 @@ class MainMenu
 {
     // All nav links temporarily hidden — only the logo shows in the navbar.
     // Restore the pattern below to bring the menu back.
-    private const MENU_ROUTE_PATTERN = '/^(home|leaderboard\.index|issues|prs|labels|employment)(\.[\w]+)?$/';
+    private const MENU_ROUTE_PATTERN = '/^(home|leaderboard\.index|issues|prs|employment)(\.[\w]+)?$/';
 
     public static function build(): Menu
     {
@@ -27,17 +27,6 @@ class MainMenu
         $routes = collect(Route::getRoutes())
             ->filter(fn (\Illuminate\Routing\Route $route): bool => self::hasNoRequiredParameters($route))
             ->filter(fn (\Illuminate\Routing\Route $route): bool => in_array('GET', $route->methods(), true))
-            ->filter(function (\Illuminate\Routing\Route $route): bool {
-                $adminOnlyRoutes = [
-                    'leaderboard.index',
-                ];
-                $name = $route->getName();
-                if (in_array($name, $adminOnlyRoutes, true)) {
-                    return auth()->check() && auth()->user()->is_admin == 1;
-                }
-
-                return true;
-            })
             ->map(fn ($route) => $route->getName())
             ->filter(fn ($name) => preg_match(self::MENU_ROUTE_PATTERN, $name));
 

@@ -37,7 +37,8 @@
             <div class="col-12 col-lg-4">
                 <div class="bg-white p-4 shadow rounded-xl h-100">
                     <h4 class="text-lg font-medium mb-2">Get recognized</h4>
-                    <p class="text-gray-600 mb-0">Every merged PR moves you up the contributor leaderboard.</p>
+                    <p class="text-gray-600 mb-0">Every merged PR moves you up the
+                        <a href="{{ route('leaderboard.show', ['board' => 'contributor']) }}">contributor leaderboard</a>.</p>
                 </div>
             </div>
         </div>
@@ -113,7 +114,7 @@
                 <li>Set up your
                     <a href="{{ $links['dev_setup'] }}" target="_blank" rel="noopener">development environment</a>
                 </li>
-                <li><a href="#choose-how">Claim an issue above</a> and open your first PR</li>
+                <li><a href="{{ collect($paths)->firstWhere('cta', 'Browse Ready for Work')['url'] ?? '#choose-how' }}" target="_blank" rel="noopener">Claim an issue</a> and open your first PR</li>
             </ol>
         </div>
     </section>

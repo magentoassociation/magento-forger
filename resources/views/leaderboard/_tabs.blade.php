@@ -6,6 +6,7 @@
 @endphp
 <ul class="nav nav-tabs mb-4">
     @foreach ($boards as $key => $label)
+        @continue($key === 'company') {{-- Company board hidden from nav; route still works if visited directly. --}}
         <li class="nav-item">
             <a class="nav-link {{ (! $onMonthly && ! request()->routeIs('leaderboard.highlights') && ($board ?? null) === $key) ? 'active' : '' }}"
                href="{{ route('leaderboard.show', ['board' => $key]) }}">
