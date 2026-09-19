@@ -473,7 +473,7 @@ class ScoreLeaderboardController extends Controller
             ->get()
             ->groupBy('organization_id')
             ->map(fn (Collection $group): object => (object) [
-                'organization' => optional($group->first()->organization)->name ?? 'Unknown',
+                'organization' => optional($group->first()->organization)->name ?? 'Unclaimed',
                 'contributor_score' => (float) (optional($group->firstWhere('board', 'contributor'))->score ?? 0),
                 'maintainer_score' => (float) (optional($group->firstWhere('board', 'maintainer'))->score ?? 0),
                 'member_count' => (int) $group->max('member_count'),

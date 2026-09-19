@@ -14,9 +14,9 @@ Route::get('/', [Controllers\WelcomeController::class, 'index'])->name('home');
 Route::get('/api/universe-bar', [Controllers\UniverseBarController::class, 'render']);
 Route::get('/api/charts/{method}', [Controllers\ChartController::class, 'dispatch']);
 
-// Registered before the old routes so the nav lists Leaderboard right after Home
-// (menu order follows registration order). Public — the maintainer board hides
-// idle (zero-score) maintainers from the public (see the controller).
+// Leaderboard — public, and listed right after Home in the nav (menu order
+// follows registration order). The maintainer board hides idle (zero-score)
+// maintainers from the public; maintainers/council members see the full roster.
 Route::get('leaderboard', [Controllers\ScoreLeaderboardController::class, 'index'])->name('leaderboard.index');
 Route::get('leaderboard/highlights', [Controllers\ScoreLeaderboardController::class, 'highlights'])->name('leaderboard.highlights');
 Route::get('leaderboard/monthly/{board}', [Controllers\ScoreLeaderboardController::class, 'monthlyIndex'])->name('leaderboard.monthly.index');

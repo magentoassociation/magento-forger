@@ -11,11 +11,11 @@
         </p>
         <div class="d-flex gap-3 justify-content-center flex-wrap">
             <a href="#choose-how" class="btn btn-primary btn-lg">Find an issue to work on →</a>
-{{--            @guest--}}
-{{--                <a href="{{ route('github_login') }}" class="btn btn-outline-primary btn-lg">--}}
-{{--                    <i class="fab fa-github"></i> Login with GitHub--}}
-{{--                </a>--}}
-{{--            @endguest--}}
+            @guest
+                <a href="{{ route('github_login') }}" class="btn btn-outline-primary btn-lg">
+                    <i class="fab fa-github"></i> Login with GitHub
+                </a>
+            @endguest
         </div>
     </section>
 
@@ -124,11 +124,11 @@
         <h3 class="text-2xl font-semibold mb-4">Ready to ship your first fix?</h3>
         <div class="d-flex gap-3 justify-content-center flex-wrap">
             <a href="#choose-how" class="btn btn-primary btn-lg">Find an issue →</a>
-{{--            @guest--}}
-{{--                <a href="{{ route('github_login') }}" class="btn btn-outline-primary btn-lg">--}}
-{{--                    <i class="fab fa-github"></i> Login with GitHub--}}
-{{--                </a>--}}
-{{--            @endguest--}}
+            @guest
+                <a href="{{ route('github_login') }}" class="btn btn-outline-primary btn-lg">
+                    <i class="fab fa-github"></i> Login with GitHub
+                </a>
+            @endguest
         </div>
     </section>
 @endsection
