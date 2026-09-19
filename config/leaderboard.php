@@ -158,10 +158,8 @@ return [
             'lfolco',
             'sprankhub',
             'IvanChepurnyi',
-            'jissereitsma',
             'rhoerr',
             'furan917',
-            'nithinterrific',
         ],
     ],
 
