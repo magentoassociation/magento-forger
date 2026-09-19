@@ -81,4 +81,23 @@ class User extends Authenticatable implements FilamentUser
     {
         return (bool) $this->getAttribute('is_admin');
     }
+
+    /**
+     * Whether this user may see the full maintainer board — every maintainer,
+     * including idle ones with a zero score. The public sees only scoring
+     * maintainers; admins, maintainers, and community council members see all.
+     */
+    public function canViewFullMaintainerBoard(): bool
+    {
+        if ($this->is_admin) {
+            return true;
+        }
+
+        return $this->github_username !== null
+            && RoleEligibility::query()
+                ->whereIn('role', ['maintainer', 'community-council'])
+                ->where('active', true)
+                ->where('login', $this->github_username)
+                ->exists();
+    }
 }

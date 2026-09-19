@@ -6,8 +6,9 @@
             <div class="col-12">
                 <p class="text-muted mb-1">
                     Ranked by the last 12 months of activity — recent work and bigger changes count for more.
-                    Points come from {{ $scoring['scoredList'] }}.
+                    Points come from {{ $scoring['scoredList'] }}. Note that scores are subject to change.
                 </p>
+
                 <button type="button" class="btn btn-link btn-sm p-0" data-bs-toggle="modal" data-bs-target="#scoringModal">
                     How are scores tallied?
                 </button>

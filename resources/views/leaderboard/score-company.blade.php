@@ -8,7 +8,7 @@
                     How organizations stack up over the past year, adding up the same work that earns
                     individual points — opening and merging PRs, filing issues, reviews, and triage.
                     Each contribution is credited to the company the person was with at the time; anyone
-                    whose company we don't know is grouped under &ldquo;Unknown&rdquo;.
+                    whose company we don't know is grouped under &ldquo;Unclaimed&rdquo;.
                 </p>
             </div>
         </div>

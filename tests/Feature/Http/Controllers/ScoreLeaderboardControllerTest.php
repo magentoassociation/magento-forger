@@ -30,22 +30,24 @@ class ScoreLeaderboardControllerTest extends TestCase
 
         $this->withoutVite();
 
-        // Leaderboard is admin-only; every scenario below runs as an admin.
+        // The leaderboard is public. Most scenarios run as an admin, who — like
+        // maintainers and council members — sees the full maintainer roster;
+        // the public-visibility rules are covered by their own tests.
         $this->actingAs(User::factory()->create(['is_admin' => true]));
     }
 
-    public function testGuestIsRedirectedHome(): void
+    public function testGuestCanViewLeaderboard(): void
     {
         auth()->logout();
 
-        $this->get(route('leaderboard.index'))->assertRedirect(route('home'));
+        $this->get(route('leaderboard.show', ['board' => 'contributor']))->assertOk();
     }
 
-    public function testNonAdminIsForbidden(): void
+    public function testNonAdminCanViewLeaderboard(): void
     {
         $this->actingAs(User::factory()->create(['is_admin' => false]));
 
-        $this->get(route('leaderboard.index'))->assertForbidden();
+        $this->get(route('leaderboard.show', ['board' => 'contributor']))->assertOk();
     }
 
     public function testIndexRedirectsToContributorBoard(): void
@@ -380,6 +382,56 @@ class ScoreLeaderboardControllerTest extends TestCase
             // Details links only for non-zero scores.
             ->assertSee(route('leaderboard.detail', ['board' => 'maintainer', 'login' => 'activemaintainer']))
             ->assertDontSee(route('leaderboard.detail', ['board' => 'maintainer', 'login' => 'idlemaintainer']));
+    }
+
+    public function testPublicMaintainerBoardHidesIdleMaintainers(): void
+    {
+        auth()->logout();
+
+        RoleEligibility::create(['login' => 'idlemaintainer', 'role' => 'maintainer']);
+        RoleEligibility::create(['login' => 'activemaintainer', 'role' => 'maintainer']);
+        LeaderboardEntry::create([
+            'login' => 'activemaintainer',
+            'board' => 'maintainer',
+            'window' => 'rolling12',
+            'score' => 9.0,
+            'rank' => 1,
+            'computed_at' => now(),
+        ]);
+
+        // Public viewer: only maintainers who are actually scoring.
+        $this->get(route('leaderboard.show', ['board' => 'maintainer']))
+            ->assertOk()
+            ->assertSee('activemaintainer')
+            ->assertDontSee('idlemaintainer');
+    }
+
+    public function testMaintainerViewerSeesIdleMaintainers(): void
+    {
+        $this->actingAs(User::factory()->create([
+            'is_admin' => false,
+            'github_username' => 'someviewer',
+        ]));
+        RoleEligibility::create(['login' => 'someviewer', 'role' => 'maintainer']);
+        RoleEligibility::create(['login' => 'idlemaintainer', 'role' => 'maintainer']);
+
+        $this->get(route('leaderboard.show', ['board' => 'maintainer']))
+            ->assertOk()
+            ->assertSee('idlemaintainer');
+    }
+
+    public function testCouncilViewerSeesIdleMaintainers(): void
+    {
+        $this->actingAs(User::factory()->create([
+            'is_admin' => false,
+            'github_username' => 'councilperson',
+        ]));
+        RoleEligibility::create(['login' => 'councilperson', 'role' => 'community-council']);
+        RoleEligibility::create(['login' => 'idlemaintainer', 'role' => 'maintainer']);
+
+        $this->get(route('leaderboard.show', ['board' => 'maintainer']))
+            ->assertOk()
+            ->assertSee('idlemaintainer');
     }
 
     public function testMonthlyIndexRedirectsToCurrentMonth(): void

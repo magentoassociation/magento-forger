@@ -325,7 +325,7 @@ class ComputeLeaderboardScores extends Command implements Isolatable
      * org_leaderboard_entries. Unresolved contributors fall under "Independent /
      * Unknown".
      *
-     * @param  list<\App\DataTransferObjects\Leaderboard\ScoredEvent>  $events
+     * @param  list<ScoredEvent>  $events
      */
     private function computeCompanyScores(array $events, Carbon $now): void
     {
@@ -341,9 +341,11 @@ class ComputeLeaderboardScores extends Command implements Isolatable
             return;
         }
 
-        $independent = Organization::firstOrCreate(
+        // updateOrCreate (not firstOrCreate) so an existing bucket row created
+        // under the old "Unknown" name gets corrected on the next compute run.
+        $independent = Organization::updateOrCreate(
             ['slug' => 'unknown'],
-            ['name' => 'Unknown', 'type' => 'unknown'],
+            ['name' => 'Unclaimed', 'type' => 'unknown'],
         );
 
         // Merge by final organization id (the unknown bucket maps to Independent).
