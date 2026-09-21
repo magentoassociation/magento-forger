@@ -15,78 +15,95 @@
     <link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:ital,wght@0,100..900;1,100..900&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    @include('components._chrome-styles')
     @stack('head')
 </head>
-<body class="bg-gray-100 text-gray-900 font-sans min-h-screen flex flex-col">
-@include('components.universe-bar')
-<nav class="navbar navbar-expand-lg navbar-primary bg-primary" data-bs-theme="dark">
+<body>
+<div class="chrome-hairline"></div>
+<nav class="navbar navbar-expand-lg site-nav" data-bs-theme="dark">
     <div class="container">
-        <a class="navbar-brand fs-5" href="/">
-            <img src="{{ asset('assets/logo_magento_soul_white.svg') }}" alt="Logo" width="32" height="32" style="margin-top: -3px;">
-            <span class="fw-light">Magento Open Source</span> Forger
+        <a class="navbar-brand site-brand" href="/">
+            <img class="brand-mark" src="{{ asset('assets/logo_magento_soul_white.svg') }}" alt="" width="30" height="30">
+            <span class="brand-word"><span class="w1">Magento Open Source </span><span class="w2">Forger</span></span>
         </a>
+
+        {{-- Login / account stays visible outside the collapse on mobile --}}
+        <div class="site-endgroup order-lg-last ms-lg-3">
+            @auth
+                @php
+                    $acctUser = Auth::user();
+                    $acctLogin = $acctUser->github_username;
+                    $acctName = $acctUser->name ?: $acctLogin;
+                    $acctWords = preg_split('/\s+/', trim((string) $acctName)) ?: [];
+                    $acctInitials = collect($acctWords)->filter()->take(2)
+                        ->map(fn ($w) => mb_strtoupper(mb_substr($w, 0, 1)))->implode('')
+                        ?: mb_strtoupper(mb_substr((string) $acctName, 0, 2));
+                @endphp
+                <div class="dropdown">
+                    <button type="button" class="acct-chip" data-bs-toggle="dropdown" data-bs-display="static"
+                            aria-expanded="false" aria-haspopup="menu" aria-label="Account menu, {{ $acctName }}">
+                        <span class="acct-avatar">
+                            <span class="acct-avatar-initials">{{ $acctInitials }}</span>
+                            @if ($acctLogin)
+                                <img src="https://avatars.githubusercontent.com/{{ $acctLogin }}?s=52"
+                                     alt="" width="26" height="26" onerror="this.remove()">
+                            @endif
+                        </span>
+                        <span class="acct-name">{{ $acctName }}</span>
+                        <span class="acct-caret" aria-hidden="true">▾</span>
+                    </button>
+                    <div class="dropdown-menu dropdown-menu-end acct-menu">
+                        <div class="acct-head">
+                            <span class="acct-head-name">{{ $acctName }}</span>
+                            @if ($acctLogin)<span class="acct-head-handle">{{ '@'.$acctLogin }}</span>@endif
+                        </div>
+                        @if ($acctLogin)
+                            <a class="acct-item" href="{{ route('leaderboard.detail', ['board' => 'contributor', 'login' => $acctLogin]) }}">My Contributions</a>
+                        @endif
+                        @if ($acctUser->is_admin)
+                            <a class="acct-item" href="/admin">Admin</a>
+                        @endif
+                        <form action="{{ route('logout') }}" method="POST">
+                            @csrf
+                            <button type="submit" class="acct-item acct-logout">Logout</button>
+                        </form>
+                    </div>
+                </div>
+            @endauth
+            @guest
+                <a href="{{ route('github_login') }}" class="site-login"><i class="fab fa-github"></i> Login with GitHub</a>
+            @endguest
+        </div>
+
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent"
                 aria-controls="navbarSupportedContent" aria-expanded="false"
                 aria-label="Toggle navigation"><span class="navbar-toggler-icon"></span></button>
+
         <div class="collapse navbar-collapse" id="navbarSupportedContent">
             {!! $mainMenu !!}
 
-            {{-- Account area (login / logout / username / admin / companies) temporarily hidden,
-                 leaving only the logo in the navbar. Remove this comment wrapper to restore it. --}}
-            <div class="navbar-nav ms-auto align-items-lg-center">
-                <hr class="d-lg-none text-white my-2">
-
-                @auth
-                    <div class="nav-item text-center text-lg-start mb-2 mb-lg-0 me-lg-3">
-                        <span class="navbar-text text-white" title="{{ Auth::user()->name }} ({{ Auth::user()->github_username }})">
-                            <span class="d-none d-lg-inline text-truncate d-inline-block" style="max-width: 250px;">
-                                {{ Auth::user()->name }} ({{ Auth::user()->github_username }})
-                            </span>
-                            <span class="d-lg-none">
-                                {{ Auth::user()->name }}<br>
-                                <small class="text-white-50">({{ Auth::user()->github_username }})</small>
-                            </span>
-                        </span>
-                    </div>
-
-                    <div class="d-flex justify-content-center justify-content-lg-start gap-2 flex-wrap">
-                        @if(Auth::user()->is_admin)
-                            <a href="/admin" class="btn btn-sm btn-outline-light">
-                                <i class="fas fa-cog"></i> Admin
-                            </a>
-                        @endif
-
-{{--                        @if(Auth::user()->companies()->exists())--}}
-{{--                            <a href="{{ route('company-owner.index') }}" class="btn btn-sm btn-outline-light">--}}
-{{--                                <i class="fas fa-building"></i> My Companies--}}
-{{--                            </a>--}}
-{{--                        @endif--}}
-
-                        <form action="{{ route('logout') }}" method="POST" class="d-inline">
-                            @csrf
-                            <button type="submit" class="btn btn-sm btn-outline-light">
-                                <i class="fas fa-sign-out-alt"></i> Logout
-                            </button>
-                        </form>
-                    </div>
-                @endauth
-
-                @guest
-                    <div class="nav-item text-center text-lg-start">
-                        <a href="{{ route('github_login') }}" class="btn btn-sm btn-outline-light">
-                            <i class="fab fa-github"></i> Login with GitHub
-                        </a>
-                    </div>
-                @endguest
-            </div>
+            {{-- Utility links (former grey-bar links), mono --}}
+            <ul class="navbar-nav ms-lg-auto site-utility">
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Ecosystem</a>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="https://magentoassociation.org" target="_blank" rel="noopener">Magento Association</a></li>
+                        <li><a class="dropdown-item" href="https://meet-magento.com" target="_blank" rel="noopener">Meet Magento</a></li>
+                        <li><a class="dropdown-item" href="https://magento-opensource.com" target="_blank" rel="noopener">Magento Open Source</a></li>
+                        <li><a class="dropdown-item" href="https://github.com/magento/magento2" target="_blank" rel="noopener">GitHub</a></li>
+                    </ul>
+                </li>
+            </ul>
         </div>
     </div>
 </nav>
-@unless (request()->routeIs('home'))
+
+@unless (request()->routeIs('home', 'leaderboard.detail', 'leaderboard.monthly.detail'))
     @include('components.header')
 @endunless
 
-<main role="main" class="flex-grow container mx-auto pt-4 px-3 px-md-4 pb-4 transition-all duration-300 ease-in-out mb-4">
+@php ($isFullBleed = request()->routeIs('home', 'leaderboard.detail', 'leaderboard.monthly.detail'))
+<main role="main" class="{{ $isFullBleed ? '' : 'container mx-auto pb-4 mb-4' }}">
     @yield('content')
 </main>
 

@@ -1,19 +1,44 @@
 @extends('layouts.app')
 
-@section('content')
-    <div class="container">
-        <div class="row mb-3">
-            <div class="col-12">
-                <p class="text-muted mb-1">
-                    Ranked by the last 12 months of activity — recent work and bigger changes count for more.
-                    Points come from {{ $scoring['scoredList'] }}. Note that scores are subject to change.
-                </p>
+@php
+    use App\DataTransferObjects\Leaderboard\Action;
 
-                <button type="button" class="btn btn-link btn-sm p-0" data-bs-toggle="modal" data-bs-target="#scoringModal">
-                    How are scores tallied?
-                </button>
-            </div>
-        </div>
+    // PR / issue counts for the contribution count link, drawn from the same
+    // breakdown that feeds the score tooltip.
+    $countLabel = function (array $breakdown): string {
+        $prs = (int) ($breakdown['pr_opened']['count'] ?? 0);
+        $issues = (int) ($breakdown['issue_opened']['count'] ?? 0);
+        $parts = [];
+        if ($prs > 0) {
+            $parts[] = number_format($prs).' PR'.($prs === 1 ? '' : 's');
+        }
+        if ($issues > 0) {
+            $parts[] = number_format($issues).' '.\Illuminate\Support\Str::plural('issue', $issues);
+        }
+
+        return $parts ? implode(' · ', $parts) : 'See contributions';
+    };
+
+    // Two-letter initials for the avatar placeholder shown until the real
+    // GitHub image loads (or if it fails).
+    $initials = function (string $name): string {
+        $words = preg_split('/\s+/', trim($name)) ?: [];
+        $letters = collect($words)->filter()->take(2)->map(fn ($w) => mb_strtoupper(mb_substr($w, 0, 1)));
+
+        return $letters->implode('') ?: mb_strtoupper(mb_substr($name, 0, 2));
+    };
+@endphp
+
+@section('content')
+    <div class="lb">
+        <p class="lb-intro">
+            Ranked by the last 12 months of activity — recent work and bigger changes count for more.
+            Points come from {{ $scoring['scoredList'] }}. Note that scores are subject to change.
+        </p>
+
+        <button type="button" class="lb-tallied" data-bs-toggle="modal" data-bs-target="#scoringModal">
+            How are scores tallied?
+        </button>
 
         @include('leaderboard._tabs')
 
@@ -22,55 +47,66 @@
                 No scores yet. Run <code>artisan leaderboard:compute</code> to populate.
             </div>
         @else
-            <div class="table-responsive">
-                <table class="table table-hover align-middle">
-                    <thead class="table-light">
-                        <tr>
-                            <th style="width: 60px">#</th>
-                            <th>{{ $boards[$board] }}</th>
-                            <th class="text-end">Score</th>
-                            <th class="text-end" style="width: 260px"></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach ($entries as $i => $entry)
-                            <tr>
-                                <td class="text-muted">{{ $entry->rank ?? $i + 1 }}</td>
-                                <td>
-                                    @php($profile = $profiles->get($entry->login))
-                                    <img src="{{ $profile?->avatar_url ?: 'https://github.com/'.$entry->login.'.png?size=48' }}"
-                                         alt="" width="24" height="24" class="rounded-circle me-2" loading="lazy"
-                                         onerror="this.style.display='none'">
-                                    <a href="https://github.com/{{ $entry->login }}" target="_blank" rel="noopener noreferrer" class="text-decoration-none fw-medium">
-                                        {{ $profile?->name ?: $entry->login }}
-                                    </a>
-                                    @if ($profile?->name)
-                                        <span class="text-muted small">{{ '@'.$entry->login }}</span>
-                                    @endif
+            <div class="lb-card">
+                <div class="lb-row lb-head">
+                    <span>#</span>
+                    <span>{{ $boards[$board] }}</span>
+                    <span class="lb-score-col">Score</span>
+                </div>
+
+                @foreach ($entries as $i => $entry)
+                    @php
+                        $profile = $profiles->get($entry->login);
+                        $name = $profile?->name ?: $entry->login;
+                        $breakdown = $entry->breakdown ?? [];
+                        $hasBreakdown = ! empty($breakdown);
+                    @endphp
+                    <div class="lb-row">
+                        <span class="lb-rank">{{ $entry->rank ?? $i + 1 }}</span>
+
+                        <span class="lb-contributor">
+                            <a href="https://github.com/{{ $entry->login }}" target="_blank" rel="noopener"
+                               class="lb-avatar" title="GitHub profile — {{ $name }}"
+                               aria-label="GitHub profile — {{ $name }}">
+                                <span class="lb-avatar-initials">{{ $initials($name) }}</span>
+                                <img src="https://avatars.githubusercontent.com/{{ $entry->login }}?s=68"
+                                     alt="" width="34" height="34" loading="lazy"
+                                     onerror="this.remove()">
+                            </a>
+                            <span class="lb-namewrap">
+                                <span class="lb-nameline">
+                                    <span class="lb-name">{{ $name }}</span>
+                                    <span class="lb-handle">{{ '@'.$entry->login }}</span>
                                     @if (($entry->active ?? true) === false)
-                                        <span class="badge text-bg-secondary ms-1" title="No longer on the maintainer team">Inactive</span>
+                                        <span class="badge text-bg-secondary" title="No longer on the maintainer team">Inactive</span>
                                     @endif
-                                </td>
-                                <td class="text-end">
-                                    @php($breakdownTitle = collect($entry->breakdown)->map(fn ($detail, $action) => e(\App\DataTransferObjects\Leaderboard\Action::labelFor($action)).' &mdash; '.number_format($detail['count'] ?? 0).'&times; &rarr; '.number_format($detail['points'] ?? 0, 1).' pts')->implode('<br>'))
-                                    <span class="badge text-bg-success rounded-pill"
-                                        @if (! empty($entry->breakdown)) data-bs-toggle="tooltip" data-bs-html="true" data-bs-custom-class="breakdown-tooltip" data-bs-title="{!! $breakdownTitle !!}" style="cursor: help;" @endif>
-                                        {{ number_format($entry->score, 1) }}
-                                    </span>
-                                </td>
-                                <td class="text-end">
-                                    <div class="d-flex gap-2 justify-content-end flex-nowrap">
-                                        @if ($entry->score > 0)
-                                            <a href="{{ route('leaderboard.detail', ['board' => $board, 'login' => $entry->login]) }}" class="btn btn-sm btn-outline-primary text-nowrap">
-                                                Details
-                                            </a>
-                                        @endif
-                                    </div>
-                                </td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
+                                </span>
+                                @if ($entry->score > 0)
+                                    <a href="{{ route('leaderboard.detail', ['board' => $board, 'login' => $entry->login]) }}"
+                                       class="lb-count">{{ $countLabel($breakdown) }}</a>
+                                @endif
+                            </span>
+                        </span>
+
+                        <span class="lb-score-cell">
+                            <span class="lb-score {{ $hasBreakdown ? 'lb-score-has-tip' : '' }}" @if ($hasBreakdown) tabindex="0" @endif>
+                                {{ number_format($entry->score, 1) }}
+                            </span>
+                            @if ($hasBreakdown)
+                                <span class="lb-tip" role="tooltip">
+                                    @foreach ($breakdown as $action => $detail)
+                                        <span class="lb-tip-line">
+                                            <span class="lb-tip-label">{{ Action::labelFor($action) }}</span>
+                                            <span class="lb-tip-count">{{ number_format($detail['count'] ?? 0) }}×</span>
+                                            <span class="lb-tip-pts">{{ number_format($detail['points'] ?? 0, 1) }} pts</span>
+                                        </span>
+                                    @endforeach
+                                    <span class="lb-tip-arrow"></span>
+                                </span>
+                            @endif
+                        </span>
+                    </div>
+                @endforeach
             </div>
         @endif
     </div>
@@ -78,14 +114,6 @@
     @include('leaderboard._scoring-modal')
 @endsection
 
-@push('scripts')
-    <style>
-        .breakdown-tooltip .tooltip-inner {
-            max-width: none;
-            white-space: nowrap;
-        }
-    </style>
-    <script>
-        document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => new bootstrap.Tooltip(el));
-    </script>
+@push('head')
+    @include('leaderboard._lb-styles')
 @endpush

@@ -1,7 +1,4 @@
 @php
-    // The Monthly tab tracks the current board when it has a monthly variant
-    // (contributor/maintainer); otherwise it defaults to the contributor board.
-    $monthlyBoard = in_array($board ?? null, ['contributor', 'maintainer'], true) ? $board : 'contributor';
     $onMonthly = request()->routeIs('leaderboard.monthly') || request()->routeIs('leaderboard.monthly.index');
 @endphp
 <ul class="nav nav-tabs mb-4">
@@ -15,7 +12,7 @@
         </li>
     @endforeach
     <li class="nav-item">
-        <a class="nav-link {{ $onMonthly ? 'active' : '' }}" href="{{ route('leaderboard.monthly.index', ['board' => $monthlyBoard]) }}">
+        <a class="nav-link {{ $onMonthly ? 'active' : '' }}" href="{{ route('leaderboard.monthly.index', ['board' => 'contributor']) }}">
             Monthly
         </a>
     </li>
