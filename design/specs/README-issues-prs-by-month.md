@@ -127,6 +127,29 @@ The thresholds are absolute, not relative to the page, so the same count means t
 both pages and across years. If PR volumes drift far from these ranges, re-derive the thresholds
 once and apply the same set to both pages.
 
+**Verified against real data (Sep 2026).** Across 2024, 2025 and 2026 to date — 33 months,
+range 6 to 107 — the buckets fill 8 / 14 / 7 / 2 / 2 from palest to hottest. Every step is used
+and none holds half the data, so the scale stands as written. Expect 2025 to render nearly
+uniformly pale (6–21, mostly low teens), 2024 a step warmer, and 2026 to climb into the top two
+buckets from June onward (42, 73, 98, 107) — the growth is real and the colour should show it.
+Re-check if a year ever exceeds ~150 in a month, which would need a sixth step.
+
+## Narrow widths
+
+Drawn at 420px in `#24e`.
+
+The timeline keeps all three years side by side at every width — comparing them is the point of
+the page, and height carries the value, so the bars survive narrowing. The bar row height drops from
+124px to 88px; `gap` stays 2px and the scale recomputes against the same `max`. Year block `gap` drops from 14px to 10px, and the year label and total stay
+stacked under their block.
+
+The month picker is the one thing that reflows: `repeat(12, 1fr)` becomes `repeat(4, 1fr)`,
+a 4×3 grid that keeps each tile above the 44px touch target and keeps a full year on one screen.
+Tile padding and type are unchanged. Future months keep their greyed tile — the distinction
+between "nothing happened" and "hasn't happened" matters more at small sizes, not less.
+
+The intro block and the caption release their `max-width` and run the container gutter (20px).
+
 ## Accessibility
 
 - Empty-month text is `#6b7178` — 4.9:1 on `#f7f8f9`, 5.3:1 on white. Do not lighten it; the grey

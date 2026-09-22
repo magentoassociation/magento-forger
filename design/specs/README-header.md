@@ -341,9 +341,15 @@ All tokens are the header's. No new values.
 
 ## Footer responsive
 
+Drawn at 420px at the foot of `#24a`.
+
 Below the Bootstrap `lg` breakpoint the row stacks: CTA block first, then the two link columns
 side by side, then the legal strip. Padding drops to `28px 20px 24px`. The heading may drop to
 20px; nothing else changes.
+
+The two columns stay side by side at every width — they carry four and five short links, so
+collapsing them to one column doubles the footer's height and gains nothing. `gap` drops from
+56px to 24px and each column becomes `flex: 1`.
 
 ## Out of scope
 Primary-nav dropdown menu interiors (Issues ▾, PRs ▾) are unchanged.

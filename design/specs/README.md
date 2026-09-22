@@ -1,26 +1,43 @@
-# Handoff: Contributor Leaderboard — typography refresh
+# Handoff: Forger leaderboard refresh
 
 ## Overview
-A typographic refresh of the Contributor Leaderboard page on Magento Open Source Forger
-(`/leaderboard/contributor`). The data, columns and page copy are unchanged. What changes is
-the typeface pairing, the type scale, two link affordances, and one removed column.
+A redesign of the Magento Open Source Forger leaderboard and the pages around it. It began as a
+typographic refresh of `/leaderboard/contributor` and grew to cover the homepage, the header
+and footer, the detail pages, the monthly views, and the scoring explanations.
 
-Approved direction: **6a — Libre Franklin (sans) + Martian Mono (mono)**.
+Approved type direction: **Libre Franklin (sans) + Martian Mono (mono)**, applied throughout.
 
 ## About the design files
 `../Leaderboard Type Directions.dc.html`, one level up from this folder, is a **design reference
-written in HTML** —
-a prototype showing the intended look and behaviour. It is not production code to copy.
-The Forger is a Laravel/Blade + Bootstrap app; the task is to reproduce the specification below
-in that codebase using its existing template and CSS conventions.
+written in HTML** — a prototype showing the intended look and behaviour. It is not production
+code to copy. The Forger is a Laravel/Blade + Bootstrap app; the task is to reproduce the
+specifications in this folder in that codebase, using its existing template and CSS conventions.
 
-The file contains six turns of exploration, newest first. **Only turn 6 (`#6a`) is the approved
-design.** Turns 1–5 are earlier options, kept for context; ignore them when implementing.
+The prototype is organised in numbered turns, newest first. Every option still in the file is an
+approved direction — rejected explorations have been removed — so anything you can see is
+something to build. Options are referenced by id throughout these specs: `#21a` is the
+contributor board, `#19b` the contributor scoring modal, and so on.
+
+## Where to find things
+
+| Spec | Covers | Prototype |
+|---|---|---|
+| `README.md` (this file) | Type scale, design tokens, capitalisation, the contributor table | `#6a` |
+| `README-header.md` | Dark masthead, nav, account chip, footer | `#11a` `#12a` `#24a` |
+| `README-homepage.md` | Hero, live top-five card, area grid, first-timer steps | `#15a` `#24d` |
+| `README-leaderboard-pages.md` | All three boards: control strip, search, jump, pagination, loading, hover, narrow widths | `#21a` `#21b` `#21c` `#22a` `#22b` `#22c` `#23a` `#23b` `#23c` `#24a` `#25a` `#25b` |
+| `README-detail-page.md` | Contributor and maintainer detail, all four states | `#17a` `#17b` `#17c` `#18a` `#24b` |
+| `README-scoring-modal.md` | Both scoring modals, and the tallied button rule | `#19a` `#19b` `#24c` |
+| `README-how-scores-work.md` | Standalone scoring page, both boards side by side | `#20a` |
+| `README-highlights.md` | Spotlight, Comebacks, Rising, Recently Active | `#8b` |
+| `README-issues-prs-by-month.md` | Both by-month timelines, colour thresholds, month picker | `#14b` `#24e` |
+
+Three rules are stated once and apply everywhere: **capitalisation** (below), **focus rings**
+and **hover states** (both in `README-leaderboard-pages.md`).
 
 ## Fidelity
-**High-fidelity** for typography, colour and spacing — the values below are exact and should be
-matched. The surrounding page chrome (top utility bar, orange masthead, footer) was not part of
-this exercise and is unchanged.
+**High-fidelity** for typography, colour and spacing — the values in these specs are exact and
+should be matched.
 
 Two things in the prototype are placeholders:
 - **Avatars** are grey rounded squares with initials. In production use the real GitHub avatar
@@ -139,17 +156,41 @@ Note the parent table card must **not** have `overflow: hidden`, or the tooltip 
 - Count link → existing contributor detail page (the old Details destination).
 - Score hover/focus → tooltip in, tooltip out on leave/blur. No transition in the prototype;
   a 100ms fade is fine.
-- Row hover: none in 6a. (Turn 4 explored a whole-row-clickable variant, `#4a`, and an
-  expand-in-place variant, `#4c`, if you later want to revisit.)
-- Responsive: not specified in this exercise. The prototype is fixed at 980px.
-  At narrow widths the sensible collapse is to drop the handle onto its own line and
-  right-align the score under the name block.
+- Row hover: background `#faf9f7`, with the name link turning `#ee6524`. Every hover state on
+  these pages is tabulated in one place — see `#25b` and *Hover states* in
+  `README-leaderboard-pages.md`.
+- Responsive: drawn at 420px in `#24a`, specified under *Narrow widths* in
+  `README-leaderboard-pages.md`. The activity column drops below roughly 700px and the handle
+  moves under the name; rank and score keep their positions.
 
 ### State management
 One piece of UI state only: which row's score tooltip is open (`hoveredRank | null`).
 No data fetching changes — same payload as today.
 
 ---
+
+## Capitalisation
+
+**Title case for page names. Sentence case for everything a person reads as a sentence.**
+
+Title case is for strings that name a destination — the page H1s and the tab and nav labels
+that point at them: "Contributor Leaderboard", "Maintainer Leaderboard", "Monthly Leaderboard",
+"Open Issues by Month", "Open Pull Requests by Month", "Leaderboard Highlights", "How Scores
+Work". If it is a page and something links to it by name, it is title case, and the H1 and the
+link must match exactly.
+
+Sentence case is for everything else: section H2s ("Where the work is"), modal titles ("How
+contributor scores are tallied"), every button ("See the leaderboard", "Show 25 more", "Jump to
+my rank", "Try again", "Join our Slack"), every link ("How are scores tallied?"), captions,
+empty states, and all body copy. Buttons are sentence case without exception — a button is an
+instruction, not a name.
+
+Mono eyebrows, column headers and month chips are a third case: always uppercase with
+`letter-spacing: .06em`. That is a typographic treatment, not a capitalisation decision, so the
+rule above does not apply to them — the underlying string is still written sentence case.
+
+Proper nouns keep their own casing anywhere they appear: Magento Open Source, Mage-OS, Slack,
+GitHub, Magento Association.
 
 ## Design tokens
 

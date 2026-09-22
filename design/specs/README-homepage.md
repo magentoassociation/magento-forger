@@ -154,17 +154,18 @@ border.
 - Avatar slot: 26×26 circle, `border: 1px dashed #4a5057`, no fill.
 - Label: "Your row is empty" — Libre Franklin 600, 13.5px, colour `#f9a279`.
 - Score: "0.0" — Martian Mono 400, 12px, `#9aa3ae`.
-- Caption below, `margin: 6px 0 0 55px` (aligned to the name column), Libre Franklin 400, 12px,
-  `line-height: 1.5`, `#9aa3ae`, `text-wrap: pretty`: "Your score starts with your first
-  contribution." It may wrap to two lines inside the card; that is fine, and the card grows to
-  fit rather than the caption shrinking.
+- The invitation sits **on the same line as the empty row**, immediately after "Your row is
+  empty" with a 9px gap, not on a caption line below it — two lines for one message made the
+  empty state taller than a ranked row. Libre Franklin 400, 12.5px,
+  `#9aa3ae`, hovering to `#fff`: "Get on the board →". It is a link to the contributor board. At
+  narrow widths it wraps under the name rather than compressing the score.
 
 This row is the mechanism the whole page turns on, and it has three states:
 
 | State | Rank | Avatar | Label | Score | Caption |
 |---|---|---|---|---|---|
-| Signed out | `—` | dashed circle | "Your row is empty" | `0.0` | "Your score starts with your first contribution." |
-| Signed in, no scoring activity in the window | `—` | the user's GitHub avatar | the user's name | `0.0` | "Your score starts with your first contribution." |
+| Signed out | `—` | dashed circle | "Your row is empty" | `0.0` | "Get on the board →" |
+| Signed in, no scoring activity in the window | `—` | the user's GitHub avatar | the user's name | `0.0` | "Get on the board →" |
 | Signed in, ranked outside the top five | real rank, zero-padded, `#f26322` | avatar | name, `#ffffff` | real score, `#ffffff` 700 | "Your rank over the last 12 months." |
 
 In the third state the row links to the user's own detail page and `#f26322` on the rank is what
@@ -177,7 +178,7 @@ Never render the row empty or hidden when signed out — the empty state is the 
 The caption deliberately names no threshold and no specific action. Earlier drafts read "One
 merged PR puts you on the board", which is both unsafe (merging is not in the contributor's
 hands, and the number of PRs needed to rank shifts as the board moves) and an invitation to work
-the minimum. "Your score starts with your first contribution" names the trigger without quoting a price.
+the minimum. "Get on the board →" invites the action without quoting a price.
 If this ever needs to be more specific, link "How scores work" rather than naming a number.
 
 Because the window rolls, a contributor who stops contributing falls off it. Do not add copy
@@ -329,6 +330,8 @@ secondary. No mono in any headline or body paragraph.
 
 ## Responsive
 
+Drawn at 420px in `#24d`.
+
 Below the Bootstrap `lg` breakpoint:
 - The hero stacks: text column, then the leaderboard card, `gap: 30px`. Hero padding drops to
   `34px 20px 38px`; H1 to 36px; the body's `max-width` is released.
@@ -336,8 +339,10 @@ Below the Bootstrap `lg` breakpoint:
 - The area grid collapses to one column; the 1px-gap rule technique still applies.
 - The first-timer block stacks: heading block, then the three steps in a column with
   `border-left` swapped for `border-top: 1px solid #e6e7ea` and `padding: 14px 0 0`.
-- The leaderboard card keeps all five rows plus the visitor's row at every width. Do not truncate
-  it to three.
+- The leaderboard card drops to the **top three** plus the visitor's row below `lg`. At five
+  rows the hero pushes the CTAs and everything under them off a phone screen; three is enough to
+  read as a ranking. The visitor's row is never dropped at any width — it is the pitch. Long
+  names truncate with an ellipsis rather than wrapping.
 
 ## Out of scope
 The leaderboard, detail and by-month pages (their own specs). Signed-in account menu. The

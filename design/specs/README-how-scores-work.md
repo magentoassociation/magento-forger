@@ -14,7 +14,7 @@ container width, leaving the right half of the page empty top to bottom.
 
 - The formula (base × priority × recency) is stated once, directly under the intro.
 - The two boards sit **side by side**, each showing only what differs between them: its action
-  rows and its worked example.
+  rows and its example.
 - The multiplier stack appears **once**, full width, below both boards, labelled "Identical on
   both boards".
 - Content runs the full container width.
@@ -70,7 +70,7 @@ Each column contains, in order:
 3. **Action rows** — exactly as specified in `README-scoring-modal.md` § *1 · Base points*,
    including the `× PRIORITY` tag treatment. Contributor rows and maintainer rows are unchanged
    from the modals.
-4. **Worked example panel** — the modal's dark panel, scaled down for the narrower column:
+4. **Example panel** — the modal's dark panel, scaled down for the narrower column:
    `margin-top: 18px`, `padding: 16px 18px`, `border-radius: 9px`, background `#15171b`.
    Paragraph 13.5px; `Priority: P1` 11.5px; equation operands 14px, result 18px, "points" 9.5px.
    Copy is the live copy verbatim.

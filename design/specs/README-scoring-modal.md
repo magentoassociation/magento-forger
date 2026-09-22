@@ -4,7 +4,7 @@
 Restructures the two scoring modals reached from the "How are scores tallied?" link on the
 leaderboard and detail pages. Approved directions: **19a — maintainer scores** and
 **19b — contributor scores**. They are the same layout with different base-point rows and a
-different worked example; build one component, pass it the two data sets.
+different example; build one component, pass it the two data sets.
 
 The copy is unchanged from the live modals. What changes is structure and chrome:
 
@@ -16,7 +16,7 @@ The copy is unchanged from the live modals. What changes is structure and chrome
 - Base points and the two multipliers sit side by side rather than stacked, so all three factors
   are visible together.
 - The six priority rows become chips; the four recency rows become a decay bar.
-- The worked example lands at the bottom in a dark panel, in view rather than below the fold.
+- The example lands at the bottom in a dark panel, in view rather than below the fold.
 
 At 1000px the whole modal fits without scrolling.
 
@@ -159,13 +159,13 @@ Bars are `width: 100%`, `border-radius: 4px 4px 0 0`. Values are Martian Mono 70
 Heights are proportional to the multiplier — 56 / 28 / 14 — so the halving is legible at a
 glance. The 0× bar keeps a 3px sliver so the column reads as a column rather than a gap.
 
-## Worked example
+## Example
 
 Dark panel: `margin: 26px 30px 30px`, `padding: 18px 20px`, background `#15171b`,
 `border-radius: 9px`.
 
 - Eyebrow: Martian Mono 400, 9px, uppercase, `letter-spacing: .06em`, colour `#9aa3ae`, reading
-  "Worked example".
+  "Example".
 - Paragraph: Libre Franklin 400, 14px, `line-height: 1.65`, colour `#e8eaec`, `max-width: 700px`.
   Emphasised figures are weight 600 colour `#ffffff`. `Priority: P1` is Martian Mono 12px
   colour `#ffffff`.
@@ -210,7 +210,7 @@ and `border-radius` to 10px.
 ## Related
 The standalone **How Scores Work** page carries the same data. It is specified separately in
 `README-how-scores-work.md` and reuses the components defined here — formula strip, action rows,
-priority chips, recency decay bar, worked-example panel. Build them once.
+priority chips, recency decay bar, example panel. Build them once.
 
 ## Out of scope
 The scoring rules themselves, the wording of every line, and which actions appear in each modal

@@ -22,7 +22,8 @@ The current page has four problems this design fixes.
    **Fix:** rank numbers on every list; proportional bars on New Contributor Spotlight.
 4. **Two of the four promised sections are missing.** The intro names newcomers, fast risers,
    returning contributors and who's active now; the page shows two.
-   **Fix:** all four panels are present — Spotlight, Comebacks, Rising, Recently Active.
+   **Fix:** all four panels are present — Spotlight, Comebacks, Rising, Recently Active. The
+   data for Rising and Recently Active exists; both panels ship.
 
 A fifth point for product, not code: **Comebacks is sorted by length of absence**, which puts the
 least-engaged person at the top. The design keeps that order but adds a "Sort by recent activity
