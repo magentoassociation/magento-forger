@@ -81,22 +81,6 @@
         gap: 10px;
     }
 
-    /* Utility links — Martian Mono, the only mono in the header */
-    .site-utility { flex-direction: row; align-items: center; }
-    .site-utility .nav-link {
-        font-family: 'Martian Mono', ui-monospace, monospace;
-        font-weight: 400;
-        font-size: 9px;
-        letter-spacing: .06em;
-        text-transform: uppercase;
-        color: #9aa3ae;
-    }
-    .site-utility .nav-link:hover,
-    .site-utility .nav-item.dropdown.show > .nav-link {
-        color: #fff;
-        background: transparent;
-    }
-
     /* Login button (shared look with the footer Slack button) */
     .site-login,
     .sf-slack {
@@ -402,72 +386,191 @@
         .bm-grid { grid-template-columns: repeat(4, 1fr); }
     }
 
-    /* ---- Scoring explainer (modal + standalone page) ---- */
-    .sc-page { padding-top: 4px; }
-    .sc-intro {
-        max-width: 640px;
-        margin: 0 0 30px;
-        font-family: 'Libre Franklin', system-ui, sans-serif;
-        font-size: 15px;
-        line-height: 1.6;
-        color: #3c4148;
-        text-wrap: pretty;
-    }
-    .sc-section { margin-bottom: 44px; }
-    .sc-section:last-child { margin-bottom: 0; }
-    .sc-board {
-        margin: 0 0 14px;
-        padding-bottom: 8px;
-        border-bottom: 1px solid #e6e7ea;
-        font-family: 'Libre Franklin', system-ui, sans-serif;
-        font-weight: 700;
-        font-size: 22px;
-        letter-spacing: -.022em;
-        color: #15171b;
-    }
-    .sc-lead {
-        max-width: 560px;
-        margin: 0 0 18px;
+    /* ---- How Scores Work — standalone page (20a); reuses .scm-* components ---- */
+    .hsw-intro {
+        max-width: 680px;
+        margin: 0;
         font-family: 'Libre Franklin', system-ui, sans-serif;
         font-size: 14.5px;
+        line-height: 1.65;
+        color: #3c4148;
+        text-wrap: pretty;
+    }
+    .hsw-formula {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 22px;
+        padding: 14px 18px;
+        background: #faf9f7;
+        border: 1px solid #e6e7ea;
+        border-radius: 9px;
+        font-family: 'Martian Mono', ui-monospace, monospace;
+        font-size: 10.5px;
+        letter-spacing: .02em;
+        text-transform: uppercase;
+    }
+    .hsw-formula-cap {
+        margin-left: auto;
+        font-size: 9px;
+        letter-spacing: .06em;
+        color: #6b7178;
+    }
+    .hsw-boards {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 34px;
+        margin-top: 34px;
+    }
+    .hsw-h2 {
+        margin: 0;
+        font-family: 'Libre Franklin', system-ui, sans-serif;
+        font-weight: 700;
+        font-size: 21px;
+        letter-spacing: -.024em;
+        color: #15171b;
+    }
+    .hsw-thead {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 12px;
+        padding: 12px 0 9px;
+        border-bottom: 1px solid #e6e7ea;
+        font-family: 'Martian Mono', ui-monospace, monospace;
+        font-size: 9px;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+        color: #6b7178;
+    }
+
+    /* Worked-example panel scaled down for the narrower page columns.
+       Double class beats the base .scm-example rule that is defined later in this file. */
+    .scm-example.scm-example--sm { margin: 18px 0 0; padding: 16px 18px; }
+    .scm-example--sm .scm-ex-prose { font-size: 13.5px; }
+    .scm-example--sm .scm-ex-mono { font-size: 11.5px; }
+    .scm-example--sm .scm-ex-num,
+    .scm-example--sm .scm-ex-op { font-size: 14px; }
+    .scm-example--sm .scm-ex-result { font-size: 18px; }
+    .scm-example--sm .scm-ex-unit { font-size: 9.5px; }
+
+    .hsw-mult {
+        margin-top: 38px;
+        padding-top: 22px;
+        border-top: 1px solid #e6e7ea;
+    }
+    .hsw-mult-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+    .hsw-cap {
+        font-family: 'Martian Mono', ui-monospace, monospace;
+        font-size: 9px;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+        color: #6b7178;
+    }
+    .hsw-lead {
+        max-width: 680px;
+        margin: 10px 0 0;
+        font-family: 'Libre Franklin', system-ui, sans-serif;
+        font-size: 14px;
         line-height: 1.6;
         color: #3c4148;
         text-wrap: pretty;
     }
-    .sc-h {
-        margin: 26px 0 8px;
+    .hsw-lead strong { font-weight: 700; }
+    .hsw-mult-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 34px;
+        margin-top: 24px;
+    }
+    .hsw-mult-grid .scm-sechead { border-bottom: 1px solid #e6e7ea; }
+
+    @media (max-width: 900px) {
+        .hsw-boards, .hsw-mult-grid { grid-template-columns: 1fr; }
+        .hsw-formula-cap { margin-left: 0; flex-basis: 100%; }
+    }
+
+    /* ================= Scoring modal (19a / 19b) ================= */
+    .modal-backdrop.show { background: #15171b; opacity: .55; }
+    .scm-dialog { max-width: 1000px; }
+    .scm-panel {
+        border: 0;
+        border-top: 3px solid #f26322;
+        border-radius: 12px;
+        overflow: hidden;
+        background: #fff;
+        box-shadow: 0 24px 60px rgba(0, 0, 0, .35);
+    }
+
+    .scm-header {
+        display: flex;
+        align-items: flex-start;
+        gap: 24px;
+        padding: 24px 30px 20px;
+        border-bottom: 1px solid #e6e7ea;
+    }
+    .scm-headtext { flex: 1; min-width: 0; }
+    .scm-title {
+        margin: 0;
         font-family: 'Libre Franklin', system-ui, sans-serif;
         font-weight: 700;
-        font-size: 15px;
-        letter-spacing: -.012em;
+        font-size: 25px;
+        letter-spacing: -.028em;
+        line-height: 1.1;
         color: #15171b;
     }
-    .sc-sub {
-        margin: 0 0 4px;
+    .scm-intro {
+        max-width: 620px;
+        margin: 9px 0 0;
         font-family: 'Libre Franklin', system-ui, sans-serif;
-        font-weight: 600;
+        font-weight: 400;
         font-size: 14px;
-        color: #15171b;
-    }
-    .sc-note {
-        max-width: 560px;
-        margin: 0 0 10px;
-        font-family: 'Libre Franklin', system-ui, sans-serif;
-        font-size: 13px;
         line-height: 1.6;
+        color: #3c4148;
+    }
+    .scm-intro strong { font-weight: 600; }
+    .scm-close {
+        flex: none;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 0;
+        border-radius: 7px;
+        background: transparent;
+        font-size: 17px;
+        line-height: 1;
         color: #5d636c;
     }
-    .sc-note--last { margin-bottom: 0; }
-    .sc-block { margin: 0 0 22px; max-width: 560px; }
+    .scm-close:hover { background: #f4f5f6; color: #15171b; }
 
-    .sc-table {
-        width: 100%;
-        max-width: 560px;
-        border-collapse: collapse;
-        margin: 0 0 4px;
+    /* Formula strip */
+    .scm-formula {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        padding: 14px 30px;
+        background: #faf9f7;
+        border-bottom: 1px solid #e6e7ea;
+        font-family: 'Martian Mono', ui-monospace, monospace;
+        font-size: 10.5px;
+        letter-spacing: .02em;
+        text-transform: uppercase;
     }
-    .sc-table th {
-        padding: 0 0 6px;
+    .scm-tok { padding: 5px 9px; border-radius: 5px; }
+    .scm-tok--base { background: #15171b; color: #fff; font-weight: 700; }
+    .scm-tok--out { border: 1px solid #d5d8dc; color: #15171b; }
+    .scm-tok--score { background: #fdece3; color: #8f3a10; font-weight: 700; }
+    .scm-op { color: #9aa3ae; }
+
+    /* Body grid */
+    .scm-body { padding: 24px 30px 4px; }
+    .scm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 34px; }
+    .scm-sechead {
+        margin: 0;
+        padding-bottom: 9px;
         border-bottom: 1px solid #e6e7ea;
         font-family: 'Martian Mono', ui-monospace, monospace;
         font-weight: 400;
@@ -475,79 +578,166 @@
         text-transform: uppercase;
         letter-spacing: .06em;
         color: #6b7178;
-        text-align: left;
     }
-    .sc-table td {
-        padding: 7px 0;
-        border-bottom: 1px solid #eff0f2;
+    .scm-sechead--rec { margin-top: 26px; }
+
+    .scm-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 11px 0;
+        border-bottom: 1px solid #f0f1f3;
+    }
+    .scm-row:last-child { border-bottom: 0; }
+    .scm-action {
         font-family: 'Libre Franklin', system-ui, sans-serif;
         font-size: 14px;
         color: #15171b;
-        vertical-align: middle;
     }
-    .sc-table--compact td { padding: 5px 0; font-size: 13.5px; }
-    .sc-table tr:last-child td { border-bottom: 0; }
-    .sc-r { text-align: right; }
-
-    .sc-num {
+    .scm-val {
         font-family: 'Martian Mono', ui-monospace, monospace;
-        font-size: 12px;
+        font-weight: 700;
+        font-size: 13px;
         color: #15171b;
+        text-align: right;
     }
-    .sc-badge {
+    .scm-tag {
         display: inline-block;
-        margin-left: 6px;
-        padding: 1px 6px;
-        border: 1px solid #e6e7ea;
+        margin-left: 4px;
+        padding: 3px 6px;
         border-radius: 4px;
+        background: #fdece3;
+        color: #8f3a10;
         font-family: 'Martian Mono', ui-monospace, monospace;
         font-size: 8.5px;
         text-transform: uppercase;
         letter-spacing: .04em;
-        color: #6b7178;
+        white-space: nowrap;
         vertical-align: middle;
     }
+    .scm-tag--inline { margin-left: 0; }
 
-    /* Standalone page reads at full size; the modal keeps the compact scale above. */
-    .sc-page .sc-lead { font-size: 16px; }
-    .sc-page .sc-note { font-size: 14.5px; }
-    .sc-page .sc-h { font-size: 17px; }
-    .sc-page .sc-sub { font-size: 15.5px; }
-    .sc-page .sc-table td { font-size: 15px; }
-    .sc-page .sc-table--compact td { font-size: 14.5px; }
-    .sc-page .sc-table th { font-size: 10px; }
-    .sc-page .sc-num { font-size: 13.5px; }
-    .sc-page .sc-badge { font-size: 9.5px; }
-    .sc-page .sc-block,
-    .sc-page .sc-table,
-    .sc-page .sc-lead,
-    .sc-page .sc-note { max-width: 640px; }
-
-    /* Modal chrome — orange header/footer, dark ink (white on orange fails contrast) */
-    .sc-modal .modal-content { border: 0; border-radius: 12px; overflow: hidden; }
-    .sc-modal .modal-header { background: #f26322; border-bottom: 0; }
-    .sc-modal .modal-footer { background: #f26322; border-top: 0; }
-    .sc-modal .btn-close { opacity: .75; }
-    .sc-modal .btn-close:hover { opacity: 1; }
-    .sc-title {
-        margin: 0;
+    .scm-para {
+        margin: 10px 0 4px;
         font-family: 'Libre Franklin', system-ui, sans-serif;
+        font-size: 13px;
+        line-height: 1.6;
+        color: #3c4148;
+    }
+    .scm-para strong { font-weight: 700; }
+
+    /* Priority chips */
+    .scm-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+    .scm-chip {
+        display: flex;
+        align-items: baseline;
+        gap: 7px;
+        padding: 6px 10px;
+        border-radius: 6px;
+        background: #f7f5f2;
+    }
+    .scm-chip-label {
+        font-family: 'Martian Mono', ui-monospace, monospace;
+        font-size: 10px;
+        color: #3c4148;
+    }
+    .scm-chip-name {
+        font-family: 'Libre Franklin', system-ui, sans-serif;
+        font-size: 11.5px;
+        color: #3c4148;
+    }
+    .scm-chip-val {
+        font-family: 'Martian Mono', ui-monospace, monospace;
+        font-weight: 700;
+        font-size: 12.5px;
+        color: #15171b;
+    }
+
+    /* Decay bar */
+    .scm-decay { display: flex; align-items: flex-end; gap: 10px; margin-top: 14px; }
+    .scm-decay-col {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+    }
+    .scm-bar { width: 100%; border-radius: 4px 4px 0 0; }
+    .scm-decay-val {
+        font-family: 'Martian Mono', ui-monospace, monospace;
+        font-weight: 700;
+        font-size: 11px;
+        color: #15171b;
+    }
+    .scm-decay-val--zero { color: #6b7178; }
+    .scm-decay-label {
+        font-family: 'Libre Franklin', system-ui, sans-serif;
+        font-size: 10.5px;
+        color: #6b7178;
+        text-align: center;
+    }
+
+    /* Scoring example */
+    .scm-example {
+        margin: 26px 30px 30px;
+        padding: 18px 20px;
+        background: #15171b;
+        border-radius: 9px;
+    }
+    .scm-ex-eyebrow {
+        margin: 0;
+        font-family: 'Martian Mono', ui-monospace, monospace;
+        font-weight: 400;
+        font-size: 9px;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+        color: #9aa3ae;
+    }
+    .scm-ex-prose {
+        max-width: 700px;
+        margin: 10px 0 0;
+        font-family: 'Libre Franklin', system-ui, sans-serif;
+        font-size: 14px;
+        line-height: 1.65;
+        color: #e8eaec;
+    }
+    .scm-ex-prose strong { font-weight: 600; color: #fff; }
+    .scm-ex-mono {
+        font-family: 'Martian Mono', ui-monospace, monospace;
+        font-size: 12px;
+        color: #fff;
+    }
+    .scm-ex-eq { display: flex; align-items: baseline; gap: 10px; margin-top: 14px; }
+    .scm-ex-num {
+        font-family: 'Martian Mono', ui-monospace, monospace;
+        font-size: 15px;
+        color: #c9ced4;
+    }
+    .scm-ex-op {
+        font-family: 'Martian Mono', ui-monospace, monospace;
+        font-size: 15px;
+        color: #6b7178;
+    }
+    .scm-ex-result {
+        font-family: 'Martian Mono', ui-monospace, monospace;
         font-weight: 700;
         font-size: 19px;
-        letter-spacing: -.02em;
-        color: #15171b;
+        color: #f26322;
     }
-    .sc-close {
-        padding: 8px 15px;
-        border-radius: 7px;
-        border: 1px solid rgba(21, 23, 27, .35);
-        background: transparent;
-        font-family: 'Libre Franklin', system-ui, sans-serif;
-        font-weight: 600;
-        font-size: 13.5px;
-        color: #15171b;
+    .scm-ex-unit {
+        font-family: 'Martian Mono', ui-monospace, monospace;
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+        color: #9aa3ae;
     }
-    .sc-close:hover { background: rgba(21, 23, 27, .12); color: #15171b; }
+
+    @media (max-width: 820px) {
+        .scm-grid { grid-template-columns: 1fr; gap: 26px 0; }
+        .scm-sechead--rec { margin-top: 0; }
+        .scm-example { margin: 26px 16px 16px; }
+        .scm-panel { border-radius: 10px; }
+    }
 
     /* ================= Homepage (15a) ================= */
 
@@ -707,7 +897,7 @@
     .hp-board-you { padding: 11px 0 3px; }
     .hp-board-you .hp-row { padding: 0; }
     .hp-you-caption {
-        margin: 6px 0 0 55px;
+        margin: 12px 0 0 0;
         font-family: 'Libre Franklin', system-ui, sans-serif;
         font-weight: 400;
         font-size: 12px;

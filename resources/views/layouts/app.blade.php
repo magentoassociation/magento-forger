@@ -81,19 +81,6 @@
 
         <div class="collapse navbar-collapse" id="navbarSupportedContent">
             {!! $mainMenu !!}
-
-            {{-- Utility links (former grey-bar links), mono --}}
-            <ul class="navbar-nav ms-lg-auto site-utility">
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Ecosystem</a>
-                    <ul class="dropdown-menu dropdown-menu-end">
-                        <li><a class="dropdown-item" href="https://magentoassociation.org" target="_blank" rel="noopener">Magento Association</a></li>
-                        <li><a class="dropdown-item" href="https://meet-magento.com" target="_blank" rel="noopener">Meet Magento</a></li>
-                        <li><a class="dropdown-item" href="https://magento-opensource.com" target="_blank" rel="noopener">Magento Open Source</a></li>
-                        <li><a class="dropdown-item" href="https://github.com/magento/magento2" target="_blank" rel="noopener">GitHub</a></li>
-                    </ul>
-                </li>
-            </ul>
         </div>
     </div>
 </nav>

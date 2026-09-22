@@ -8,7 +8,7 @@
                 <h2 class="sf-heading">Join the conversation on the Magento Association Slack</h2>
                 @if ($slackInviteUrl = config('homepage.slack_invite_url'))
                     <a href="{{ $slackInviteUrl }}" target="_blank" rel="noopener" class="sf-slack">
-                        <i class="fab fa-slack" style="font-size: 15px;"></i> Join our Slack
+                        <i class="fab fa-slack" style="font-size: 15px;"></i> Join Our Slack
                     </a>
                 @endif
             </div>
@@ -22,12 +22,13 @@
                     <a href="{{ route('prs.PRsByMonth') }}">Pull requests</a>
                     <a href="{{ route('leaderboard.scoring') }}">How scores work</a>
                 </nav>
-                <nav class="sf-col" aria-label="Ecosystem">
-                    <h3 class="sf-col-head">Ecosystem</h3>
+                <nav class="sf-col" aria-label="Community">
+                    <h3 class="sf-col-head">Community</h3>
                     <a href="https://magentoassociation.org" target="_blank" rel="noopener">Magento Association</a>
+                    <a href="https://www.magento-opensource.com/" target="_blank" rel="noopener">Magento Open Source</a>
+                    <a href="https://mage-os.org/" target="_blank" rel="noopener">Mage-OS</a>
                     <a href="https://meet-magento.com" target="_blank" rel="noopener">Meet Magento</a>
-                    <a href="https://magento-opensource.com" target="_blank" rel="noopener">Magento Open Source</a>
-                    <a href="https://github.com/magento/magento2" target="_blank" rel="noopener">GitHub</a>
+                    <a href="https://github.com/magento/magento2" target="_blank" rel="noopener">Magento on GitHub</a>
                 </nav>
             </div>
         </div>
