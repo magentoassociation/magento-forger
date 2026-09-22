@@ -118,7 +118,7 @@
                         <h2 class="lb-section-title">Recently Active</h2>
                         <span class="lb-section-unit">Score</span>
                     </div>
-                    <p class="lb-section-desc">Contributed in the last 30 days.</p>
+                    <p class="lb-section-desc">Opened a PR, had one merged, or opened an issue in the last 30 days.</p>
                     @forelse ($recentlyActive as $i => $stat)
                         <a href="{{ $detail($stat->login) }}" class="lb-hl-row lb-hl-row--rank">
                             <span class="lb-hl-rank">{{ $i + 1 }}</span>

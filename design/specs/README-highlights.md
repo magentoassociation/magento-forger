@@ -62,7 +62,7 @@ Used by all four sections. A flex row, `align-items: baseline`,
 
 ### Ranked list row — Spotlight, Rising, Recently Active
 Whole row is an `<a>` to the contributor's detail page (not just the name).
-`padding: 9px 0`, `border-bottom: 1px solid #eff0f2`, hover `background: #fafbfb`.
+`padding: 9px 0`, `border-bottom: 1px solid #f0f1f3`, hover `background: #fafbfb`.
 
 Grid:
 - Spotlight: `28px 250px 1fr 52px` — rank | identity | bar | score
@@ -91,7 +91,7 @@ wanted there later, use a log scale or bar against the rank-2 value, not rank 1.
 
 ### Comeback card — 3-up grid
 `grid-template-columns: repeat(3, 1fr)`, gap `10px 16px`.
-Each card is an `<a>`: `padding: 8px 10px`, `border: 1px solid #eff0f2`,
+Each card is an `<a>`: `padding: 8px 10px`, `border: 1px solid #f0f1f3`,
 `border-radius: 8px`; hover `border-color: #d3a98f`, `background: #fdfaf8`.
 Contents are a flex row: avatar (as above) · name + handle stack (name 14px) ·
 duration, Martian Mono 700, 10px, tabular, `#15171b`.
@@ -112,13 +112,18 @@ white bottom border, `border-radius: 7px 7px 0 0`, `margin-bottom: -1px`.
 it is the only route back to the other three leaderboards.)
 
 ## Content changes
-Two panel descriptions were shortened so both columns hold one line at the same depth:
-- "People whose first-ever contribution to the project landed in the last 30 days, ranked by
-  contributor score." → "First-ever contribution landed in the last 30 days."
-  (the ranking is now evident from the rank column)
-- "Contributors who have started up again after an absence." →
-  "Contributors active again after a long absence."
+**Spotlight and Comebacks lose their descriptions.** Both were restatements of their own titles
+("People whose first-ever contribution to the project landed in the last 30 days…",
+"Contributors who have started up again after an absence."), and the unit label now carries the
+definition — "10 in the last 30 days" and "Away for · then back". Deleting them also lets both
+full-width sections start their lists directly under the hairline.
 
+**Rising and Recently Active keep theirs**, because their titles are the two that don't explain
+themselves — what counts as rising, and what counts as active. Copy as built:
+- Rising — "Biggest increase in contributor score over the past 30 days."
+- Recently Active — "Opened a PR, had one merged, or opened an issue in the last 30 days."
+
+Both are one line at the same depth, so the two columns start level.
 All other copy, including the page intro, is unchanged.
 
 ## Accessibility notes

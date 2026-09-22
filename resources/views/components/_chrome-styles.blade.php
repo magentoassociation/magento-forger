@@ -23,7 +23,7 @@
     /* ---- Dark bar ---- */
     .site-nav {
         background: #15171b;
-        min-height: 64px;
+        height: 64px;
         padding-top: 0;
         padding-bottom: 0;
     }
@@ -79,6 +79,10 @@
         display: flex;
         align-items: center;
         gap: 10px;
+    }
+    /* Signed in: the account chip needs more air than the login button. */
+    .site-endgroup:has(.acct-chip) {
+        gap: 14px;
     }
 
     /* Login button (shared look with the footer Slack button) */
@@ -905,6 +909,27 @@
         color: #9aa3ae;
         text-wrap: pretty;
     }
+    /* Empty-row invitation sits inline after the name (9px), wrapping under it
+       at narrow widths, and links to the contributor board. */
+    .hp-you-idwrap {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        align-items: baseline;
+        flex-wrap: wrap;
+        gap: 4px 9px;
+    }
+    .hp-you-idwrap .hp-name { flex: 0 1 auto; }
+    .hp-you-invite {
+        font-family: 'Libre Franklin', system-ui, sans-serif;
+        font-weight: 400;
+        font-size: 12.5px;
+        color: #9aa3ae;
+        text-decoration: none;
+        white-space: nowrap;
+        transition: color 120ms ease-out;
+    }
+    .hp-you-invite:hover { color: #fff; }
 
     /* Focus ring on every link/button across the homepage, not just the hero. */
     .hp-hero a:focus-visible, .hp-hero button:focus-visible,
@@ -1071,6 +1096,9 @@
         .hp-hero-right { width: 100%; align-self: stretch; }
         .hp-section { padding-left: 20px; padding-right: 20px; }
         .hp-grid { grid-template-columns: minmax(0, 1fr); }
+        /* Below lg the card drops to the top three (+ the visitor's row). Head is child 1,
+           so ranked rows sit at child 2–6; hide the 4th and 5th. */
+        .hp-board-row:nth-child(n+5) { display: none; }
         .hp-first { flex-direction: column; gap: 0; }
         .hp-first-head { width: auto; }
         .hp-steps { flex-direction: column; margin-top: 14px; }
@@ -1081,6 +1109,7 @@
         }
     }
     @media (max-width: 575.98px) {
+        .hp-cta { gap: 8px; }
         .hp-cta-primary, .hp-cta-secondary { flex: 1; justify-content: center; }
     }
 
@@ -1144,7 +1173,8 @@
         .sf-legal { padding: 18px 0 24px; }
         .sf-legal > .container { padding-left: 20px; padding-right: 20px; }
         .sf-body { flex-direction: column; gap: 24px; }
-        .sf-cols { margin-left: 0; }
+        .sf-cols { margin-left: 0; gap: 24px; }
+        .sf-col { flex: 1; }
         .sf-heading { font-size: 20px; }
     }
 </style>

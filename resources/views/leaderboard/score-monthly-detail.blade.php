@@ -16,8 +16,7 @@
     ])
 
     <div class="container mx-auto lb lb-detail">
-        <p class="lb-d-intro">Every scored contribution in {{ $monthFull }}, grouped by what earned the points — impact-weighted, no recency decay. Each group's points sum to the grand total.</p>
-        <p class="lb-d-tallied-row"><button type="button" class="lb-tallied" data-bs-toggle="modal" data-bs-target="#scoringModal">How are scores tallied?</button></p>
+        <p class="lb-d-intro">Every scored contribution in {{ $monthFull }}, grouped by what earned the points — impact-weighted, no recency decay. Each group's points sum to the grand total. <button type="button" class="lb-tallied" data-bs-toggle="modal" data-bs-target="#scoringModal">How are scores tallied?</button></p>
 
         @if ($groups->isEmpty())
             <div class="alert alert-info">No scored contributions in {{ $monthFull }} for <code>{{ $login }}</code>.</div>

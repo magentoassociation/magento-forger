@@ -8,10 +8,10 @@
     }
 
     .lb-intro {
-        max-width: 760px;
+        max-width: 660px;
         margin: 0 0 10px;
-        font-size: 15px;
-        line-height: 1.6;
+        font-size: 14.5px;
+        line-height: 1.65;
         color: #3c4148;
         text-wrap: pretty;
     }
@@ -22,50 +22,51 @@
         border: 0;
         background: none;
         font-family: var(--font-sans);
-        font-size: 14px;
+        font-size: 14.5px;
         font-weight: 500;
         color: #ee6524;
         text-decoration: underline;
         text-underline-offset: 2px;
+        cursor: pointer;
     }
-    .lb-tallied:hover { color: #c2521a; }
-    .lb-d-tallied-row { margin: 9px 0 0; }
+    .lb-tallied:hover { color: #c74e16; }
 
-    /* Tabs — restyle the shared Bootstrap nav-tabs within the leaderboard. */
+    /* Tabs — restyle the shared Bootstrap nav-tabs within the leaderboard (#21). */
     .lb .nav-tabs {
-        gap: 4px;
-        margin: 20px 0 0;
-        border-bottom: 1px solid #dfe1e4;
+        gap: 2px;
+        margin: 22px 0 0;
+        border-bottom: 1px solid #e6e7ea;
     }
     .lb .nav-tabs .nav-item { margin-bottom: -1px; }
     .lb .nav-tabs .nav-link {
-        padding: 11px 20px;
+        padding: 9px 14px;
         border: 0;
         border-radius: 7px 7px 0 0;
         font-family: var(--font-sans);
-        font-size: 14.5px;
+        font-size: 14px;
         font-weight: 500;
-        color: #ee6524;
+        color: #5d636c;
+        transition: color 120ms ease-out;
     }
-    .lb .nav-tabs .nav-link:hover { color: #c2521a; border: 0; }
+    .lb .nav-tabs .nav-link:hover { color: #15171b; border: 0; }
     .lb .nav-tabs .nav-link.active {
         font-weight: 600;
         color: #15171b;
         background: #fff;
-        border: 1px solid #dfe1e4;
+        border: 1px solid #e6e7ea;
         border-bottom-color: #fff;
     }
 
-    /* Month selector chips (monthly board). */
+    /* Month selector chips. */
     .lb-months {
         display: flex;
         flex-wrap: wrap;
-        gap: 8px;
-        margin: 0 0 24px;
+        align-items: center;
+        gap: 7px;
+        margin: 16px 0 0;
     }
-    /* Detail page (#18a): chips sit 16px under the toggle; the first group carries the gap below. */
-    .lb-detail .lb-months { margin: 16px 0 0; }
-    .lb-month {
+    /* Detail page (#18a): outlined chips under the view toggle. */
+    .lb-detail .lb-month {
         padding: 7px 12px;
         font-family: var(--font-mono);
         font-size: 11px;
@@ -76,121 +77,249 @@
         color: #ee6524;
         text-decoration: none;
     }
-    .lb-month:hover { border-color: #ee6524; color: #ee6524; }
-    .lb-month.active {
+    .lb-detail .lb-month:hover { border-color: #ee6524; color: #ee6524; }
+    .lb-detail .lb-month.active {
         background: #15171b;
         border-color: #15171b;
         color: #fff;
     }
 
-    /* Borderless table, flush to the page gutter (detail-page standard): the rank
-       column aligns with the H1, no card box to inset it. Dividers do the grouping. */
-    .lb-card { border: 0; }
-    .lb-row {
-        display: grid;
-        grid-template-columns: 56px 1fr 136px;
-        align-items: center;
-        gap: 0 12px;
-        padding: 10px 0;
-        border-bottom: 1px solid #eff0f2;
-    }
-    .lb-row:last-child { border-bottom: 0; }
-    .lb-head {
-        padding: 11px 0 9px;
-        border-bottom: 1px solid #e6e7ea;
+    /* Monthly board chips (21c): filled, uppercase, month-only unless selected. */
+    .lb:not(.lb-detail) .lb-month {
+        padding: 6px 11px;
         font-family: var(--font-mono);
-        font-size: 9px;
+        font-size: 10px;
         font-weight: 700;
-        letter-spacing: .08em;
+        border: 0;
+        border-radius: 6px;
+        background: #f7f5f2;
+        color: #3c4148;
         text-transform: uppercase;
-        color: #4c525a;
+        letter-spacing: .04em;
+        text-decoration: none;
+        transition: background 120ms ease-out;
     }
-    .lb-head .lb-score-col { text-align: center; }
-
-    .lb-rank {
+    .lb:not(.lb-detail) .lb-month:hover { background: #ece9e4; }
+    .lb:not(.lb-detail) .lb-month.active { background: #15171b; color: #fff; }
+    .lb-month-all {
         font-family: var(--font-mono);
-        font-size: 11px;
-        font-weight: 500;
-        color: #4c525a;
+        font-size: 10px;
+        color: #6b7178;
+        text-decoration: none;
+        padding: 6px 4px;
     }
+    .lb-month-all:hover { color: #15171b; }
 
-    .lb-contributor {
+    /* #21 board: control strip, four-column flex rows, activity + pagination.
+       Flush to the page gutter (no card box); dividers do the grouping. */
+
+    /* Control strip */
+    .lb-strip {
         display: flex;
         align-items: center;
         gap: 12px;
-        min-width: 0;
+        flex-wrap: wrap;
+        padding: 16px 0 14px;
     }
+    .lb-pop {
+        font-family: var(--font-mono);
+        font-size: 9.5px;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+        color: #6b7178;
+    }
+    .lb-search {
+        position: relative;
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+    }
+    .lb-search-ico {
+        position: absolute;
+        left: 11px;
+        font-size: 12px;
+        color: #9aa3ae;
+        pointer-events: none;
+    }
+    .lb-search-input {
+        min-width: 210px;
+        padding: 7px 30px 7px 30px;
+        border: 1px solid #d5d8dc;
+        border-radius: 7px;
+        font-family: var(--font-sans);
+        font-size: 13.5px;
+        color: #15171b;
+        background: #fff;
+    }
+    .lb-search-input::placeholder { color: #9aa3ae; }
+    .lb-search-clear {
+        position: absolute;
+        right: 6px;
+        border: 0;
+        background: none;
+        padding: 4px 6px;
+        font-family: var(--font-sans);
+        font-size: 13px;
+        line-height: 1;
+        color: #9aa3ae;
+        cursor: pointer;
+    }
+    .lb-search-clear:hover { color: #15171b; }
 
-    .lb-avatar {
+    /* Jump to my rank */
+    .lb-jump {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 7px 12px;
+        border-radius: 7px;
+        background: #15171b;
+        text-decoration: none;
+        transition: background 120ms ease-out;
+    }
+    .lb-jump:hover { background: #2a2e34; }
+    .lb-jump-av { border-radius: 5px; flex: none; }
+    .lb-jump-label {
+        font-family: var(--font-sans);
+        font-weight: 600;
+        font-size: 13px;
+        color: #fff;
+    }
+    .lb-jump-rank {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        color: #9aa3ae;
+    }
+    .lb-jump--out {
+        background: none;
+        border: 1px solid #d5d8dc;
+        transition: border-color 120ms ease-out;
+    }
+    .lb-jump--out:hover { background: none; border-color: #15171b; }
+    .lb-jump--out .lb-jump-label { color: #3c4148; font-weight: 500; }
+
+    /* Column header + rows share the flex column model. */
+    .lb-colhead,
+    .lbr {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+    .lb-colhead {
+        padding-bottom: 8px;
+        border-bottom: 1px solid #e6e7ea;
+        font-family: var(--font-mono);
+        font-size: 9px;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+        color: #6b7178;
+    }
+    .lb-col-rank { width: 42px; }
+    .lb-col-name { flex: 1; }
+    .lb-col-act { width: 130px; text-align: right; }
+    .lb-col-score { width: 70px; text-align: right; }
+
+    .lbr {
+        padding: 10px 0;
+        border-bottom: 1px solid #f0f1f3;
+        transition: background 120ms ease-out;
+        outline: none;
+    }
+    .lbr.is-beyond { display: none; }
+    .lbr:hover { background: #faf9f7; }
+    .lbr.is-jumped {
+        background: #fff6f1;
+        box-shadow: inset 3px 0 0 #f26322;
+        transition: background 400ms ease-out, box-shadow 400ms ease-out;
+    }
+    .lbr-rank {
+        width: 42px;
+        flex: none;
+        font-family: var(--font-mono);
+        font-size: 13px;
+        color: #3c4148;
+    }
+    .lbr-rank.is-top { font-weight: 700; color: #15171b; }
+
+    .lbr-avatar {
         position: relative;
         flex: none;
-        width: 34px;
-        height: 34px;
-        border-radius: 7px;
+        width: 28px;
+        height: 28px;
+        border-radius: 6px;
         background: #e9eaed;
         display: flex;
         align-items: center;
         justify-content: center;
         text-decoration: none;
-        box-shadow: 0 0 0 0 rgba(194, 82, 26, 0);
         transition: box-shadow 100ms ease;
     }
-    .lb-avatar:hover { box-shadow: 0 0 0 2px #ee6524; }
-    .lb-avatar-initials {
+    .lbr-avatar:hover { box-shadow: 0 0 0 2px #ee6524; }
+    .lbr-avatar-initials {
         font-family: var(--font-mono);
-        font-size: 9px;
+        font-size: 8.5px;
         color: #4c525a;
     }
-    .lb-avatar img {
+    .lbr-avatar img {
         position: absolute;
         inset: 0;
-        width: 34px;
-        height: 34px;
-        border-radius: 7px;
+        width: 28px;
+        height: 28px;
+        border-radius: 6px;
         object-fit: cover;
     }
 
-    .lb-namewrap { min-width: 0; }
-    .lb-nameline {
+    .lbr-id {
+        flex: 1;
+        min-width: 0;
         display: flex;
         align-items: baseline;
         gap: 8px;
-        min-width: 0;
     }
-    .lb-name {
-        font-size: 16px;
+    .lbr-name {
+        font-family: var(--font-sans);
+        font-size: 14.5px;
         font-weight: 600;
-        letter-spacing: -.012em;
-        line-height: 1.3;
+        color: #15171b;
+        text-decoration: none;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+        transition: color 120ms ease-out;
     }
-    .lb-handle {
+    .lbr-name:hover { color: #ee6524; }
+    .lbr-handle {
         flex: none;
         font-family: var(--font-mono);
-        font-size: 9.5px;
-        color: #5d636c;
+        font-size: 10px;
+        color: #6b7178;
     }
-    .lb-count {
-        display: inline-block;
+    .lbr-activity {
+        width: 130px;
+        flex: none;
+        text-align: right;
         font-family: var(--font-mono);
-        font-size: 9.5px;
-        line-height: 1.7;
+        font-size: 10px;
+        color: #6b7178;
+        white-space: nowrap;
+    }
+    .lbr-activity a {
         color: #ee6524;
         text-decoration: none;
         border-bottom: 1px solid rgba(238, 101, 36, .4);
     }
-    .lb-count:hover { color: #ee6524; border-bottom-color: #ee6524; }
+    .lbr-activity a:hover { border-bottom-color: #ee6524; }
 
     .lb-score-cell {
+        width: 70px;
+        flex: none;
         display: flex;
-        justify-content: center;
+        justify-content: flex-end;
         position: relative;
     }
     .lb-score {
         font-family: var(--font-mono);
-        font-size: 13px;
+        font-size: 14px;
         font-weight: 700;
         font-variant-numeric: tabular-nums;
         color: #15171b;
@@ -256,6 +385,83 @@
         border-left: 7px solid transparent;
         border-right: 7px solid transparent;
         border-bottom: 7px solid #15171b;
+    }
+
+    /* Pagination */
+    .lb-pager {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+        padding: 20px 0 30px;
+    }
+    .lb-more {
+        padding: 9px 18px;
+        border: 1px solid #d5d8dc;
+        border-radius: 7px;
+        background: #fff;
+        font-family: var(--font-sans);
+        font-size: 13.5px;
+        font-weight: 600;
+        color: #15171b;
+        text-decoration: none;
+        transition: border-color 120ms ease-out;
+    }
+    .lb-more:hover { border-color: #15171b; }
+    .lb-count-stmt {
+        font-family: var(--font-mono);
+        font-size: 9.5px;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+        color: #6b7178;
+    }
+
+    /* No-results / whole-board failure block */
+    .lb-empty {
+        padding: 40px 0 44px;
+        border-bottom: 1px solid #f0f1f3;
+    }
+    .lb-empty-1 {
+        margin: 0;
+        font-family: var(--font-sans);
+        font-weight: 500;
+        font-size: 15px;
+        color: #15171b;
+    }
+    .lb-empty-2 {
+        margin: 6px 0 0;
+        font-family: var(--font-sans);
+        font-size: 14px;
+        line-height: 1.6;
+        color: #5d636c;
+    }
+    .lb-empty-2 a { color: #ee6524; text-decoration: underline; text-underline-offset: 2px; }
+    .lb-empty-2 a:hover { color: #c74e16; }
+
+    /* Focus rings — site-wide, on :focus-visible only. */
+    .lb .lb-search-input:focus-visible,
+    .lb .lb-search-clear:focus-visible,
+    .lb .lb-jump:focus-visible,
+    .lb .lb-month:focus-visible,
+    .lb .lb-month-all:focus-visible,
+    .lb .lb-more:focus-visible,
+    .lb .nav-tabs .nav-link:focus-visible,
+    .lb .lbr-name:focus-visible,
+    .lb .lbr-avatar:focus-visible,
+    .lb .lbr-activity a:focus-visible,
+    .lb .lb-tallied:focus-visible,
+    .lb .lb-score:focus-visible {
+        outline: 2px solid #f26322;
+        outline-offset: 2px;
+    }
+    .lb .lb-search-input:focus-visible { border-color: #d5d8dc; }
+
+    .visually-hidden {
+        position: absolute !important;
+        width: 1px; height: 1px;
+        padding: 0; margin: -1px;
+        overflow: hidden; clip: rect(0, 0, 0, 0);
+        white-space: nowrap; border: 0;
     }
 
     /* Highlights (#8b): ranked lists with bars + comeback card grid. */
@@ -810,7 +1016,7 @@
     }
     .lb-a-head {
         display: grid;
-        grid-template-columns: 1fr 150px 92px 54px;
+        grid-template-columns: 1fr 104px 92px 54px;
         align-items: baseline;
         gap: 0 28px;
         padding-bottom: 10px;
@@ -835,7 +1041,7 @@
     }
     .lb-a-row {
         display: grid;
-        grid-template-columns: 1fr 150px 92px 54px;
+        grid-template-columns: 1fr 104px 92px 54px;
         align-items: start;
         gap: 0 28px;
         padding: 10px 0;
@@ -858,10 +1064,25 @@
     }
 
     /* Narrow widths: handle drops to its own line, score right-aligns. */
+    /* Board narrow widths (#24a). Below ~700px the activity column drops and the
+       handle moves under the name; below ~560px the strip and pager unstack. */
+    @media (max-width: 700px) {
+        .lb-col-act, .lbr-activity { display: none; }
+        .lbr-id { flex-wrap: wrap; }
+        .lbr-handle { flex-basis: 100%; }
+    }
+    @media (max-width: 560px) {
+        .lb-strip { flex-direction: column; align-items: stretch; }
+        .lb-search { margin-left: 0; }
+        .lb-search-input { min-width: 0; width: 100%; }
+        .lb-jump { justify-content: center; }
+        .lb .nav-tabs { flex-wrap: nowrap; overflow-x: auto; }
+        .lb-col-rank, .lbr-rank { width: 38px; }
+        .lb-colhead, .lbr { gap: 12px; }
+        .lb-pager { flex-direction: column; align-items: stretch; }
+        .lb-more { width: 100%; text-align: center; }
+    }
     @media (max-width: 640px) {
-        .lb-row { grid-template-columns: 40px 1fr auto; }
-        .lb-nameline { flex-wrap: wrap; }
-        .lb-score-cell { justify-content: flex-end; }
         .lb-tip { max-width: 260px; }
 
         .lb-hl-cols { grid-template-columns: 1fr; gap: 30px; }

@@ -13,20 +13,21 @@ written in HTML** — a prototype showing the intended look and behaviour. It is
 code to copy. The Forger is a Laravel/Blade + Bootstrap app; the task is to reproduce the
 specifications in this folder in that codebase, using its existing template and CSS conventions.
 
-The prototype is organised in numbered turns, newest first. Every option still in the file is an
-approved direction — rejected explorations have been removed — so anything you can see is
-something to build. Options are referenced by id throughout these specs: `#21a` is the
+The prototype is organised in numbered turns, newest first. Rejected explorations have been
+removed, so with one exception anything you can see is something to build. The exception is
+`#9a`, the flat-list detail page, kept as the alternative if the grouped `#9b` is rejected —
+see `README-detail-page.md`. Options are referenced by id throughout these specs: `#21a` is the
 contributor board, `#19b` the contributor scoring modal, and so on.
 
 ## Where to find things
 
 | Spec | Covers | Prototype |
 |---|---|---|
-| `README.md` (this file) | Type scale, design tokens, capitalisation, the contributor table | `#6a` |
+| `README.md` (this file) | Type scale, design tokens, capitalisation, gutter and title block — the site-wide foundation | — |
 | `README-header.md` | Dark masthead, nav, account chip, footer | `#11a` `#12a` `#24a` |
 | `README-homepage.md` | Hero, live top-five card, area grid, first-timer steps | `#15a` `#24d` |
 | `README-leaderboard-pages.md` | All three boards: control strip, search, jump, pagination, loading, hover, narrow widths | `#21a` `#21b` `#21c` `#22a` `#22b` `#22c` `#23a` `#23b` `#23c` `#24a` `#25a` `#25b` |
-| `README-detail-page.md` | Contributor and maintainer detail, all four states | `#17a` `#17b` `#17c` `#18a` `#24b` |
+| `README-detail-page.md` | Contributor and maintainer detail, all four states | `#9b` `#17a` `#17b` `#17c` `#18a` `#24b` |
 | `README-scoring-modal.md` | Both scoring modals, and the tallied button rule | `#19a` `#19b` `#24c` |
 | `README-how-scores-work.md` | Standalone scoring page, both boards side by side | `#20a` |
 | `README-highlights.md` | Spotlight, Comebacks, Rising, Recently Active | `#8b` |
@@ -34,6 +35,24 @@ contributor board, `#19b` the contributor scoring modal, and so on.
 
 Three rules are stated once and apply everywhere: **capitalisation** (below), **focus rings**
 and **hover states** (both in `README-leaderboard-pages.md`).
+
+## Which spec governs the boards
+
+This document and `README-leaderboard-pages.md` describe the same three boards at two different
+stages of the work. **`README-leaderboard-pages.md` supersedes this one for anything about the
+board's structure or behaviour.** Where they disagree, it wins.
+
+The section below, *Screen: Contributor Leaderboard*, is the earlier generation (`#6a`): a
+three-column table with no control strip. It is kept because its typography, tooltip and
+count-link detail are unchanged and still exact. Everything that arrived later — the activity
+column, the control strip, search, jump-to-my-rank, pagination, loading and failure states,
+focus rings and hover states — exists only in `README-leaderboard-pages.md` and the turn 21–25
+prototype cards.
+
+**Scope note for whoever picks this up.** The current site implements the `#6a` generation. The
+whole turn 21–25 layer is unbuilt, and it is the larger half of this handoff: it is a decision
+about how much to take on, not a list of fixes to a shipped page. Build the foundation from this
+document, then the boards from `README-leaderboard-pages.md`.
 
 ## Fidelity
 **High-fidelity** for typography, colour and spacing — the values in these specs are exact and
@@ -47,7 +66,14 @@ Two things in the prototype are placeholders:
 
 ---
 
-## Screen: Contributor Leaderboard
+## Screen: Contributor Leaderboard (`#6a` — superseded in part)
+
+> Superseded by `README-leaderboard-pages.md` for layout and behaviour. What remains
+> authoritative here: the page title block, the name and handle treatment, the count link, the
+> score tooltip (content, position and structure), the avatar-as-GitHub-link rule, and the
+> colour tokens. Type sizes, the tab treatment, the column grid, the absence of a control strip
+> and the interaction list below are the earlier generation's — `README-leaderboard-pages.md`
+> restates all of them at their current values and wins.
 
 ### Purpose
 Rank contributors by a 12-month activity score; let a visitor jump to a contributor's GitHub
@@ -60,16 +86,22 @@ then the table.
 
 The table is **not** a card: no border, no radius, no background fill. It sits flush with the
 page gutter — see "Page gutter and title block", which is the governing rule.
-Header row and each data row are a 3-column grid:
+
+Header row and each data row are a grid. The current generation is five columns — the activity
+summary moved out of the name cell in turn 21, which halved the row height:
 
 ```
-grid-template-columns: 56px 1fr 136px;   /* rank | contributor | score */
-gap: 0 12px;
+grid-template-columns: 42px 28px 1fr 130px 70px;  /* rank | avatar | contributor | activity | score */
+gap: 0 16px;
 align-items: center;
 ```
 
+`README-leaderboard-pages.md` carries the column table and is authoritative. The earlier
+three-column form (`56px 1fr 136px`, activity inside the name cell) is what the site has
+today.
+
 - Header row: `padding: 11px 0 9px`, no background, `border-bottom: 1px solid #e6e7ea`.
-- Data rows: `padding: 10px 0`, `border-bottom: 1px solid #eff0f2`.
+- Data rows: `padding: 10px 0`, `border-bottom: 1px solid #f0f1f3`.
 - No horizontal padding on rows: the 18px inset is removed so the rank column aligns with the
   H1 above it. Horizontal inset comes from the page container only.
 
@@ -133,7 +165,7 @@ row, fall back to "See contributions".
 
 **Score** — Martian Mono 700, 13px, `font-variant-numeric: tabular-nums`, colour `#15171b`,
 centred in its column. **The green pill is removed.** Its hover affordance is now
-`border-bottom: 1px dotted #9aa0a8` + `cursor: help` — the standard "this has an explanation"
+`border-bottom: 1px dotted #6b7178` + `cursor: help` — the standard "this has an explanation"
 convention, which costs no colour or shape. `tabindex="0"` so it is keyboard-reachable.
 
 **Score tooltip** — unchanged in content, restyled.
@@ -164,8 +196,12 @@ Note the parent table card must **not** have `overflow: hidden`, or the tooltip 
   moves under the name; rank and score keep their positions.
 
 ### State management
-One piece of UI state only: which row's score tooltip is open (`hoveredRank | null`).
-No data fetching changes — same payload as today.
+In this generation, one piece of UI state only: which row's score tooltip is open
+(`hoveredRank | null`), and no data-fetching changes — the same payload as today.
+
+The current generation adds four: the search query, the loaded row depth, the pending/failed
+state of a fetch, and the selected month on the monthly board. Three of those are reflected in
+the URL (`?month=`, `?rows=`, `#rank-N`). See `README-leaderboard-pages.md`.
 
 ---
 
@@ -229,11 +265,15 @@ preload the two weights used most (Libre Franklin 600, Martian Mono 500).
 | muted strong | `#4c525a` | ranks, table header, avatar initials |
 | link | `#ee6524` | all links, hover states |
 | link underline rest | `rgba(238,101,36,.4)` | count link |
-| hairline | `#eff0f2` | row dividers |
+| hairline | `#f0f1f3` | row dividers, everywhere on every page |
 | border | `#e6e7ea` | table header divider, title-block divider |
 | border light | `#dfe1e4` | tab strip |
 | avatar placeholder | `#e9eaed` | remove once real avatars are in |
-| dotted affordance | `#9aa0a8` | score underline |
+
+One hairline, one value. Earlier prototype cards render row rules as `#eff0f2` or `#eeeff1`;
+those are the same rule at different drafts. Use `#f0f1f3` everywhere and do not reintroduce
+the near-identical variants.
+| dotted affordance | `#6b7178` | score underline |
 
 ## Page gutter and title block — site-wide
 
@@ -292,7 +332,7 @@ None to import. Avatars come from GitHub at runtime; no icons are used (the Deta
 the only icon-adjacent element, is gone). Fonts are Google Fonts / OFL.
 
 ## Files
-- `../Leaderboard Type Directions.dc.html` — the design reference (lives beside this folder, not in it). Implement **turn 6 / `#6a`** only.
+- `../Leaderboard Type Directions.dc.html` — the design reference (lives beside this folder, not in it). Every option in it is approved; `#21a` is the current contributor board, `#6a` the earlier generation this document describes.
 - `reference-current-page.png` — screenshot of the page as it is today, for before/after.
 
 ## Summary of changes for a reviewer

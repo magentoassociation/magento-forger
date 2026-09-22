@@ -9,8 +9,8 @@
     $mergeAction = $board === 'maintainer' ? 'approved_then_merged' : 'pr_merged';
     $exBase = $scoring['weights'][$mergeAction] ?? 0;
     $exPriority = collect($scoring['impactExamples'])->firstWhere('label', 'Priority: P1')['factor'] ?? 3;
-    // Maintainer example is "merged today" (1×); contributor example is "≈6 months old" (half-life factor).
-    $exRecency = $board === 'maintainer' ? 1.0 : ($scoring['recencyExamples'][1]['factor'] ?? 0.5);
+    // Both examples are "≈6 months old" (the half-life recency factor), matching the standalone page.
+    $exRecency = $scoring['recencyExamples'][1]['factor'] ?? 0.5;
     // Fixed decay-bar geometry per handoff (height px + colour), matched by index to recencyExamples.
     $bars = [['h' => 56, 'c' => '#f26322'], ['h' => 28, 'c' => '#f7a97f'], ['h' => 14, 'c' => '#fad4bd'], ['h' => 3, 'c' => '#dfe1e4']];
     $barLabels = ['Today', $half.' days', (2 * $half).' days', $window.'+ days'];
@@ -114,9 +114,10 @@
                     @if ($decay)
                         <p class="scm-ex-prose">
                             A <span class="scm-ex-mono">Priority: P1</span> PR you approved later merges. The merge
-                            bonus alone earns <strong>{{ $n($exBase) }}</strong> base points, scaled
-                            <strong>{{ $n($exPriority) }}×</strong> for P1 — and if it merged today, the recency factor
-                            is <strong>{{ $n($exRecency) }}×</strong>.
+                            bonus alone earns <strong>{{ $n($exBase) }}</strong> base ×
+                            <strong>{{ $n($exPriority) }}×</strong> priority × <strong>{{ $n($exRecency) }}×</strong>
+                            recency (≈6 months old) = <strong>{{ $n($exBase * $exPriority * $exRecency) }} pts</strong>, on top of the points
+                            for the approval itself. The same work today, before any decay, would be worth twice as much.
                         </p>
                         <div class="scm-ex-eq">
                             <span class="scm-ex-num">{{ $n($exBase) }}</span><span class="scm-ex-op">×</span>

@@ -59,11 +59,14 @@ boards share their machinery, and it sets up the single multiplier section below
 ## Board columns
 
 `display: grid; grid-template-columns: 1fr 1fr; gap: 34px; margin-top: 34px`.
-Left column: Contributor Board. Right column: Maintainer Board.
+Left column: Contributor board. Right column: Maintainer board.
 
 Each column contains, in order:
 
-1. **H2** — Libre Franklin 700, 21px, `letter-spacing: -.024em`, title case.
+1. **H2** — Libre Franklin 700, 21px, `letter-spacing: -.024em`, sentence case: "Contributor
+   board", "Maintainer board". These name a section, not a page — the pages they refer to are
+   the Contributor and Maintainer Leaderboards, so title case here would set up a name that
+   matches no H1.
 2. **Table header row** — `padding: 12px 0 9px`, `margin-top: 12px`,
    `border-bottom: 1px solid #e6e7ea`, Martian Mono 9px uppercase `letter-spacing: .06em`
    colour `#6b7178`: "Action" left, "Base points" right.

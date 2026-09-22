@@ -96,10 +96,12 @@
                                             <img src="https://avatars.githubusercontent.com/{{ $vlogin }}?s=52"
                                                  alt="" width="26" height="26" loading="lazy" onerror="this.remove()">
                                         </span>
-                                        <span class="hp-name">{{ $vname }}</span>
+                                        <span class="hp-you-idwrap">
+                                            <span class="hp-name">{{ $vname }}</span>
+                                            <a class="hp-you-invite" href="{{ route('leaderboard.show', ['board' => 'contributor']) }}">Get on the board →</a>
+                                        </span>
                                         <span class="hp-score hp-score--empty">0.0</span>
                                     </span>
-                                    <p class="hp-you-caption">Your score starts with your first contribution.</p>
                                 </li>
                             @endif
                         @else
@@ -108,10 +110,12 @@
                                 <span class="hp-row">
                                     <span class="hp-rank hp-rank--empty">—</span>
                                     <span class="hp-avatar hp-avatar--dashed"></span>
-                                    <span class="hp-name hp-name--empty">Your row is empty</span>
+                                    <span class="hp-you-idwrap">
+                                        <span class="hp-name hp-name--empty">Your row is empty</span>
+                                        <a class="hp-you-invite" href="{{ route('leaderboard.show', ['board' => 'contributor']) }}">Get on the board →</a>
+                                    </span>
                                     <span class="hp-score hp-score--empty">0.0</span>
                                 </span>
-                                <p class="hp-you-caption">Your score starts with your first contribution.</p>
                             </li>
                         @endauth
                     @endunless

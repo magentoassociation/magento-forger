@@ -42,7 +42,7 @@ Four blocks, top to bottom, all inside the page content container:
 
 1. **Page title block** — unchanged, per `README-header.md`. H1 "Issues By Month" / "PRs By Month".
 2. **Intro copy** — full content width.
-3. **Timeline** — all years, one bar per month.
+3. **Timeline** — the three most recent years, one bar per month.
 4. **Month picker** — the current year as tiles.
 
 ### 1. Intro copy
@@ -56,6 +56,11 @@ flush with the timeline below it — not set in a narrow measure.
   `text-wrap: pretty`, `margin: 0 0 9px` (last one `margin: 0`).
 
 ### 2. Timeline
+
+**Three year blocks — the current year and the two before it**, oldest left. The page's data
+goes back seven years, but the older years are flat and near-empty at this scale and squeeze the
+recent ones into unreadable slivers; three years is what the comparison is actually for. Earlier
+months remain reachable through their own per-month pages, which are unchanged.
 
 A flex row of year blocks: `display: flex; align-items: flex-end; gap: 14px; padding-bottom: 9px;
 border-bottom: 1px solid #e3e5e8`. Each year block is `flex: 1`, so every year gets equal width
@@ -85,7 +90,7 @@ months stay visible. Hover for the exact count, click to open that month."
 #### Scale
 
 Bar height is `sqrt(n / max) * 118`, floored at 3px for any non-zero month, where `max` is the
-largest monthly count **across all years on the page**. Linear height would flatten every year
+largest monthly count **across the three years shown**. Linear height would flatten every year
 before 2026 into a sliver against Sep 2026's 261; the square root keeps a 4-issue month visible
 while still reading 261 as far larger than 66.
 
@@ -143,8 +148,8 @@ the page, and height carries the value, so the bars survive narrowing. The bar r
 124px to 88px; `gap` stays 2px and the scale recomputes against the same `max`. Year block `gap` drops from 14px to 10px, and the year label and total stay
 stacked under their block.
 
-The month picker is the one thing that reflows: `repeat(12, 1fr)` becomes `repeat(4, 1fr)`,
-a 4×3 grid that keeps each tile above the 44px touch target and keeps a full year on one screen.
+The month picker is the one thing that reflows: `repeat(12, 1fr)` becomes `repeat(6, 1fr)` and
+then, at phone widths, `repeat(4, 1fr)` — a 4×3 grid that keeps each tile above the 44px touch target and keeps a full year on one screen.
 Tile padding and type are unchanged. Future months keep their greyed tile — the distinction
 between "nothing happened" and "hasn't happened" matters more at small sizes, not less.
 
@@ -160,17 +165,6 @@ The intro block and the caption release their `max-width` and run the container 
 - Colour is never the only carrier — the timeline encodes volume in height as well as fill, and
   the picker prints the number.
 - Focus: 2px `#f26322` outline, `outline-offset: 2px`, same as the chrome.
-
-## Responsive
-
-Below the Bootstrap `lg` breakpoint the timeline's seven year blocks no longer fit at a legible
-bar width. Two acceptable options, in order of preference:
-
-1. Horizontally scroll the timeline with a fixed minimum year-block width (~120px), keeping the
-   year labels pinned under their bars.
-2. Drop to the three most recent years and add a "show all years" control.
-
-The month picker reflows to `repeat(6, 1fr)` and then `repeat(4, 1fr)`.
 
 ## Out of scope
 The per-month issue/PR list pages the tiles link to are unchanged.

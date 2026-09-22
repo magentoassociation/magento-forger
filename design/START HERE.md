@@ -9,6 +9,14 @@ It is the visual reference: every approved design, newest first, each with an id
 **`specs/`** — ten markdown documents. Start with `specs/README.md`; it opens with an index
 mapping each spec to the prototype ids it describes.
 
+## Before you plan the work
+
+`specs/README.md` and `specs/README-leaderboard-pages.md` describe the same three boards at two
+stages. The second supersedes the first — see *Which spec governs the boards* in
+`specs/README.md`. The site currently implements the earlier generation; the later layer
+(control strip, search, jump-to-my-rank, pagination, loading and failure states, activity
+column, focus rings, hover states) is unbuilt and is the larger half of this handoff.
+
 ## Reading order
 
 1. `README.md` — type scale, tokens, capitalisation, the contributor table.

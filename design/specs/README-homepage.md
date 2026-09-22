@@ -265,7 +265,7 @@ page:
 2. Set up your **development environment**
 3. **Claim an issue** and open your first PR
 
-Links: `#ee6524`, underlined, hover `#8f3a10` (site link tokens). Keep the same destinations.
+Links: `#ee6524`, underlined, hover `#c74e16` (site link tokens). Keep the same destinations.
 
 The `<ol>` semantics stay — it is a numbered list rendered as a row, not three divs. This is the
 same content as today's box; the box was ~230px tall with more than half of it empty.
@@ -320,9 +320,11 @@ secondary. No mono in any headline or body paragraph.
 - The hero H1 is the page's only `<h1>`; section headings are `<h2>`, the first-timer heading is
   `<h3>`.
 - The leaderboard card is a `<ul>` of rows, not a table — it is a summary, and the real table is
-  one link away. Give it an `aria-label` of "Top contributors this month".
-- The visitor's row when signed out is not a link; it is a `<li>` whose caption sentence contains
-  no link. The action lives in the CTAs above it, so the row does not need to be focusable.
+  one link away. Give it an `aria-label` of "Top contributors, last 12 months".
+- The visitor's row is a `<li>`, never a link as a whole. In the two empty states (signed out;
+  signed in with no scoring activity) the caption "Get on the board →" is an `<a>` to the
+  contributor board and is the row's only focusable element. In the ranked states the caption is
+  plain text and the row holds nothing focusable.
 - Focus: 2px `#f26322` outline, `outline-offset: 2px`, on every link and button on the page —
   including the dark hero, where the default ring is invisible.
 - The area grid cells are links with the count in the accessible name ("Framework, 223 open"), so
@@ -346,4 +348,4 @@ Below the Bootstrap `lg` breakpoint:
 
 ## Out of scope
 The leaderboard, detail and by-month pages (their own specs). Signed-in account menu. The
-"this month" scoping rule for scores is the existing leaderboard behaviour, unchanged.
+rolling 12-month scoping rule for scores is the existing leaderboard behaviour, unchanged.

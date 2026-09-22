@@ -185,7 +185,7 @@ numbers spread across two sentences.
 ## Behaviour
 
 - **It is a `<button>`, not a link.** Every in-page "How are scores tallied?" affordance — on the
-  leaderboard boards, the monthly and highlights boards, and all four detail states — is a
+  three leaderboard boards and all four detail states — is a
   `<button type="button">` that opens this modal. It does not navigate. The only exception is the
   **footer** "How scores work" item, which is a real `<a href>` to the standalone page
   (`README-how-scores-work.md`) — footers navigate, they do not open dialogs.

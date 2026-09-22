@@ -1,6 +1,7 @@
 # Handoff: Contribution detail page — UX + typography
 
-Third companion to `README.md` (Contributor Leaderboard) and `README-highlights.md`.
+Companion to `README.md` (foundations) and `README-leaderboard-pages.md` (the boards this page
+is reached from).
 The **Design tokens** and **Type scale** sections of `README.md` apply unchanged.
 Implement option **`#9b`** in `../Leaderboard Type Directions.dc.html` — the grouped version.
 `#9a` is the flat-list alternative, kept for reference; build it only if the grouped view is
@@ -125,7 +126,7 @@ page:
 | Rule | Value | Where |
 |---|---|---|
 | Group rule | `1px #15171b` | under each group head |
-| Row rule | `1px #eeeff1` | between item rows, and under the last row of a group |
+| Row rule | `1px #f0f1f3` | between item rows, and under the last row of a group |
 | Block rule | `1px #e6e7ea` | under the page title block only |
 
 A grey hairline under the group head would read as one more row separator and the groups would
@@ -136,7 +137,7 @@ page can carry four groups without boxes, cards or fills around them.
 ### Item row
 Whole row is an `<a>` to the GitHub issue or PR.
 `grid-template-columns: 1fr 112px 66px`, `gap: 0 16px`, **`align-items: start`**,
-`padding: 9px 0`, `border-bottom: 1px solid #eeeff1`, hover `background: #fafbfb`.
+`padding: 9px 0`, `border-bottom: 1px solid #f0f1f3`, hover `background: #fafbfb`.
 - **title** — Libre Franklin 14.5px/1.45, `text-wrap: pretty`. **Must wrap, never truncate.**
   These titles are the content the user came for, and the identifying part is often the tail
   ("… in CatalogWidget on 2.4.7-p5"). Rows with `align-items: start` keep the date and points
@@ -156,8 +157,10 @@ exists, so a maintainer lands on one score with no way to know the other is ther
 (below the empty-state panel on a zero-score page), `margin-top: 22px`, Libre Franklin 400,
 12.5px/1.55, `#6b7178`, `max-width: 560px`:
 
-- On the contributor page: "Your maintainer score is tracked separately on the Maintainer Board."
-- On the maintainer page: "Your contributor score is tracked separately on the Contributor Board."
+- On the contributor page: "Your maintainer score is tracked separately on the Maintainer
+  Leaderboard."
+- On the maintainer page: "Your contributor score is tracked separately on the Contributor
+  Leaderboard."
 
 The board name is the link — site link colour `#ee6524`, underlined. No arrow, no button.
 
@@ -213,7 +216,7 @@ maintainer board's group names ("Approved PRs That Were Merged", "Changes Reques
 "Stale PRs Claimed", …). Build one template and pass it the board.
 
 Only two things differ:
-- The other-board line, when shown, points at the Contributor Board.
+- The other-board line, when shown, points at the Contributor Leaderboard.
 - The group names come from the maintainer scoring rules.
 
 See `#17a` in the prototype. Nothing else about it is new, and it needs no separate spec.
@@ -248,12 +251,12 @@ In place of the groups, one bordered panel: `1px solid #e3e5e8`, `border-radius:
 `overflow: hidden`.
 
 **Head** — `padding: 16px 20px 13px`, `background: #faf9f7`,
-`border-bottom: 1px solid #eeeff1`. Label "What scores on this board", Martian Mono 400, 9px,
+`border-bottom: 1px solid #f0f1f3`. Label "What scores on this board", Martian Mono 400, 9px,
 uppercase, `.06em`, `#6b7178`.
 
 **Rows** — one per scoring group, in the board's own order, each
 `display: flex; align-items: baseline; gap: 12px; padding: 13px 20px;
-border-bottom: 1px solid #eeeff1`:
+border-bottom: 1px solid #f0f1f3`:
 - Name — Libre Franklin 600, 14.5px, `letter-spacing: -.012em`, `#3c4148`.
 - Count — "0 items", Martian Mono 400, 9px, uppercase, `.06em`, `#6b7178`.
 - Points — "0.0", Martian Mono 500, 12px, `#6b7178`, `width: 62px`, right-aligned.

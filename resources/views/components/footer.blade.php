@@ -8,7 +8,7 @@
                 <h2 class="sf-heading">Join the conversation on the Magento Association Slack</h2>
                 @if ($slackInviteUrl = config('homepage.slack_invite_url'))
                     <a href="{{ $slackInviteUrl }}" target="_blank" rel="noopener" class="sf-slack">
-                        <i class="fab fa-slack" style="font-size: 15px;"></i> Join Our Slack
+                        <i class="fab fa-slack" style="font-size: 15px;"></i> Join our Slack
                     </a>
                 @endif
             </div>
@@ -20,7 +20,7 @@
                     <a href="{{ route('leaderboard.index') }}">Leaderboard</a>
                     <a href="{{ route('issues.issuesByMonth') }}">Issues</a>
                     <a href="{{ route('prs.PRsByMonth') }}">Pull requests</a>
-                    <a href="{{ route('leaderboard.scoring') }}">How scores work</a>
+                    <a href="{{ route('leaderboard.scoring') }}">How Scores Work</a>
                 </nav>
                 <nav class="sf-col" aria-label="Community">
                     <h3 class="sf-col-head">Community</h3>

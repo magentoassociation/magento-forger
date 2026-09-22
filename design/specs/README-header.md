@@ -42,7 +42,7 @@ every screen. Without this, at 2560px the logo and the login button sit roughly 
 away from anything they relate to, and the footer's link columns pin to the far right with an
 empty gap beside them.
 
-The horizontal padding quoted in the sections below (`0 24px` on the bar, `0 36px` in the footer)
+The horizontal padding quoted in the sections below (`0 36px` on the bar and in the footer)
 becomes the container's own gutter at narrow widths; inside the container the contents need no
 additional horizontal padding. `margin-left: auto` on the header's right-hand group and the
 footer's link columns then resolves against the container, not the viewport.
@@ -58,7 +58,8 @@ Three stacked pieces, full page width:
 
 1. **Orange hairline** — `height: 3px`, background `#f26322`. No content. This is the only place
    the brand orange appears at full strength in the chrome.
-2. **Dark bar** — background `#15171b`, `height: 64px`, `padding: 0 24px`,
+2. **Dark bar** — background `#15171b`, `height: 64px`, `padding: 0 36px` — the same gutter as
+   the title block below it, so the logo aligns with the H1,
    `display: flex; align-items: center; gap: 30px`.
 3. **Page title block** — white background, `padding: 26px 36px 24px`,
    `border-bottom: 1px solid #e6e7ea`. The border is full-bleed; the H1 sits in the container.
@@ -70,7 +71,7 @@ The previous grey utility bar is removed; its links move into the dark bar (see 
 ## Dark bar contents
 
 Left to right: logo lockup, primary nav, then a right-aligned group
-(`margin-left: auto`) holding the utility links and the login button.
+(`margin-left: auto`) holding the login button (signed out) or the account chip (signed in).
 
 **Logo lockup** — flex row, `gap: 11px`, links to `/`.
 - Mark: 30×30, `border-radius: 7px`.
@@ -85,9 +86,13 @@ Left to right: logo lockup, primary nav, then a right-aligned group
   state). Exactly one item carries this at a time.
 - Dropdown parents keep the ▾ glyph in the label; menu behaviour is unchanged from today.
 
-**Utility links** — the former grey-bar links (Admin and siblings). The old "Ecosystem ▾" menu
-does not come across: those destinations live in the footer's Community column only, so the bar
-carries nothing but on-site utilities.
+**Utility links.** In this design the bar carries none, in either state — the two things the
+old grey bar held both move: **Admin** into the account menu (see below), and the
+"Ecosystem ▾" destinations into the footer's Community column. The right-hand group holds one
+control and nothing else. `#11a` and `#16a` show the bar with no utility links in it.
+
+If a site-wide utility link has to survive in the bar, it takes this treatment and sits before
+the button or chip:
 Martian Mono 400, 9px, `letter-spacing: .06em`, `text-transform: uppercase`, colour `#9aa3ae`,
 no underline. Hover: `#ffffff`. This is the only mono in the header and is what keeps the
 secondary links quiet next to the 14px nav.
@@ -108,8 +113,8 @@ unattached to any control, and gives the right edge an outlined **Admin** button
 dead space, and Logout takes the bar's only orange fill — the strongest emphasis on the page
 spent on the action a visitor is least likely to want. Both go.
 
-Signed in, the right-hand group is **utility links, then one account chip.** Nothing else is
-added to the bar; the middle stays empty, as it does signed out.
+Signed in, the right-hand group is **one account chip, alone.** Nothing else is added to the
+bar; the middle stays empty, as it does signed out.
 
 `#16b` in the prototype (Admin kept inline as a mono utility link, avatar bare with no chip
 fill) was explored and rejected.
@@ -122,7 +127,8 @@ so the avatar sits optically centred in the pill), `border-radius: 999px`,
 background `#23262b` — the nav hover fill, reused. Hover: `#2f333a`.
 
 - Avatar: 26×26, `border-radius: 50%`, the user's GitHub avatar. Fallback initials:
-  Libre Franklin 700, 10px, on `#33383f`.
+  Libre Franklin 700, 10px, ink `#e3ddf5` on `#4b3f6b` — a tinted fill rather than the logo
+  grey, so an initials avatar still reads as a person at 26px.
 - Name: the user's display name, Libre Franklin 500, 13.5px, colour `#ffffff` — the same size as
   the login button's label, so the chip holds the same weight in the bar as the button it
   replaces. Do not show the `@handle` here; it appears in the menu.
@@ -167,8 +173,8 @@ board" — that also covers people who arrive from the board rather than the men
 menu item would not.
 
 Logout is last and separated from the items above it by a rule:
-`margin-top: 5px; padding-top: 5px; border-top: 1px solid #262a30` on the Logout item (the same
-rule value as the header block's). It keeps the item's own type and hover treatment — the rule
+`margin-top: 5px; padding: 12px 10px 7px; border-top: 1px solid #262a30` on the Logout item (the
+same rule value as the header block's; the extra top padding is what sets it off the rule). It keeps the item's own type and hover treatment — the rule
 marks it as leaving rather than navigating; it is not styled as destructive.
 
 No orange appears anywhere in the signed-in bar except the hairline.
@@ -221,7 +227,9 @@ title and tabs into the dark and was rejected for that reason.)
 | Nav hover fill | `#23262b` | nav item hover background |
 | Current item fill | `#2a2e34` | active nav item background |
 | Utility text | `#9aa3ae` | mono utility links |
-| Logo mark fill | `#33383f` | logo square (placeholder only), avatar initials fallback |
+| Logo mark fill | `#33383f` | logo square (placeholder only) |
+| Avatar fallback fill | `#4b3f6b` | initials avatar background |
+| Avatar fallback ink | `#e3ddf5` | initials avatar letters |
 | Chip fill | `#23262b` | account chip background, signed in |
 | Chip hover | `#2f333a` | account chip hover |
 | Menu fill | `#1c1f24` | account menu panel |

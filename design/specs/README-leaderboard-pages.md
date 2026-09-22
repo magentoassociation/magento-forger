@@ -115,9 +115,9 @@ page gutter, `padding: 40px 0 44px`, `border-bottom: 1px solid #f0f1f3`.
   The query is quoted verbatim and truncated with an ellipsis past 40 characters.
 - Line 2 — Libre Franklin 400, 14px, `line-height: 1.6`, colour `#5d636c`, `margin-top: 6px`:
   the two likely fixes, in this order — the other board, then clearing the search. On the
-  contributor board: "They may be on the maintainer board, or try a shorter search." Board name
+  contributor board: "They may be on the Maintainer Leaderboard, or try a shorter search." Board name
   is a link in `#ee6524`; on the monthly board the first fix is the all-time board instead
-  ("They may not have been active in September 2026 — try the all-time board.").
+  ("They may not have been active in September 2026 — try the Contributor Leaderboard.").
 
 No illustration, no centred empty-state card, no "0 results" badge. The count statement under
 the list reads "No matches" and the pagination control is suppressed.
@@ -153,7 +153,7 @@ Signed out, the control is absent — nothing takes its place.
    with that fragment present, the board performs the same page loading and scroll without the
    highlight.
 
-If the user is already on the loaded page, steps 2 is skipped and the rest run unchanged —
+If the user is already on the loaded page, step 2 is skipped and the rest run unchanged —
 clicking the control when the row is already visible still scrolls and highlights, which is the
 correct answer to "where am I".
 
@@ -366,7 +366,7 @@ lift on each of 25 rows turns scanning into a flicker.
 | Tab, inactive | `#5d636c` | `#15171b` |
 | Month chip, available | `#f7f5f2` | `#ece9e4` |
 | Outlined control | border `#d5d8dc` | border `#15171b` |
-| Dark control | `#15171b` | `#23262b` |
+| Dark control | `#15171b` | `#2a2e34` |
 | Orange button | `#f26322` | `#ff7433` |
 | Text link | `#ee6524` | `#c74e16` |
 | Timeline bar | as scaled | 1px `#15171b` outline at 1px offset, plus tooltip |

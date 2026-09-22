@@ -49,6 +49,8 @@ class ScoreLeaderboardController extends Controller
             ]);
         }
 
+        // Full board (no cap): the #21 layer searches and jumps across the whole
+        // population, so the client needs every ranked row, not the first 100.
         $entries = $board === 'maintainer'
             ? $this->maintainerRows((bool) auth()->user()?->canViewFullMaintainerBoard())
             : LeaderboardEntry::query()
@@ -57,7 +59,6 @@ class ScoreLeaderboardController extends Controller
                 ->where('score', '>', 0)
                 ->orderBy('rank')
                 ->orderByDesc('score')
-                ->limit(100)
                 ->get();
 
         return view('leaderboard.score', [
@@ -66,6 +67,7 @@ class ScoreLeaderboardController extends Controller
             'entries' => $entries,
             'profiles' => $this->profilesFor($entries->pluck('login')),
             'scoring' => $this->scoringExplainer($board),
+            ...$this->boardChrome($entries, strtolower(self::BOARDS[$board]).'s', '12 months to '.Carbon::now()->format('M Y')),
         ]);
     }
 
@@ -106,7 +108,6 @@ class ScoreLeaderboardController extends Controller
             ->where('score', '>', 0)
             ->orderBy('rank')
             ->orderByDesc('score')
-            ->limit(100)
             ->get();
 
         $months = array_map(fn (string $month): array => [
@@ -124,6 +125,11 @@ class ScoreLeaderboardController extends Controller
             'entries' => $entries,
             'profiles' => $this->profilesFor($entries->pluck('login')),
             'scoring' => $this->scoringExplainer($board, decay: false),
+            ...$this->boardChrome(
+                $entries,
+                strtolower(self::BOARDS[$board]).'s',
+                Carbon::createFromFormat('!Y-m', $ym)->format('F Y'),
+            ),
         ]);
     }
 
@@ -182,6 +188,43 @@ class ScoreLeaderboardController extends Controller
             'total' => round($groups->sum('total'), 1),
             'scoring' => $this->scoringExplainer($board, decay: false),
         ]);
+    }
+
+    /**
+     * Shared chrome data for the #21 board layer: the population total, the
+     * signed-in viewer's rank (or a not-ranked flag), the caption noun/window,
+     * and the initial render depth (?rows=, default 25). The client renders the
+     * whole board and reveals rows up to this depth, so search and jump-to-rank
+     * reach the full population without extra requests.
+     *
+     * @param  Collection<int, object>  $entries  ranked rows, in display order
+     * @return array{total: int, noun: string, windowCaption: string, viewerLogin: ?string, viewerRank: ?int, viewerNotRanked: bool, initialRows: int}
+     */
+    private function boardChrome(Collection $entries, string $noun, string $windowCaption): array
+    {
+        $total = $entries->count();
+
+        $viewerLogin = auth()->user()?->github_username;
+        $viewerRank = null;
+
+        if ($viewerLogin !== null) {
+            foreach ($entries->values() as $i => $entry) {
+                if ($entry->login === $viewerLogin) {
+                    $viewerRank = (int) ($entry->rank ?? $i + 1);
+                    break;
+                }
+            }
+        }
+
+        return [
+            'total' => $total,
+            'noun' => $noun,
+            'windowCaption' => $windowCaption,
+            'viewerLogin' => $viewerLogin,
+            'viewerRank' => $viewerRank,
+            'viewerNotRanked' => $viewerLogin !== null && $viewerRank === null,
+            'initialRows' => max(25, min((int) request('rows', 25), max($total, 25))),
+        ];
     }
 
     /**

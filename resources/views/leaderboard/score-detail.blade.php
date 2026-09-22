@@ -22,11 +22,10 @@
         @if ($groups->isEmpty())
             <p class="lb-d-intro">{{ $board === 'maintainer'
                 ? 'No maintainer activity scored in the last 12 months. Reviews and merges you complete from here will show up on this page, grouped by what earned the points.'
-                : 'No scored contributions in the last 12 months. PRs and issues you open will show up on this page, grouped by what earned the points.' }}</p>
+                : 'No scored contributions in the last 12 months. PRs and issues you open from here will show up on this page, grouped by what earned the points.' }} <button type="button" class="lb-tallied" data-bs-toggle="modal" data-bs-target="#scoringModal">How are scores tallied?</button></p>
         @else
-            <p class="lb-d-intro">Every scored contribution{{ $monthFull ? ' in '.$monthFull : ' in the last 12 months' }}, grouped by what earned the points. Each group's points sum to the grand total.</p>
+            <p class="lb-d-intro">Every scored contribution{{ $monthFull ? ' in '.$monthFull : ' in the last 12 months' }}, grouped by what earned the points. Each group's points sum to the grand total. <button type="button" class="lb-tallied" data-bs-toggle="modal" data-bs-target="#scoringModal">How are scores tallied?</button></p>
         @endif
-        <p class="lb-d-tallied-row"><button type="button" class="lb-tallied" data-bs-toggle="modal" data-bs-target="#scoringModal">How are scores tallied?</button></p>
 
         {{-- View toggle + month filter — suppressed on the zero-state (nothing to group/list/filter). --}}
         @unless ($groups->isEmpty())
