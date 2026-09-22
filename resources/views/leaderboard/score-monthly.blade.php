@@ -1,96 +1,45 @@
 @extends('layouts.app')
 
+@php
+    use Carbon\Carbon;
+
+    $monthFull = Carbon::createFromFormat('!Y-m', $ym)->format('F Y');
+@endphp
+
 @section('content')
-    <div class="container">
-        <div class="row mb-3">
-            <div class="col-12">
-                <p class="text-muted mb-1">
-                    Ranked by activity in {{ $monthLabel }} — bigger changes count for more, with no recency decay.
-                    Points come from {{ $scoring['scoredList'] }}.
-                </p>
-                <button type="button" class="btn btn-link btn-sm p-0" data-bs-toggle="modal" data-bs-target="#scoringModal">
-                    How are scores tallied?
-                </button>
-            </div>
-        </div>
+    <div class="lb">
+        <p class="lb-intro">
+            Ranked by activity in {{ $monthFull }} — bigger changes count for more, with no recency decay.
+            Points come from {{ $scoring['scoredList'] }}.
+            <button type="button" class="lb-tallied" data-bs-toggle="modal" data-bs-target="#scoringModal">How are scores tallied?</button>
+        </p>
 
         @include('leaderboard._tabs')
 
-        <div class="mb-4 d-flex flex-wrap gap-2">
+        <div class="lb-months">
             @foreach ($months as $month)
+                @php $chip = Carbon::createFromFormat('!Y-m', $month['ym']); @endphp
                 <a href="{{ route('leaderboard.monthly', ['board' => $board, 'ym' => $month['ym']]) }}"
-                   class="btn btn-sm {{ $month['active'] ? 'btn-primary' : 'btn-outline-secondary' }}">
-                    {{ $month['label'] }}
-                </a>
+                   class="lb-month {{ $month['active'] ? 'active' : '' }}">{{ $month['active'] ? $chip->format('M Y') : $chip->format('M') }}</a>
             @endforeach
+            <a href="{{ route('leaderboard.show', ['board' => 'contributor']) }}" class="lb-month-all">All months →</a>
         </div>
 
         @if ($entries->isEmpty())
             <div class="alert alert-info">
-                No scored activity for {{ $monthLabel }}.
+                No scored activity for {{ $monthFull }}.
             </div>
         @else
-            <div class="table-responsive">
-                <table class="table table-hover align-middle">
-                    <thead class="table-light">
-                        <tr>
-                            <th style="width: 60px">#</th>
-                            <th>{{ $boards[$board] }}</th>
-                            <th class="text-end">Score</th>
-                            <th class="text-end" style="width: 260px"></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach ($entries as $i => $entry)
-                            <tr>
-                                <td class="text-muted">{{ $entry->rank ?? $i + 1 }}</td>
-                                <td>
-                                    @php($profile = $profiles->get($entry->login))
-                                    <img src="{{ $profile?->avatar_url ?: 'https://github.com/'.$entry->login.'.png?size=48' }}"
-                                         alt="" width="24" height="24" class="rounded-circle me-2" loading="lazy"
-                                         onerror="this.style.display='none'">
-                                    <a href="https://github.com/{{ $entry->login }}" target="_blank" rel="noopener noreferrer" class="text-decoration-none fw-medium">
-                                        {{ $profile?->name ?: $entry->login }}
-                                    </a>
-                                    @if ($profile?->name)
-                                        <span class="text-muted small">{{ '@'.$entry->login }}</span>
-                                    @endif
-                                </td>
-                                <td class="text-end">
-                                    @php($breakdownTitle = collect($entry->breakdown)->map(fn ($detail, $action) => e(\App\DataTransferObjects\Leaderboard\Action::labelFor($action)).' &mdash; '.number_format($detail['count'] ?? 0).'&times; &rarr; '.number_format($detail['points'] ?? 0, 1).' pts')->implode('<br>'))
-                                    <span class="badge text-bg-success rounded-pill"
-                                        @if (! empty($entry->breakdown)) tabindex="0" data-bs-toggle="tooltip" data-bs-html="true" data-bs-custom-class="breakdown-tooltip" data-bs-title="{!! $breakdownTitle !!}" style="cursor: help;" @endif>
-                                        {{ number_format($entry->score, 1) }}
-                                    </span>
-                                </td>
-                                <td class="text-end">
-                                    <div class="d-flex gap-2 justify-content-end flex-nowrap">
-                                        @if ($entry->score > 0)
-                                            <a href="{{ route('leaderboard.monthly.detail', ['board' => $board, 'ym' => $ym, 'login' => $entry->login]) }}" class="btn btn-sm btn-outline-primary text-nowrap">
-                                                Details
-                                            </a>
-                                        @endif
-                                    </div>
-                                </td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
+            @php
+                $detailUrl = fn (string $login): string => route('leaderboard.monthly.detail', ['board' => $board, 'ym' => $ym, 'login' => $login]);
+            @endphp
+            @include('leaderboard._board')
         @endif
     </div>
 
     @include('leaderboard._scoring-modal')
 @endsection
 
-@push('scripts')
-    <style>
-        .breakdown-tooltip .tooltip-inner {
-            max-width: none;
-            white-space: nowrap;
-        }
-    </style>
-    <script>
-        document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => new bootstrap.Tooltip(el));
-    </script>
+@push('head')
+    @include('leaderboard._lb-styles')
 @endpush

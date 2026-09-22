@@ -1,6 +1,5 @@
 import { defineConfig } from 'vite';
 import laravel from 'laravel-vite-plugin';
-import tailwindcss from '@tailwindcss/vite';
 
 const port = 5173;
 const ddevUrl = process.env.DDEV_PRIMARY_URL || ''
@@ -13,7 +12,6 @@ export default defineConfig({
             input: ['resources/sass/app.scss', 'resources/js/app.js'],
             refresh: true,
         }),
-        tailwindcss(),
     ],
     server: ddevUrl ? {
         // Respond to all network requests

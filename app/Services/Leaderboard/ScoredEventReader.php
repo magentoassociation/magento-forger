@@ -264,7 +264,50 @@ class ScoredEventReader
             }
         );
 
-        return $this->buildLabelEvents($rows, $excluded, $repo);
+        // Resolve PR titles for pr: targets so label rows read like the rest of
+        // the detail page. Issue targets carry no joinable title (internal id only).
+        $prNumbers = [];
+        foreach ($rows as $row) {
+            if (str_starts_with($row['target'], 'pr:') && ($n = substr($row['target'], 3)) !== '') {
+                $prNumbers[] = (int) $n;
+            }
+        }
+        $titles = $prNumbers === [] ? [] : $this->prTitles(array_values(array_unique($prNumbers)));
+
+        return $this->buildLabelEvents($rows, $excluded, $repo, $titles);
+    }
+
+    /**
+     * PR titles keyed by PR number, from the pull-requests index.
+     *
+     * @param  list<int>  $prNumbers
+     * @return array<int, string>
+     */
+    private function prTitles(array $prNumbers): array
+    {
+        $titles = [];
+
+        foreach (array_chunk($prNumbers, 1000) as $chunk) {
+            $response = $this->client->search([
+                'index' => OpenSearchService::getIndexWithPrefix(
+                    OpenSearchService::OPENSEARCH_GITHUB_PULL_REQUESTS_INDEX,
+                ),
+                'body' => [
+                    'size' => count($chunk),
+                    '_source' => ['id', 'title'],
+                    'query' => ['bool' => ['filter' => [['terms' => ['id' => $chunk]]]]],
+                ],
+            ]);
+
+            foreach ($response['hits']['hits'] ?? [] as $hit) {
+                $source = $hit['_source'] ?? [];
+                if (isset($source['id'], $source['title'])) {
+                    $titles[(int) $source['id']] = (string) $source['title'];
+                }
+            }
+        }
+
+        return $titles;
     }
 
     /**
@@ -273,9 +316,10 @@ class ScoredEventReader
      *
      * @param  list<array{actor: string|null, label: string, target: string, date: CarbonInterface}>  $rows
      * @param  list<string>  $excluded
+     * @param  array<int, string>  $titles  PR number → title, for pr: targets
      * @return list<ScoredEvent>
      */
-    private function buildLabelEvents(array $rows, array $excluded, string $repo = ''): array
+    private function buildLabelEvents(array $rows, array $excluded, string $repo = '', array $titles = []): array
     {
         $byKey = [];
 
@@ -297,7 +341,7 @@ class ScoredEventReader
 
         $events = [];
         foreach ($byKey as $entry) {
-            [$title, $url] = $this->labelTargetDisplay($entry['target'], $entry['label'], $repo);
+            [$title, $url] = $this->labelTargetDisplay($entry['target'], $entry['label'], $repo, $titles);
             $events[] = new ScoredEvent(
                 $entry['actor'],
                 Board::MAINTAINER,
@@ -316,15 +360,16 @@ class ScoredEventReader
      * issue targets carry only an internal id in the index, so they surface the
      * label name without a link.
      *
+     * @param  array<int, string>  $titles  PR number → title
      * @return array{0: string, 1: string|null}
      */
-    private function labelTargetDisplay(string $target, string $label, string $repo): array
+    private function labelTargetDisplay(string $target, string $label, string $repo, array $titles = []): array
     {
         if (str_starts_with($target, 'pr:')) {
             $number = substr($target, 3);
 
             return [
-                "PR #{$number}",
+                $titles[(int) $number] ?? "PR #{$number}",
                 $repo !== '' && $number !== '' ? "https://github.com/{$repo}/pull/{$number}" : null,
             ];
         }
@@ -364,8 +409,8 @@ class ScoredEventReader
                 continue;
             }
 
-            $title = 'PR #'.$review['pr_number'];
-            $url = $repo !== '' ? "https://github.com/{$repo}/pull/{$review['pr_number']}" : null;
+            $title = $pr['title'] ?? 'PR #'.$review['pr_number'];
+            $url = $pr['url'] ?? ($repo !== '' ? "https://github.com/{$repo}/pull/{$review['pr_number']}" : null);
 
             $events[] = new ScoredEvent(
                 $review['author'],
@@ -399,7 +444,7 @@ class ScoredEventReader
      *
      * @param  list<int|string>  $prNumbers
      * @param  callable(list<string>, bool): float  $impactFn
-     * @return array<int|string, array{author: string|null, merged: bool, impact: float}>
+     * @return array<int|string, array{author: string|null, merged: bool, impact: float, title: string|null, url: string|null}>
      */
     private function pullRequestsInfo(array $prNumbers, callable $impactFn): array
     {
@@ -412,7 +457,7 @@ class ScoredEventReader
                 ),
                 'body' => [
                     'size' => count($chunk),
-                    '_source' => ['id', 'author', 'state', 'labels'],
+                    '_source' => ['id', 'author', 'state', 'labels', 'title', 'url'],
                     'query' => ['bool' => ['filter' => [['terms' => ['id' => $chunk]]]]],
                 ],
             ]);
@@ -427,6 +472,8 @@ class ScoredEventReader
                     'author' => $source['author'] ?? null,
                     'merged' => ($source['state'] ?? null) === 'MERGED',
                     'impact' => $impactFn($source['labels'] ?? [], false),
+                    'title' => $source['title'] ?? null,
+                    'url' => $source['url'] ?? null,
                 ];
             }
         }

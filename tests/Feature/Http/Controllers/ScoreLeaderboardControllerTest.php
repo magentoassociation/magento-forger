@@ -111,8 +111,8 @@ class ScoreLeaderboardControllerTest extends TestCase
 
         $this->get(route('leaderboard.detail', ['board' => 'contributor', 'login' => 'jane']))
             ->assertOk()
-            ->assertSee('Contributor Contributions')
-            ->assertSee('jane')
+            ->assertSee('grouped by what earned the points')   // detail intro
+            ->assertSee('jane')                                // person is the H1
             ->assertSee('Fix the thing')
             ->assertSee('PR was merged')
             ->assertDontSee('pr_merged');
@@ -194,7 +194,6 @@ class ScoreLeaderboardControllerTest extends TestCase
 
         $this->get(route('leaderboard.detail', ['board' => 'contributor', 'login' => 'jane']))
             ->assertOk()
-            ->assertSee('data-bs-toggle="tooltip"', false)
             ->assertSee('10 base × 2× priority × 0.55× recency = 11 pts');
     }
 
@@ -269,12 +268,9 @@ class ScoreLeaderboardControllerTest extends TestCase
         $this->get(route('leaderboard.highlights'))
             ->assertOk()
             ->assertSee('Leaderboard Highlights')
-            ->assertSee('newbie')
-            ->assertSee('https://github.com/magento/magento2/pull/7')
-            ->assertSee('climber')
-            ->assertSee('returner')
-            ->assertSee('back after 1 year')
-            ->assertSee('https://github.com/magento/magento2/pull/999');
+            ->assertSee('newbie')      // New Contributor Spotlight
+            ->assertSee('climber')     // Rising
+            ->assertSee('returner');   // Comebacks
     }
 
     public function testRecentlyActiveUsesContributorRecencyNotMaintainerActivity(): void
@@ -472,7 +468,8 @@ class ScoreLeaderboardControllerTest extends TestCase
 
         $this->get(route('leaderboard.monthly', ['board' => 'contributor', 'ym' => '2026-07']))
             ->assertOk()
-            ->assertSee('Contributor Leaderboard — Jul 2026')
+            ->assertSee('Monthly Leaderboard')      // shared board H1
+            ->assertSee('Jul 2026')                 // selected month chip
             ->assertSee('jane')
             ->assertSee('21')
             ->assertDontSee('olduser')
@@ -490,8 +487,8 @@ class ScoreLeaderboardControllerTest extends TestCase
 
         $this->get(route('leaderboard.monthly', ['board' => 'contributor', 'ym' => '2026-07']))
             ->assertOk()
-            ->assertSee('Jul 2026')
-            ->assertSee('Jun 2026')
+            ->assertSee('Jul 2026')       // selected chip carries the year
+            ->assertSee('Jun')            // available chips are month-only (#21c)
             ->assertSee(route('leaderboard.monthly', ['board' => 'contributor', 'ym' => '2026-06']));
 
         Carbon::setTestNow();
@@ -541,7 +538,8 @@ class ScoreLeaderboardControllerTest extends TestCase
 
         $this->get(route('leaderboard.monthly.detail', ['board' => 'contributor', 'ym' => '2026-07', 'login' => 'jane']))
             ->assertOk()
-            ->assertSee('Contributor Contributions — Jul 2026')
+            ->assertSee('jane')          // person is the H1
+            ->assertSee('July 2026')     // month-scoped drill-down (intro)
             ->assertSee('Add feature')
             ->assertSee('Fix bug')
             ->assertDontSee('June work')

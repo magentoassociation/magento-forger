@@ -1,142 +1,185 @@
 @extends('layouts.app')
 
+@php
+    $initials = function (string $name): string {
+        $words = preg_split('/\s+/', trim($name)) ?: [];
+        $letters = collect($words)->filter()->take(2)->map(fn ($w) => mb_strtoupper(mb_substr($w, 0, 1)));
+
+        return $letters->implode('') ?: mb_strtoupper(mb_substr($name, 0, 2));
+    };
+
+    $ready = $paths[0] ?? null;
+    $viewerInTop = $viewerEntry && $topFive->contains('login', $viewerEntry->login);
+@endphp
+
 @section('content')
-    {{-- Section 1 — Hero --}}
-    <section class="text-center py-5 mb-4">
-        <h2 class="display-5 fw-bold mb-3">Help build Magento Open Source</h2>
-        <p class="lead text-gray-600 mx-auto mb-4" style="max-width: 46rem;">
-            Magento powers thousands of stores worldwide — and it's maintained in the open by
-            developers like you. Pick an issue, open a PR, and ship a fix that real
-            merchants will use.
-        </p>
-        <div class="d-flex gap-3 justify-content-center flex-wrap">
-            <a href="#choose-how" class="btn btn-primary btn-lg">Find an issue to work on →</a>
-            @guest
-                <a href="{{ route('github_login') }}" class="btn btn-outline-primary btn-lg">
-                    <i class="fab fa-github"></i> Login with GitHub
-                </a>
-            @endguest
+    {{-- Hero — full-bleed dark band, no divider from the header bar --}}
+    <section class="hp-hero">
+        <div class="container hp-hero-inner">
+            <div class="hp-hero-left">
+                <p class="hp-eyebrow">Open source · maintained in public</p>
+                <h1 class="hp-h1">Ship a fix. Climb the board.</h1>
+                <p class="hp-lead">
+                    Magento powers thousands of stores worldwide, and it's maintained in the open by
+                    developers like you. Pick an issue, open a PR, and ship a fix that real merchants
+                    will use. Every contribution scores and moves you up the contributor leaderboard.
+                </p>
+                <div class="hp-cta">
+                    <a href="{{ $ready['url'] ?? route('leaderboard.show', ['board' => 'contributor']) }}"
+                       target="magentoForgerGitHub" rel="noopener" class="hp-cta-primary">Find an issue to work on →</a>
+                    @guest
+                        <a href="{{ route('github_login') }}" class="hp-cta-secondary">
+                            <i class="fab fa-github" style="font-size: 15px;"></i> Login with GitHub
+                        </a>
+                    @endguest
+                </div>
+            </div>
+
+            <div class="hp-hero-right">
+                <ul class="hp-board" aria-label="Top contributors this month">
+                    <li class="hp-board-head">
+                        <span class="hp-board-label">Leaderboard · last 12 months</span>
+                        <a href="{{ route('leaderboard.show', ['board' => 'contributor']) }}" class="hp-board-full">Full board →</a>
+                    </li>
+
+                    @foreach ($topFive as $i => $entry)
+                        @php
+                            $profile = $profiles->get($entry->login);
+                            $name = $profile?->name ?: $entry->login;
+                            $isYou = $viewerEntry && $viewerEntry->login === $entry->login;
+                        @endphp
+                        <li class="hp-board-row{{ $isYou ? ' hp-board-row--you' : '' }}">
+                            <a href="{{ route('leaderboard.detail', ['board' => 'contributor', 'login' => $entry->login]) }}" class="hp-row">
+                                <span class="hp-rank{{ $isYou ? ' hp-rank--you' : '' }}">{{ str_pad((string) ($entry->rank ?? $i + 1), 2, '0', STR_PAD_LEFT) }}</span>
+                                <span class="hp-avatar">
+                                    <span class="hp-avatar-initials">{{ $initials($name) }}</span>
+                                    <img src="https://avatars.githubusercontent.com/{{ $entry->login }}?s=52"
+                                         alt="" width="26" height="26" loading="lazy" onerror="this.remove()">
+                                </span>
+                                <span class="hp-name">{{ $name }}</span>
+                                <span class="hp-score">{{ number_format($entry->score, 1) }}</span>
+                            </a>
+                        </li>
+                    @endforeach
+
+                    @unless ($viewerInTop)
+                        @auth
+                            @if ($viewerEntry)
+                                {{-- Signed in, ranked outside the top five --}}
+                                @php
+                                    $vname = $profiles->get($viewerEntry->login)?->name ?: (auth()->user()->name ?: $viewerEntry->login);
+                                @endphp
+                                <li class="hp-board-you">
+                                    <a href="{{ route('leaderboard.detail', ['board' => 'contributor', 'login' => $viewerEntry->login]) }}" class="hp-row">
+                                        <span class="hp-rank hp-rank--you">{{ str_pad((string) $viewerEntry->rank, 2, '0', STR_PAD_LEFT) }}</span>
+                                        <span class="hp-avatar">
+                                            <span class="hp-avatar-initials">{{ $initials($vname) }}</span>
+                                            <img src="https://avatars.githubusercontent.com/{{ $viewerEntry->login }}?s=52"
+                                                 alt="" width="26" height="26" loading="lazy" onerror="this.remove()">
+                                        </span>
+                                        <span class="hp-name">{{ $vname }}</span>
+                                        <span class="hp-score">{{ number_format($viewerEntry->score, 1) }}</span>
+                                    </a>
+                                    <p class="hp-you-caption">Your rank over the last 12 months.</p>
+                                </li>
+                            @else
+                                {{-- Signed in, no scoring activity in the window --}}
+                                @php
+                                    $vlogin = auth()->user()->github_username;
+                                    $vname = $profiles->get($vlogin)?->name ?: (auth()->user()->name ?: $vlogin);
+                                @endphp
+                                <li class="hp-board-you">
+                                    <span class="hp-row">
+                                        <span class="hp-rank hp-rank--empty">—</span>
+                                        <span class="hp-avatar">
+                                            <span class="hp-avatar-initials">{{ $initials($vname) }}</span>
+                                            <img src="https://avatars.githubusercontent.com/{{ $vlogin }}?s=52"
+                                                 alt="" width="26" height="26" loading="lazy" onerror="this.remove()">
+                                        </span>
+                                        <span class="hp-you-idwrap">
+                                            <span class="hp-name">{{ $vname }}</span>
+                                            <a class="hp-you-invite" href="{{ route('leaderboard.show', ['board' => 'contributor']) }}">Get on the board →</a>
+                                        </span>
+                                        <span class="hp-score hp-score--empty">0.0</span>
+                                    </span>
+                                </li>
+                            @endif
+                        @else
+                            {{-- Signed out — the empty state is the pitch --}}
+                            <li class="hp-board-you">
+                                <span class="hp-row">
+                                    <span class="hp-rank hp-rank--empty">—</span>
+                                    <span class="hp-avatar hp-avatar--dashed"></span>
+                                    <span class="hp-you-idwrap">
+                                        <span class="hp-name hp-name--empty">Your row is empty</span>
+                                        <a class="hp-you-invite" href="{{ route('leaderboard.show', ['board' => 'contributor']) }}">Get on the board →</a>
+                                    </span>
+                                    <span class="hp-score hp-score--empty">0.0</span>
+                                </span>
+                            </li>
+                        @endauth
+                    @endunless
+                </ul>
+            </div>
         </div>
     </section>
 
-    {{-- Section 2 — Why contribute --}}
-    <section class="mb-5">
-        <div class="row g-4">
-            <div class="col-12 col-lg-4">
-                <div class="bg-white p-4 shadow rounded-xl h-100">
-                    <h4 class="text-lg font-medium mb-2">Make real impact</h4>
-                    <p class="text-gray-600 mb-0">Your fix ships to a platform behind thousands of live storefronts.</p>
-                </div>
-            </div>
-            <div class="col-12 col-lg-4">
-                <div class="bg-white p-4 shadow rounded-xl h-100">
-                    <h4 class="text-lg font-medium mb-2">Level up</h4>
-                    <p class="text-gray-600 mb-0">Work on a large, modern PHP codebase alongside experienced maintainers.</p>
-                </div>
-            </div>
-            <div class="col-12 col-lg-4">
-                <div class="bg-white p-4 shadow rounded-xl h-100">
-                    <h4 class="text-lg font-medium mb-2">Get recognized</h4>
-                    <p class="text-gray-600 mb-0">Every merged PR moves you up the
-                        <a href="{{ route('leaderboard.show', ['board' => 'contributor']) }}">contributor leaderboard</a>.</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    {{-- Section 3 — contributor entry path(s).
-         Adapts to the number of active paths in config/homepage.php: a single path reads
-         as a direct call to action, while re-enabling more paths restores the original
-         "Choose how you want to help" multi-path choice with no further edits here. --}}
-    <section id="choose-how" class="mb-5">
-        @if (count($paths) > 1)
-            <h3 class="text-2xl font-semibold mb-1">Choose how you want to help</h3>
-            <p class="text-gray-600 mb-4">Whatever your experience level, there's a way in.</p>
-        @else
-            <h3 class="text-2xl font-semibold mb-1">Start contributing</h3>
-            <p class="text-gray-600 mb-4">Pick up a confirmed, prioritized issue and open your first PR.</p>
-        @endif
-        <div class="row g-4">
-            @foreach ($paths as $path)
-                <div class="{{ count($paths) > 1 ? 'col-12 col-lg-4' : 'col-12' }}">
-                    <x-issue-card
-                        :href="$path['url']"
-                        :title="$path['title']"
-                        :icon="$path['icon']"
-                        :blurb="$path['blurb']"
-                        :cta="$path['cta']"
-                        :count="$path['count']" />
-                </div>
-            @endforeach
-        </div>
-    </section>
-
-    {{-- Section 4 — Contribute by area --}}
-    @if (! empty($areas))
-        <section class="mb-5">
-            <h3 class="text-2xl font-semibold mb-1">Pick your area</h3>
-            <p class="text-gray-600 mb-4">Jump straight to open issues in the part of Magento you know best.</p>
-            <div class="row g-3">
-                @foreach ($areas as $area)
-                    <div class="col-6 col-md-4 col-lg-3">
-                        <x-issue-card :href="$area['url']" :title="$area['name']" :count="$area['count']" />
-                    </div>
-                @endforeach
-            </div>
+    {{-- Start contributing --}}
+    @if ($ready)
+        <section class="container hp-section hp-start">
+            <h2 class="hp-h2">Start contributing</h2>
+            <p class="hp-sub">Pick up a confirmed, prioritized issue and open your first PR.</p>
+            <a href="{{ $ready['url'] }}" target="magentoForgerGitHub" rel="noopener" class="hp-ready">
+                <span class="hp-ready-body">
+                    <span class="hp-ready-title">Ready to code</span>
+                    <span class="hp-ready-desc">Confirmed, prioritized issues waiting for a developer.</span>
+                </span>
+                @isset($ready['count'])
+                    <span class="hp-chip">{{ number_format($ready['count']) }} open</span>
+                @endisset
+                <span class="hp-ready-arrow" aria-hidden="true">→</span>
+            </a>
         </section>
     @endif
 
-    {{-- Section 5 — Momentum (social proof) --}}
-{{--    <section class="mb-5">--}}
-{{--        <h3 class="text-2xl font-semibold mb-1">Momentum</h3>--}}
-{{--        <p class="text-gray-600 mb-4">Contributors open and merge pull requests every month. Join them.</p>--}}
-{{--        @if ($dataMissing)--}}
-{{--            <x-data-missing>--}}
-{{--                The OpenSearch indices are empty or missing. Run--}}
-{{--                <code>ddev artisan sync:github:prs</code> and--}}
-{{--                <code>ddev artisan sync:github:issues</code> to populate them.--}}
-{{--            </x-data-missing>--}}
-{{--        @endif--}}
-{{--        <div class="bg-white p-4 shadow rounded-xl">--}}
-{{--            <canvas id="prChart" class="w-full" style="height: 360px;"></canvas>--}}
-{{--        </div>--}}
-{{--    </section>--}}
+    {{-- Pick your area + First time contributing --}}
+    <section class="container hp-section hp-area">
+        @if (! empty($areas))
+            <h2 class="hp-h2">Pick your area</h2>
+            <p class="hp-sub">Jump straight to open issues in the part of Magento you know best.</p>
+            <div class="hp-grid">
+                @foreach ($areas as $area)
+                    <a class="hp-cell" href="{{ $area['url'] }}" target="magentoForgerGitHub" rel="noopener"
+                       aria-label="{{ $area['name'] }}, {{ number_format($area['count']) }} open">
+                        <span class="hp-cell-name">{{ $area['name'] }}</span>
+                        <span class="hp-cell-count">{{ number_format($area['count']) }} open</span>
+                    </a>
+                @endforeach
+                @if (count($areas) % 2 === 1)
+                    <span class="hp-cell hp-cell--empty" aria-hidden="true"></span>
+                @endif
+            </div>
+        @endif
 
-    {{-- Section 6 — First time contributing? --}}
-    <section class="mb-5">
-        <div class="bg-white p-4 p-md-5 shadow rounded-xl">
-            <h3 class="text-2xl font-semibold mb-3">First time contributing?</h3>
-            <p class="text-gray-600">New here? Start in three steps:</p>
-            <ol class="text-gray-700 mb-3">
-                <li>Read the
-                    <a href="{{ $links['contributing'] }}" target="_blank" rel="noopener">Contribution Guidelines</a>
+        <div class="hp-first">
+            <div class="hp-first-head">
+                <h3 class="hp-h3">First time contributing?</h3>
+                <p class="hp-first-sub">Three steps to your first merged PR.</p>
+            </div>
+            <ol class="hp-steps">
+                <li class="hp-step">
+                    <span class="hp-step-num">01</span>
+                    Read the <a href="{{ $links['contributing'] }}" target="_blank" rel="noopener">Contribution Guidelines</a>
                 </li>
-                <li>Set up your
-                    <a href="{{ $links['dev_setup'] }}" target="_blank" rel="noopener">development environment</a>
+                <li class="hp-step">
+                    <span class="hp-step-num">02</span>
+                    Set up your <a href="{{ $links['dev_setup'] }}" target="_blank" rel="noopener">development environment</a>
                 </li>
-                <li><a href="{{ collect($paths)->firstWhere('cta', 'Browse Ready for Work')['url'] ?? '#choose-how' }}" target="_blank" rel="noopener">Claim an issue</a> and open your first PR</li>
+                <li class="hp-step">
+                    <span class="hp-step-num">03</span>
+                    <a href="{{ $ready['url'] ?? '#' }}" target="magentoForgerGitHub" rel="noopener">Claim an issue</a> and open your first PR
+                </li>
             </ol>
         </div>
     </section>
-
-    {{-- Section 7 — Footer CTA --}}
-    <section class="text-center py-5">
-        <h3 class="text-2xl font-semibold mb-4">Ready to ship your first fix?</h3>
-        <div class="d-flex gap-3 justify-content-center flex-wrap">
-            <a href="#choose-how" class="btn btn-primary btn-lg">Find an issue →</a>
-            @guest
-                <a href="{{ route('github_login') }}" class="btn btn-outline-primary btn-lg">
-                    <i class="fab fa-github"></i> Login with GitHub
-                </a>
-            @endguest
-        </div>
-    </section>
 @endsection
-
-{{-- Momentum chart script — disabled alongside the commented-out Momentum section above.
-     Restore both together (the script renders into the #prChart canvas). --}}
-{{--
-@push('scripts')
-    @include('components.charts.github-stats', ['monthlyStats' => $monthlyStats])
-@endpush
---}}
