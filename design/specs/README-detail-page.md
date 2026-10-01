@@ -4,8 +4,6 @@ Companion to `README.md` (foundations) and `README-leaderboard-pages.md` (the bo
 is reached from).
 The **Design tokens** and **Type scale** sections of `README.md` apply unchanged.
 Implement option **`#9b`** in `../Leaderboard Type Directions.dc.html` — the grouped version.
-`#9a` is the flat-list alternative, kept for reference; build it only if the grouped view is
-rejected.
 
 ## What this page is for
 
@@ -299,22 +297,6 @@ empty row (see `README-homepage.md`). It says what scores, not what it costs to 
 
 Do not use a Bootstrap `alert` class, or any tinted status panel, for this state. It is not a
 warning, an error or a success; it is the page, with zeros.
-
-## `#9a` — the alternative, if the flat list is preferred
-
-Same header. Adds a **four-card stat strip** under the header
-(`grid-template-columns: repeat(4, 1fr)`, gap `14px`; card `1px solid #e6e7ea`,
-`border-radius: 8px`, `padding: 13px 14px 12px`): category label 12.5px/1.35 `#3c4148` with
-`min-height: 34px` so the four cards align; value Martian Mono 700, 17px, tabular; count
-Martian Mono 9.5px `#5d636c` as "×201"; a 5px bar, track `#f0f1f3`, fill `#ee6524`,
-width proportional to the largest category.
-
-The list below is one table, `grid-template-columns: 1fr 104px 92px 54px` —
-title | type chip | date | points. The repeated action text becomes a chip:
-Martian Mono 9px/500, `#4c525a` on `#f2f3f5`, `border-radius: 4px`, `padding: 3px 7px`,
-nowrap; labels "PR merged" / "Issue resolved" / "PR opened".
-Sort controls sit in the section head as three small uppercase mono labels
-(Points / Date / Type); the active one carries `border-bottom: 2px solid #ee6524`.
 
 ## Data notes
 - The four category figures come from the same source as the leaderboard tooltip

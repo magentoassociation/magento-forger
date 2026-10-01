@@ -17,8 +17,7 @@ written in HTML — a prototype of the
 intended look and behaviour, not production code to copy. Reproduce the spec below in the
 Laravel/Blade + Bootstrap codebase using its existing template conventions.
 
-In the prototype, **`#15a` is the approved design.** `#15b` (white hero, board as a horizontal
-scoreboard strip) was explored and rejected.
+In the prototype, **`#15a` is the approved design.**
 
 ## Fidelity
 **High-fidelity** for colour, type and spacing — the values below are exact. Layout proportions

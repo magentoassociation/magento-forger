@@ -17,10 +17,8 @@ written in HTML — a prototype of the
 intended look and behaviour, not production code to copy. Reproduce the spec below in the
 Laravel/Blade + Bootstrap codebase using its existing template conventions.
 
-In the prototype, **`#11a`, `#12a` and `#16a` are the approved designs.** `#11b` (title carried on
-the dark bar), `#12b` (orange Slack row retained) and `#16b` (Admin kept inline on the bar) were
-explored and rejected; turn 10 shows the three masthead options 11a came from, and turn 16 shows
-the bar signed in.
+In the prototype, **`#11a`, `#12a` and `#16a` are the approved designs.** `#16a` shows the bar
+signed in.
 
 ## Fidelity
 **High-fidelity** for colour, type and spacing — the values below are exact.
@@ -116,9 +114,6 @@ spent on the action a visitor is least likely to want. Both go.
 Signed in, the right-hand group is **one account chip, alone.** Nothing else is added to the
 bar; the middle stays empty, as it does signed out.
 
-`#16b` in the prototype (Admin kept inline as a mono utility link, avatar bare with no chip
-fill) was explored and rejected.
-
 ### Account chip
 
 A single link/button opening the account menu.
@@ -212,8 +207,7 @@ Kept white, as today. The dark bar ends at the top of it; the H1 sits on white.
 `#15171b`, `margin: 0`.
 
 This is deliberate: it keeps a single dark band at the top of every page and lets tabs, chips and
-filters below the title stay on white without a second colour transition. (`11b` carried the
-title and tabs into the dark and was rejected for that reason.)
+filters below the title stay on white without a second colour transition.
 
 ## Colours
 

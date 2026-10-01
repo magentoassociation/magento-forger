@@ -117,7 +117,9 @@ page gutter, `padding: 40px 0 44px`, `border-bottom: 1px solid #f0f1f3`.
   the two likely fixes, in this order — the other board, then clearing the search. On the
   contributor board: "They may be on the Maintainer Leaderboard, or try a shorter search." Board name
   is a link in `#ee6524`; on the monthly board the first fix is the all-time board instead
-  ("They may not have been active in September 2026 — try the Contributor Leaderboard.").
+  ("They may not have been active in September 2026 — try the Contributor Leaderboard."). The
+  monthly version drops the shorter-search fix; the caption reads "0 of 214 contributors ·
+  September 2026". Drawn in `#22b` (contributor) and `#22d` (monthly).
 
 No illustration, no centred empty-state card, no "0 results" badge. The count statement under
 the list reads "No matches" and the pagination control is suppressed.
@@ -207,9 +209,19 @@ what halves the row height.
 - **Name** — Libre Franklin 600, 14.5px, colour `#15171b`, no underline; links to the person's
   detail page. Hover: `#ee6524`.
 - **Handle** — Martian Mono 10px, colour `#6b7178`, baseline-aligned beside the name.
-- **Activity** — Martian Mono 10px, colour `#6b7178`, right-aligned in its 130px column.
-  Abbreviated and counted: `281 PR · 47 ISS`. Where a person has no counted activity, the cell
-  reads "See contributions" (existing behaviour, unchanged).
+- **Activity** — Martian Mono 10px, colour `#6b7178`, right-aligned in its 130px column. One
+  total of every scored action in the board's window, written out: `328 actions` (`1 action`
+  when singular). No abbreviations — a partial breakdown such as "PR · ISS" implied the column
+  covered two kinds of work when the score counts four (contributor) or six (maintainer).
+  - Contributor and monthly boards count: PRs opened, PRs merged, issues opened, issues resolved
+    by a merged PR.
+  - Maintainer board counts: PRs approved, changes requested, review comments, approved PRs that
+    were merged, stale PRs claimed, triage labels applied.
+  - Hover/focus tooltip lists each action with its count, in the order above, omitting zeros
+    ("PRs opened 281 · Issues opened 47"). The same text is the cell's accessible name.
+  - The per-action breakdown with points lives on the detail page, grouped the same way.
+  - Where a person has no counted activity, the cell reads "See contributions" (existing
+    behaviour, unchanged).
 - **Score** — Martian Mono 700, 14px, right-aligned.
 
 ## Pagination
@@ -233,7 +245,7 @@ Everything above is shared. Only these three things change:
 
 | | Contributor (21a) | Maintainer (21b) | Monthly (21c) |
 |---|---|---|---|
-| Activity column | PRs and issues | reviews and merges (`412 REV · 180 MRG`) | PRs and issues |
+| Activity column | total of 4 contributor actions | total of 6 maintainer actions (`592 actions`) | total of 4 contributor actions, that month |
 | Scoring link opens | contributor modal (19b) | maintainer modal (19a) | contributor modal (19b) |
 | Window control | caption only | caption only | month chips |
 
@@ -241,8 +253,9 @@ Everything above is shared. Only these three things change:
 `display: flex; gap: 7px; flex-wrap: wrap; padding-top: 16px`. Selected month is Martian Mono
 10px, `padding: 6px 11px`, `border-radius: 6px`, background `#15171b`, text `#ffffff`, weight
 700, and spelled with its year ("SEP 2026"). Other months are the same box on background
-`#f7f5f2`, colour `#3c4148`, month only. Hover: `#ece9e4`. A final "All months →" link, Martian
-Mono 10px colour `#6b7178`, no fill.
+`#f7f5f2`, colour `#3c4148`, month only — except the first chip of an earlier year, which carries its year ("DEC 2025") so the
+year change is readable. Hover: `#ece9e4`. There is no "All months" link; the chips are the only
+month navigation.
 
 With chips present, the population caption names the month ("214 contributors · September 2026")
 rather than a rolling window.
@@ -262,16 +275,14 @@ keep their existing 12-month wording.
   on the monthly board — `?month=2026-09` — so one rule covers both. Months stay linkable,
   bookmarkable and indexable, and the back button walks the months a reader looked at. A
   client-side fetch is fine as long as it `pushState`s the same URL.
-- **Which months appear.** The current calendar year to date, most recent first, one chip per
-  month — twelve at most, so the row wraps at most once. Months with no scored activity are
+- **Which months appear.** The last 12 months including the current one, most recent first, one
+  chip per month — always twelve (SEP 2026 back to OCT 2025), so the row wraps at most once. Months with no scored activity are
   still shown and lead to a board with the no-activity state rather than being omitted; a
   missing month reads as a bug.
 - **Three visual states, not four.** Selected (dark fill), available (`#f7f5f2`), hover
   (`#ece9e4`). There is no separate "current month" treatment: on first load the current month
   *is* the selected one, so a second signal would be redundant. Once the reader picks another
   month, the current month is just another available chip.
-- **"All months →"** goes to the all-time contributor board — the Contributor tab. It is the
-  escape from the monthly view, not a thirteenth month.
 - **Changing month resets the view**: search clears, pagination returns to page 1, and scroll
   returns to the top of the table rather than the top of the page, so the chips stay in view and
   a second month is one click away. The jump-to-my-rank control recalculates for the new month

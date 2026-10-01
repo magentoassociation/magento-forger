@@ -14,9 +14,7 @@ code to copy. The Forger is a Laravel/Blade + Bootstrap app; the task is to repr
 specifications in this folder in that codebase, using its existing template and CSS conventions.
 
 The prototype is organised in numbered turns, newest first. Rejected explorations have been
-removed, so with one exception anything you can see is something to build. The exception is
-`#9a`, the flat-list detail page, kept as the alternative if the grouped `#9b` is rejected —
-see `README-detail-page.md`. Options are referenced by id throughout these specs: `#21a` is the
+removed, so anything you can see is something to build. Options are referenced by id throughout these specs: `#21a` is the
 contributor board, `#19b` the contributor scoring modal, and so on.
 
 ## Where to find things
@@ -26,7 +24,7 @@ contributor board, `#19b` the contributor scoring modal, and so on.
 | `README.md` (this file) | Type scale, design tokens, capitalisation, gutter and title block — the site-wide foundation | — |
 | `README-header.md` | Dark masthead, nav, account chip, footer | `#11a` `#12a` `#24a` |
 | `README-homepage.md` | Hero, live top-five card, area grid, first-timer steps | `#15a` `#24d` |
-| `README-leaderboard-pages.md` | All three boards: control strip, search, jump, pagination, loading, hover, narrow widths | `#21a` `#21b` `#21c` `#22a` `#22b` `#22c` `#23a` `#23b` `#23c` `#24a` `#25a` `#25b` |
+| `README-leaderboard-pages.md` | All three boards: control strip, search, jump, pagination, loading, hover, narrow widths | `#21a` `#21b` `#21c` `#22a` `#22b` `#22d` `#22c` `#23a` `#23b` `#23c` `#24a` `#25a` `#25b` |
 | `README-detail-page.md` | Contributor and maintainer detail, all four states | `#9b` `#17a` `#17b` `#17c` `#18a` `#24b` |
 | `README-scoring-modal.md` | Both scoring modals, and the tallied button rule | `#19a` `#19b` `#24c` |
 | `README-how-scores-work.md` | Standalone scoring page, both boards side by side | `#20a` |
@@ -160,8 +158,9 @@ Martian Mono is a wide face; it must sit a size step below the sans or it crowds
 Martian Mono 9.5px, `line-height: 1.7`, colour `#ee6524`,
 `border-bottom: 1px solid rgba(238,101,36,.4)` → `#ee6524` on hover, no underline.
 Links to the same destination the Details button used (the contributor's issue/PR breakdown page).
-Label: the contributor's own counts, e.g. "201 PRs · 47 issues". If counts aren't available for a
-row, fall back to "See contributions".
+Label: the contributor's total of scored actions, e.g. "265 actions" — the same total as the
+Activity column (see `README-leaderboard-pages.md`), not a partial breakdown. If counts aren't
+available for a row, fall back to "See contributions".
 
 **Score** — Martian Mono 700, 13px, `font-variant-numeric: tabular-nums`, colour `#15171b`,
 centred in its column. **The green pill is removed.** Its hover affordance is now
@@ -211,7 +210,7 @@ the URL (`?month=`, `?rows=`, `#rank-N`). See `README-leaderboard-pages.md`.
 
 Title case is for strings that name a destination — the page H1s and the tab and nav labels
 that point at them: "Contributor Leaderboard", "Maintainer Leaderboard", "Monthly Leaderboard",
-"Open Issues by Month", "Open Pull Requests by Month", "Leaderboard Highlights", "How Scores
+"Issues By Month", "PRs By Month", "Leaderboard Highlights", "How Scores
 Work". If it is a page and something links to it by name, it is title case, and the H1 and the
 link must match exactly.
 

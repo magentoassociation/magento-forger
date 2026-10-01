@@ -1,4 +1,4 @@
-# Handoff: Scoring modal — "How scores are tallied"
+# Handoff: Scoring modal — "How Scores Are Tallied"
 
 ## Overview
 Restructures the two scoring modals reached from the "How are scores tallied?" link on the
@@ -48,8 +48,8 @@ Franklin for prose and Martian Mono for all numbers, labels and code-like string
 `border-bottom: 1px solid #e6e7ea`.
 
 - Title: `<h2>`, Libre Franklin 700, 25px, `letter-spacing: -.028em`, `line-height: 1.1`,
-  colour `#15171b`. Text: "How maintainer scores are tallied" / "How contributor scores are
-  tallied".
+  colour `#15171b`. Text: "How Maintainer Scores Are Tallied" / "How Contributor Scores Are
+  Tallied" — title case, matching the other page and modal titles.
 - Intro paragraph: Libre Franklin 400, 14px, `line-height: 1.6`, colour `#3c4148`,
   `max-width: 620px`, `margin-top: 9px`. "priority label" and "recency factor" are weight 600.
 - Close: 32×32 box, `border-radius: 7px`, glyph 17px colour `#5d636c`, no background at rest.

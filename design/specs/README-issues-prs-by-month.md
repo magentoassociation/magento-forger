@@ -13,8 +13,7 @@ written in HTML — a prototype of the
 intended look and behaviour, not production code to copy. Reproduce the spec below in the
 Laravel/Blade + Bootstrap codebase using its existing template conventions.
 
-In the prototype, **`#14b` is the approved design**. An Issues / PRs switch beside its label (and beside `#24e`) swaps the dataset; the switch is a prototype control, not page UI. `#14a`
-(heatmap grid) was explored and rejected.
+In the prototype, **`#14b` is the approved design**. An Issues / PRs switch beside its label (and beside `#24e`) swaps the dataset; the switch is a prototype control, not page UI.
 
 Header, footer and page-width rules are in `README-header.md`; type and colour foundations in
 `README.md`. This page introduces no new colours.
