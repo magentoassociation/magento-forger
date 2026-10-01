@@ -1,4 +1,3 @@
-<link href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400;500;600;700&family=Martian+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
     /* ===== Site chrome: dark header + footer (design_handoff README-header.md) ===== */
 
@@ -12,9 +11,9 @@
     .chrome-hairline { height: 3px; background: #f26322; }
 
     /* ---- Page width: one 36px gutter site-wide (README-detail "Page gutter"). ----
-       The centred .container carries the gutter; title block and content share it so
-       the rank column / body align with the H1. The dark nav overrides to 24px below;
-       hero, footer and homepage sections set their own explicit 36px. */
+       The centred .container carries the gutter; title block, dark nav and content
+       share it so the logo and rank column align with the H1. Hero, footer and
+       homepage sections set their own explicit 36px. */
     .container { padding-left: 36px; padding-right: 36px; }
     @media (max-width: 575.98px) {
         .container { padding-left: 20px; padding-right: 20px; }
@@ -28,9 +27,10 @@
         padding-bottom: 0;
     }
     /* Dark band is full-bleed; contents sit in the centred page container
-       with a 24px gutter (README-header "Page width"). */
+       with the one 36px site gutter, so the logo aligns with the H1 below
+       (README-header "Page width"). */
     .site-nav > .container {
-        padding: 0 24px;
+        padding: 0 36px;
         gap: 30px;
     }
 
@@ -126,14 +126,14 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        background: #33383f;
+        background: #4b3f6b;
     }
     .acct-avatar-initials {
         position: absolute;
         font-family: 'Libre Franklin', system-ui, sans-serif;
         font-weight: 700;
         font-size: 10px;
-        color: #c9ced4;
+        color: #e3ddf5;
     }
     .acct-avatar img { position: relative; width: 26px; height: 26px; border-radius: 50%; }
     .acct-name {
@@ -256,20 +256,76 @@
     .info-text-p:last-child { margin-bottom: 0; }
 
     /* ---- By-month timeline (14b) ---- */
+    /* Range row: visible span + Earlier/Later controls, shown only when the row scrolls. */
+    .bm-range {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 12px;
+    }
+    .bm-range-span {
+        font-family: 'Martian Mono', ui-monospace, monospace;
+        font-weight: 400;
+        font-size: 9px;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+        color: #6b7178;
+    }
+    .bm-range-btns { display: flex; gap: 5px; margin-left: auto; }
+    .bm-nav {
+        font-family: 'Libre Franklin', system-ui, sans-serif;
+        font-weight: 600;
+        font-size: 12.5px;
+        padding: 6px 11px;
+        border-radius: 6px;
+        border: 1px solid #e3e5e8;
+        background: #fff;
+        color: #15171b;
+        cursor: pointer;
+    }
+    .bm-nav:hover:not(:disabled) { border-color: #15171b; }
+    .bm-nav:disabled {
+        /* non-interactive end state — same treatment as an empty month tile */
+        background: #f7f8f9;
+        border-color: transparent;
+        color: #6b7178;
+        cursor: default;
+    }
+    .bm-nav:focus-visible { outline: 2px solid #f26322; outline-offset: 2px; }
+
+    /* Horizontal scroller — snaps one year block at a time, scrollbar hidden. */
+    .bm-scroll {
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        overscroll-behavior-x: contain;
+        scrollbar-width: none;
+    }
+    .bm-scroll::-webkit-scrollbar { display: none; }
+
     .bm-timeline {
         list-style: none;
         margin: 0;
-        padding: 0 0 9px;
+        padding: 0;
         display: flex;
-        align-items: flex-end;
+        align-items: flex-start;
         gap: 14px;
-        border-bottom: 1px solid #e3e5e8;
+        position: relative;
     }
-    .bm-year { flex: 1; }
+    /* Baseline rule spans the whole scrolling row, gaps included. */
+    .bm-timeline::after {
+        content: '';
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 124px;
+        height: 1px;
+        background: #e3e5e8;
+    }
+    .bm-year { flex: none; scroll-snap-align: start; }
     .bm-bars {
         list-style: none;
         margin: 0;
-        padding: 0;
+        padding: 0 0 9px;
         display: flex;
         align-items: flex-end;
         gap: 2px;
@@ -282,37 +338,24 @@
         border-radius: 2px 2px 0 0;
         transition: background .12s ease;
     }
+    a.bm-bar { height: max(3px, calc(var(--bh) * 118px)); }
     a.bm-bar:hover { background: #15171b !important; }
     .bm-bar--zero { height: 2px; background: #e6e8ea; }
 
-    .bm-years {
-        display: flex;
-        gap: 14px;
-        margin-top: 8px;
-    }
+    /* Year labels live inside each block, below the rule, and scroll with it. */
     .bm-year-label {
-        flex: 1;
         display: flex;
         flex-direction: column;
-        gap: 1px;
-        background: none;
-        border: 0;
-        padding: 4px 0 0;
-        text-align: left;
-        cursor: pointer;
-        border-top: 2px solid transparent;
+        gap: 2px;
+        margin-top: 9px;
     }
-    .bm-year-label.active { border-top-color: #f26322; }
     .bm-year-num {
         font-family: 'Libre Franklin', system-ui, sans-serif;
         font-weight: 700;
         font-size: 15px;
         letter-spacing: -.02em;
-        color: #5d636c;
+        color: #15171b;
     }
-    .bm-year-label:hover .bm-year-num,
-    .bm-year-label.active .bm-year-num { color: #15171b; }
-    .bm-year-label:focus-visible { outline: 2px solid #f26322; outline-offset: 2px; }
     .bm-year-total {
         font-family: 'Martian Mono', ui-monospace, monospace;
         font-weight: 400;
@@ -327,6 +370,11 @@
         font-size: 13px;
         line-height: 1.6;
         color: #5d636c;
+    }
+    .bm-caption--touch { display: none; }
+    @media (pointer: coarse) {
+        .bm-caption--pointer { display: none; }
+        .bm-caption--touch { display: block; }
     }
 
     /* ---- Month picker ---- */
@@ -382,11 +430,18 @@
     a.bm-tile:focus-visible { outline: 2px solid #f26322; outline-offset: 2px; }
 
     @media (max-width: 991.98px) {
-        .bm-scroll { overflow-x: auto; }
-        .bm-year, .bm-year-label { min-width: 120px; }
         .bm-grid { grid-template-columns: repeat(6, 1fr); }
     }
     @media (max-width: 575.98px) {
+        /* Shorter bars, tighter block gap; scale factor drops 118 -> 82. */
+        .bm-timeline { gap: 10px; }
+        .bm-timeline::after { top: 88px; }
+        .bm-bars { height: 88px; padding-bottom: 10px; }
+        a.bm-bar { height: max(3px, calc(var(--bh) * 82px)); }
+        .bm-year-num { font-size: 14px; }
+        .bm-year-total { font-size: 9px; }
+        .bm-nav { min-width: 44px; min-height: 44px; font-size: 13px; }
+        .bm-caption { max-width: none; }
         .bm-grid { grid-template-columns: repeat(4, 1fr); }
     }
 

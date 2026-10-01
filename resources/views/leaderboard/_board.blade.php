@@ -117,11 +117,9 @@
                 </a>
 
                 <span class="lbr-id">
-                    @if ($entry->score > 0)
-                        <a class="lbr-name" href="{{ $detailUrl($entry->login) }}">{{ $name }}</a>
-                    @else
-                        <span class="lbr-name">{{ $name }}</span>
-                    @endif
+                    {{-- Name links to the detail page unconditionally; a zero-score
+                         row still has a page (it shows the empty state). --}}
+                    <a class="lbr-name" href="{{ $detailUrl($entry->login) }}">{{ $name }}</a>
                     <span class="lbr-handle">{{ '@'.$entry->login }}</span>
                     @if (($entry->active ?? true) === false)
                         <span class="badge text-bg-secondary" title="No longer on the maintainer team">Inactive</span>

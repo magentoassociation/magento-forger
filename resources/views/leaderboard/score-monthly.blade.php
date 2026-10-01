@@ -9,7 +9,7 @@
 @section('content')
     <div class="lb">
         <p class="lb-intro">
-            Ranked by activity in {{ $monthFull }} — bigger changes count for more, with no recency decay.
+            Ranked by activity in {{ $monthFull }} — bigger changes count for more.
             Points come from {{ $scoring['scoredList'] }}.
             <button type="button" class="lb-tallied" data-bs-toggle="modal" data-bs-target="#scoringModal">How are scores tallied?</button>
         </p>

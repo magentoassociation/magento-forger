@@ -26,9 +26,9 @@
         $boardName = (isset($boards, $board) && isset($boards[$board])) ? $boards[$board] : null;
         $formattedLabel = $boardName ? $boardName . ' Contributions' : 'Contributions';
     } elseif ($currentRouteName === 'issues.issuesByMonth') {
-        $formattedLabel = 'Open Issues by Month';
+        $formattedLabel = 'Issues By Month';
     } elseif ($currentRouteName === 'prs.PRsByMonth') {
-        $formattedLabel = 'Open Pull Requests by Month';
+        $formattedLabel = 'PRs By Month';
     }
 @endphp
 

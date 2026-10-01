@@ -12,12 +12,33 @@ use App\DataTransferObjects\Leaderboard\Action;
 use App\DataTransferObjects\Leaderboard\Board;
 use App\Services\Leaderboard\ScoredEventReader;
 use Carbon\Carbon;
+use OpenSearch\Client;
 use ReflectionClass;
 use ReflectionMethod;
 use Tests\TestCase;
 
 class ScoredEventReaderTest extends TestCase
 {
+    public function testReadTreatsMissingIndexAsEmpty(): void
+    {
+        // A fresh or short-window bootstrap can leave a stream's index
+        // uncreated (e.g. github-events with no rows yet). read() must pass
+        // ignore_unavailable so a missing index returns empty, not a 404.
+        $client = $this->createMock(Client::class);
+        $client->expects($this->atLeastOnce())
+            ->method('search')
+            ->with($this->callback(function (array $params): bool {
+                return ($params['ignore_unavailable'] ?? null) === true;
+            }))
+            ->willReturn(['hits' => ['hits' => []]]);
+
+        $reader = new ScoredEventReader($client);
+
+        $events = $reader->read(Carbon::parse('2026-01-01T00:00:00Z'), Carbon::parse('2026-01-15T00:00:00Z'));
+
+        $this->assertSame([], $events);
+    }
+
     /**
      * @param  list<array<string, mixed>>  $rows
      * @param  list<string>  $excluded

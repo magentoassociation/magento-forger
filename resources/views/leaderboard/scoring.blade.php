@@ -43,7 +43,7 @@
                     $exResult = $exBase * $exPriority * $exRecency;
                 @endphp
                 <div class="hsw-col">
-                    <h2 class="hsw-h2">{{ $boards[$board] }} Board</h2>
+                    <h2 class="hsw-h2">{{ $boards[$board] }} board</h2>
                     <div class="hsw-thead"><span>Action</span><span>Base points</span></div>
                     <div class="scm-rows">
                         @foreach ($scoring['weights'] as $action => $points)

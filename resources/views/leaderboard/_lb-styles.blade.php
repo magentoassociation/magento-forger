@@ -1,4 +1,3 @@
-<link href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400;500;600;700&family=Martian+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
     .lb {
         --font-sans: 'Libre Franklin', system-ui, sans-serif;
@@ -29,7 +28,7 @@
         text-underline-offset: 2px;
         cursor: pointer;
     }
-    .lb-tallied:hover { color: #c74e16; }
+    .lb-tallied:hover { color: #ee6524; }
 
     /* Tabs — restyle the shared Bootstrap nav-tabs within the leaderboard (#21). */
     .lb .nav-tabs {
@@ -436,7 +435,7 @@
         color: #5d636c;
     }
     .lb-empty-2 a { color: #ee6524; text-decoration: underline; text-underline-offset: 2px; }
-    .lb-empty-2 a:hover { color: #c74e16; }
+    .lb-empty-2 a:hover { color: #ee6524; }
 
     /* Focus rings — site-wide, on :focus-visible only. */
     .lb .lb-search-input:focus-visible,
@@ -508,7 +507,7 @@
     .lb-hl-row {
         align-items: center;
         padding: 9px 0;
-        border-bottom: 1px solid #eff0f2;
+        border-bottom: 1px solid #f0f1f3;
         text-decoration: none;
         color: inherit;
     }
@@ -608,7 +607,7 @@
         gap: 10px;
         min-width: 0;
         padding: 8px 10px;
-        border: 1px solid #eff0f2;
+        border: 1px solid #f0f1f3;
         border-radius: 8px;
         text-decoration: none;
         color: inherit;
@@ -683,7 +682,7 @@
     .lb-d-empty-head {
         padding: 16px 20px 13px;
         background: #faf9f7;
-        border-bottom: 1px solid #eeeff1;
+        border-bottom: 1px solid #f0f1f3;
         font-family: var(--font-mono);
         font-size: 9px;
         letter-spacing: .06em;
@@ -695,7 +694,7 @@
         align-items: baseline;
         gap: 12px;
         padding: 13px 20px;
-        border-bottom: 1px solid #eeeff1;
+        border-bottom: 1px solid #f0f1f3;
     }
     .lb-d-empty-name {
         flex: 1;
@@ -891,7 +890,7 @@
         align-items: start;
         gap: 0 16px;
         padding: 9px 0;
-        border-bottom: 1px solid #eeeff1;
+        border-bottom: 1px solid #f0f1f3;
         text-decoration: none;
         color: inherit;
     }
@@ -1045,7 +1044,7 @@
         align-items: start;
         gap: 0 28px;
         padding: 10px 0;
-        border-bottom: 1px solid #eeeff1;
+        border-bottom: 1px solid #f0f1f3;
         text-decoration: none;
         color: inherit;
     }

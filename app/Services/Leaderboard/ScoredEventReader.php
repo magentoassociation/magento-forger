@@ -526,6 +526,10 @@ class ScoredEventReader
     {
         $response = $this->client->search([
             'index' => OpenSearchService::getIndexWithPrefix($index),
+            // A stream with no rows yet (e.g. github-events on a fresh or
+            // short-window bootstrap) has no auto-created index. Treat a missing
+            // index as empty rather than letting compute die on a 404.
+            'ignore_unavailable' => true,
             'scroll' => '1m',
             'size' => 1000,
             '_source' => $source,

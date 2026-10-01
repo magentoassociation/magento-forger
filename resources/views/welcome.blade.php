@@ -36,7 +36,7 @@
             </div>
 
             <div class="hp-hero-right">
-                <ul class="hp-board" aria-label="Top contributors this month">
+                <ul class="hp-board" aria-label="Top contributors, last 12 months">
                     <li class="hp-board-head">
                         <span class="hp-board-label">Leaderboard · last 12 months</span>
                         <a href="{{ route('leaderboard.show', ['board' => 'contributor']) }}" class="hp-board-full">Full board →</a>

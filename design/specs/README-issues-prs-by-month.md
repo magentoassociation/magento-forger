@@ -13,7 +13,7 @@ written in HTML — a prototype of the
 intended look and behaviour, not production code to copy. Reproduce the spec below in the
 Laravel/Blade + Bootstrap codebase using its existing template conventions.
 
-In the prototype, **`#14b` is the approved design**, shown with the Issues dataset. `#14a`
+In the prototype, **`#14b` is the approved design**. An Issues / PRs switch beside its label (and beside `#24e`) swaps the dataset; the switch is a prototype control, not page UI. `#14a`
 (heatmap grid) was explored and rejected.
 
 Header, footer and page-width rules are in `README-header.md`; type and colour foundations in
@@ -42,7 +42,7 @@ Four blocks, top to bottom, all inside the page content container:
 
 1. **Page title block** — unchanged, per `README-header.md`. H1 "Issues By Month" / "PRs By Month".
 2. **Intro copy** — full content width.
-3. **Timeline** — the three most recent years, one bar per month.
+3. **Timeline** — as many years as fit the width, one bar per month, scrollable back to the oldest year with anything open.
 4. **Month picker** — the current year as tiles.
 
 ### 1. Intro copy
@@ -57,16 +57,44 @@ flush with the timeline below it — not set in a narrow measure.
 
 ### 2. Timeline
 
-**Three year blocks — the current year and the two before it**, oldest left. The page's data
-goes back seven years, but the older years are flat and near-empty at this scale and squeeze the
-recent ones into unreadable slivers; three years is what the comparison is actually for. Earlier
-months remain reachable through their own per-month pages, which are unchanged.
+**Loaded years.** Every year from the current one back to the **oldest year that still has at least
+one open item**, oldest left. Years before that are not rendered; there is nothing to act on in them.
+Issues and PRs compute this independently, so the two pages can go back different distances.
 
-A flex row of year blocks: `display: flex; align-items: flex-end; gap: 14px; padding-bottom: 9px;
-border-bottom: 1px solid #e3e5e8`. Each year block is `flex: 1`, so every year gets equal width
-regardless of how many months carry data.
+**How many show.** As many year blocks as fit the timeline's width, each at least **118px** wide
+(twelve bars stay at least 8px):
 
-Inside a year block, the bars: `display: flex; align-items: flex-end; gap: 2px; height: 124px`.
+```
+visible = clamp(1, loadedYears, floor((W + gap) / (118 + gap)))
+blockWidth = (W - gap * (visible - 1)) / visible
+```
+
+`W` is the timeline's content width and `gap` is the year-block gap (14px, 10px at narrow widths).
+Blocks stretch to fill `W` exactly, so the last visible year is flush with the right edge. At the
+928px desktop content width that is seven years; at 380px it is three. Recompute on resize.
+If every loaded year fits, they all show and there is no scroll control.
+
+Each year block is `flex: none` at `blockWidth`, so every year gets equal width regardless of how
+many months carry data.
+
+**Scrolling.** The row of year blocks sits in a horizontal scroller —
+`overflow-x: auto; scroll-snap-type: x mandatory; overscroll-behavior-x: contain`, scrollbar
+hidden — with each block `scroll-snap-align: start`. It opens scrolled fully right (the current
+year at the right edge) and snaps one year at a time. Year labels live inside their block and scroll
+with it. The baseline rule spans the whole scrolling row, gaps included.
+
+**Range row** above the timeline, `margin-bottom: 12px`, flex with `gap: 10px`:
+- Left: the visible span, Martian Mono 400, 9px, uppercase, `.06em` tracking, `#6b7178` —
+  `"2020 – 2026 · back to 2018"`, or just `"2020 – 2026"` when nothing is hidden.
+- Right (only when there is something to scroll): **‹ Earlier** and **Later ›** buttons, `gap: 5px`.
+  Libre Franklin 600, 12.5px, `padding: 6px 11px`, `border-radius: 6px`,
+  `border: 1px solid #e3e5e8`, background `#fff`, colour `#15171b`; hover `border-color: #15171b`.
+  Each scrolls by exactly one year block (smooth). At either end the button becomes a non-interactive
+  span — background `#f7f8f9`, transparent border, colour `#6b7178` — same treatment as an empty
+  month tile. The range text updates as the row scrolls.
+
+Inside a year block, the bars: `display: flex; align-items: flex-end; gap: 2px; height: 124px;
+padding-bottom: 9px`, with the 1px `#e3e5e8` baseline directly beneath.
 Twelve children, one per month, each `flex: 1`.
 
 **Bar** — `border-radius: 2px 2px 0 0`, height from the scale below, fill by volume bucket
@@ -77,7 +105,7 @@ Twelve children, one per month, each `flex: 1`.
   slot. A future month and an empty month must not look the same.
 - `title` (and `aria-label`) on every bar: `"Sep 2026 — 261 issues"`.
 
-**Year labels** — a second flex row below the rule, same `gap: 14px`, each `flex: 1`:
+**Year labels** — inside each year block, below the rule, `margin-top: 9px`, stacked with `gap: 2px`:
 - Year — Libre Franklin 700, 15px, `letter-spacing: -.02em`, colour `#15171b`.
 - Total — Martian Mono 400, 9.5px, colour `#5d636c`, formatted `"567 issues"` with a thousands
   separator. This replaces the yellow `(567 Issues)` parenthetical.
@@ -85,12 +113,15 @@ Twelve children, one per month, each `flex: 1`.
 **Caption** — below the timeline, `margin-top: 16px`, `max-width: 620px`, 13px,
 `line-height: 1.6`, colour `#5d636c`:
 "Each bar is one month; height is the number of open issues, on a square-root scale so small
-months stay visible. Hover for the exact count, click to open that month."
+months stay visible. Hover for the exact count, click to open that month. Earlier years scroll in
+from the left, back to the oldest year with anything still open."
+(PRs page: "open PRs".)
 
 #### Scale
 
 Bar height is `sqrt(n / max) * 118`, floored at 3px for any non-zero month, where `max` is the
-largest monthly count **across the three years shown**. Linear height would flatten every year
+largest monthly count **across every loaded year**, not just the visible ones — scrolling must
+never rescale a bar. Linear height would flatten every year
 before 2026 into a sliver against Sep 2026's 261; the square root keeps a 4-issue month visible
 while still reading 261 as far larger than 66.
 
@@ -137,16 +168,20 @@ range 6 to 107 — the buckets fill 8 / 14 / 7 / 2 / 2 from palest to hottest. E
 and none holds half the data, so the scale stands as written. Expect 2025 to render nearly
 uniformly pale (6–21, mostly low teens), 2024 a step warmer, and 2026 to climb into the top two
 buckets from June onward (42, 73, 98, 107) — the growth is real and the colour should show it.
-Re-check if a year ever exceeds ~150 in a month, which would need a sixth step.
+Re-check if a year ever exceeds ~150 in a month, which would need a sixth step. Years before 2024
+fall almost entirely in the palest bucket and in 2px zero stubs, which is correct: they are the
+long tail the scroll exists to reach.
 
 ## Narrow widths
 
 Drawn at 420px in `#24e`.
 
-The timeline keeps all three years side by side at every width — comparing them is the point of
-the page, and height carries the value, so the bars survive narrowing. The bar row height drops from
-124px to 88px; `gap` stays 2px and the scale recomputes against the same `max`. Year block `gap` drops from 14px to 10px, and the year label and total stay
-stacked under their block.
+The timeline follows the same fit rule: at 380px content width three years show and the rest are a
+swipe to the left. The bar row height drops from 124px to 88px (`padding-bottom: 10px`, bar scale
+factor 82 instead of 118); `gap` stays 2px and the scale uses the same all-years `max`. Year block
+`gap` drops from 14px to 10px. Year label 14px, total 9px. The Earlier / Later buttons grow to a
+44px minimum height and width, 13px type; the range text is unchanged. Caption on touch reads "Tap
+for the exact count and that month's list. Swipe right for earlier years."
 
 The month picker is the one thing that reflows: `repeat(12, 1fr)` becomes `repeat(6, 1fr)` and
 then, at phone widths, `repeat(4, 1fr)` — a 4×3 grid that keeps each tile above the 44px touch target and keeps a full year on one screen.
