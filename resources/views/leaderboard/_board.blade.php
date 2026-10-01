@@ -21,28 +21,25 @@
         return $letters->implode('') ?: mb_strtoupper(mb_substr($name, 0, 2));
     };
 
-    // Abbreviated, counted activity for the 130px column. Contributor/monthly
-    // count PRs and issues; maintainer counts reviews and merges.
-    $activity = function (array $breakdown) use ($board): array {
-        if ($board === 'maintainer') {
-            $rev = (int) ($breakdown['review_approved']['count'] ?? 0)
-                + (int) ($breakdown['review_rejected']['count'] ?? 0)
-                + (int) ($breakdown['review_commented']['count'] ?? 0);
-            $mrg = (int) ($breakdown['approved_then_merged']['count'] ?? 0);
-            $parts = [];
-            if ($rev > 0) { $parts[] = number_format($rev).' REV'; }
-            if ($mrg > 0) { $parts[] = number_format($mrg).' MRG'; }
-
-            return $parts;
-        }
-
-        $pr = (int) ($breakdown['pr_opened']['count'] ?? 0);
-        $iss = (int) ($breakdown['issue_opened']['count'] ?? 0);
+    // Activity cell for the 130px column: one written-out total of every scored
+    // action — "328 actions" ("1 action" singular) — with no tooltip. Its
+    // accessible name spells the per-action counts ("328 actions: PRs opened 281,
+    // issues opened 47"), zeros omitted, in the spec's order. Returns
+    // [total, accessible-name]; the score tooltip is the only hover breakdown.
+    $activity = function (array $breakdown): array {
+        $total = 0;
         $parts = [];
-        if ($pr > 0) { $parts[] = number_format($pr).' PR'; }
-        if ($iss > 0) { $parts[] = number_format($iss).' ISS'; }
+        foreach (Action::activityOrder() as $action) {
+            $count = (int) ($breakdown[$action->value]['count'] ?? 0);
+            if ($count > 0) {
+                $total += $count;
+                $parts[] = $action->countLabel().' '.number_format($count);
+            }
+        }
+        $word = $total === 1 ? 'action' : 'actions';
+        $aria = $parts ? number_format($total).' '.$word.': '.implode(', ', $parts) : '';
 
-        return $parts;
+        return [$total, $word, $aria];
     };
 
     $shown = min($initialRows, $total);
@@ -54,6 +51,7 @@
      data-noun="{{ $noun }}"
      data-window="{{ $windowCaption }}"
      data-shown="{{ $shown }}"
+     data-monthly="{{ $isMonthly ? '1' : '0' }}"
      @if ($viewerRank) data-viewer-rank="{{ $viewerRank }}" @endif>
 
     {{-- Control strip --}}
@@ -100,7 +98,7 @@
                 $rank = (int) ($entry->rank ?? $loop->iteration);
                 $breakdown = $entry->breakdown ?? [];
                 $hasBreakdown = ! empty($breakdown);
-                $acts = $activity($breakdown);
+                [$actCount, $actWord, $actAria] = $activity($breakdown);
                 $isViewer = $viewerLogin !== null && $entry->login === $viewerLogin;
             @endphp
             <div class="lbr {{ $loop->iteration > $initialRows ? 'is-beyond' : '' }}"
@@ -126,9 +124,9 @@
                     @endif
                 </span>
 
-                <span class="lbr-activity">
-                    @if ($acts)
-                        {{ implode(' · ', $acts) }}
+                <span class="lbr-activity" @if ($actCount > 0) aria-label="{{ $actAria }}" @endif>
+                    @if ($actCount > 0)
+                        {{ number_format($actCount) }} {{ $actWord }}
                     @elseif ($entry->score > 0)
                         <a href="{{ $detailUrl($entry->login) }}">See contributions</a>
                     @endif

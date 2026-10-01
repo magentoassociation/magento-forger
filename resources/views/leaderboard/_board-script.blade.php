@@ -12,6 +12,7 @@
     var totalNum = parseInt(board.dataset.total, 10) || 0;
     var noun = board.dataset.noun || '';
     var windowCaption = board.dataset.window || '';
+    var isMonthly = board.dataset.monthly === '1';
 
     var rowsEl = board.querySelector('.lb-rows');
     var rowEls = Array.prototype.slice.call(board.querySelectorAll('.lbr'));
@@ -54,7 +55,7 @@
         // Caption / count
         if (pop) {
             pop.textContent = query
-                ? fmt(l.length) + ' of ' + fmt(totalNum) + ' ' + noun
+                ? fmt(l.length) + ' of ' + fmt(totalNum) + ' ' + noun + (isMonthly ? ' · ' + windowCaption : '')
                 : fmt(totalNum) + ' ' + noun + ' · ' + windowCaption;
         }
         if (countStmt) {

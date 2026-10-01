@@ -100,14 +100,6 @@
     }
     .lb:not(.lb-detail) .lb-month:hover { background: #ece9e4; }
     .lb:not(.lb-detail) .lb-month.active { background: #15171b; color: #fff; }
-    .lb-month-all {
-        font-family: var(--font-mono);
-        font-size: 10px;
-        color: #6b7178;
-        text-decoration: none;
-        padding: 6px 4px;
-    }
-    .lb-month-all:hover { color: #15171b; }
 
     /* #21 board: control strip, four-column flex rows, activity + pagination.
        Flush to the page gutter (no card box); dividers do the grouping. */
@@ -442,7 +434,6 @@
     .lb .lb-search-clear:focus-visible,
     .lb .lb-jump:focus-visible,
     .lb .lb-month:focus-visible,
-    .lb .lb-month-all:focus-visible,
     .lb .lb-more:focus-visible,
     .lb .nav-tabs .nav-link:focus-visible,
     .lb .lbr-name:focus-visible,

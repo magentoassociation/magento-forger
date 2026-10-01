@@ -78,6 +78,10 @@ class ScoreLeaderboardControllerTest extends TestCase
             ->assertDontSee('Leaderboard.show')
             ->assertSee('jane')
             ->assertSee('42.5')
+            // Activity column is one written-out total of scored actions, not an
+            // abbreviated breakdown; its accessible name spells the per-action counts.
+            ->assertSee('2 actions')
+            ->assertSee('2 actions: PRs opened 2')
             // Breakdown shows proper English, not the raw action key.
             ->assertSee('Opened a PR')
             ->assertDontSee('pr_opened');
@@ -90,6 +94,8 @@ class ScoreLeaderboardControllerTest extends TestCase
         $this->get(route('leaderboard.show', ['board' => 'contributor']))
             ->assertOk()
             ->assertSee('How are scores tallied?')
+            // Modal heading is title case, matching the other page/modal titles.
+            ->assertSee('How Contributor Scores Are Tallied')
             ->assertSee('Opened a PR')
             // Oxford comma before the final "and".
             ->assertSee('Points come from opening issues, opening PRs, and getting a PR merged.')
@@ -558,6 +564,8 @@ class ScoreLeaderboardControllerTest extends TestCase
             ->assertOk()
             ->assertSee('Jul 2026')       // selected chip carries the year
             ->assertSee('Jun')            // available chips are month-only (#21c)
+            ->assertSee('Dec 2025')       // first chip of an earlier year carries its year
+            ->assertDontSee('All months') // chips are the only month navigation now
             ->assertSee(route('leaderboard.monthly', ['board' => 'contributor', 'ym' => '2026-06']));
 
         Carbon::setTestNow();

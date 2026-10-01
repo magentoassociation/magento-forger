@@ -18,12 +18,20 @@
         @include('leaderboard._tabs')
 
         <div class="lb-months">
+            @php $prevYear = null; @endphp
             @foreach ($months as $month)
-                @php $chip = Carbon::createFromFormat('!Y-m', $month['ym']); @endphp
+                @php
+                    $chip = Carbon::createFromFormat('!Y-m', $month['ym']);
+                    $year = $chip->format('Y');
+                    // Selected chip, or the first chip of an earlier year, carries
+                    // its year so the year change is readable; the rest show the
+                    // month only.
+                    $withYear = $month['active'] || ($prevYear !== null && $year !== $prevYear);
+                    $prevYear = $year;
+                @endphp
                 <a href="{{ route('leaderboard.monthly', ['board' => $board, 'ym' => $month['ym']]) }}"
-                   class="lb-month {{ $month['active'] ? 'active' : '' }}">{{ $month['active'] ? $chip->format('M Y') : $chip->format('M') }}</a>
+                   class="lb-month {{ $month['active'] ? 'active' : '' }}">{{ $withYear ? $chip->format('M Y') : $chip->format('M') }}</a>
             @endforeach
-            <a href="{{ route('leaderboard.show', ['board' => 'contributor']) }}" class="lb-month-all">All months →</a>
         </div>
 
         @if ($entries->isEmpty())

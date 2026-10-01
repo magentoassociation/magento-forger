@@ -217,9 +217,12 @@ what halves the row height.
     by a merged PR.
   - Maintainer board counts: PRs approved, changes requested, review comments, approved PRs that
     were merged, stale PRs claimed, triage labels applied.
-  - Hover/focus tooltip lists each action with its count, in the order above, omitting zeros
-    ("PRs opened 281 · Issues opened 47"). The same text is the cell's accessible name.
-  - The per-action breakdown with points lives on the detail page, grouped the same way.
+  - No tooltip on this cell. Its accessible name lists each action with its count, in the order
+    above, omitting zeros ("328 actions: PRs opened 281, issues opened 47").
+  - The **score tooltip is unchanged and stays** on every board — per-action counts and points,
+    as specified in `README.md` (*Score tooltip*), which remains authoritative for its content,
+    position and structure. It is the one hover breakdown per row; the activity total does not
+    get a second one. The full item list lives on the detail page.
   - Where a person has no counted activity, the cell reads "See contributions" (existing
     behaviour, unchanged).
 - **Score** — Martian Mono 700, 14px, right-aligned.

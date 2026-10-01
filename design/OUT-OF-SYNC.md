@@ -31,7 +31,7 @@ may be the better one (left as-is by decision) · **[out of scope]** not governe
 - **[design call]** Login button carries a GitHub glyph the spec's text-only button doesn't list
   (`app.blade.php`). Matches the footer Slack button's treatment.
 - *Note:* the footer "relocated padding" item (sf-inner `38px 36px 0` + bottom on `.sf-legal`) is
-  **not drift** — it is how the full-bleed divider the spec calls for (L35) is achieved while keeping
+  **not drift** — it is how the full-bleed divider the spec calls for (L33) is achieved while keeping
   the same 34px gap and 30px footer bottom. Removed.
 
 ## Leaderboard boards — `README-leaderboard-pages.md`
@@ -44,7 +44,7 @@ may be the better one (left as-is by decision) · **[out of scope]** not governe
   currently work against the full DOM. **Deferred** — revisit if/when the boards move to async
   loading; until then there is no async window for these states to occupy.
 - **[design call]** Month chips link via REST routes (`/leaderboard/monthly/{board}/{ym}`); spec
-  L260 wants `?month=YYYY-MM` query params. Code's routing is arguably cleaner.
+  L276 wants `?month=YYYY-MM` query params. Code's routing is arguably cleaner.
 - **[design call]** Search input padding `7px 30px` vs spec `7px 12px` — clears the in-field `⌕`
   glyph and `✕` clear button.
 
@@ -56,10 +56,11 @@ may be the better one (left as-is by decision) · **[out of scope]** not governe
 
 - **[design call]** Monthly drill-down intro adds un-spec'd "— impact-weighted, no recency decay"
   mid-sentence (`score-monthly-detail.blade.php`).
-- **[design call]** Group-head grid `1fr 112px 66px` vs spec L116 `1fr auto auto`
+- **[design call]** Group-head grid `1fr 112px 66px` vs spec L114 `1fr auto auto`
   (`_lb-styles.blade.php`) — fixed columns align count/subtotal with the item rows.
 - **[out of scope]** The `#9a` flat-list view is built and reachable via a live Grouped/List
-  toggle. Spec says build `#9b` only, `#9a` if `#9b` is rejected — code ships both.
+  toggle. The spec now drops the `#9a` reference entirely (build `#9b` only, no fallback) — code
+  still ships both.
 
 ## Highlights — `README-highlights.md`
 
@@ -69,28 +70,8 @@ may be the better one (left as-is by decision) · **[out of scope]** not governe
 ## Homepage — `README-homepage.md`
 
 - **[design call]** Ranked visitor row is a focusable full-row link (`welcome.blade.php`, following
-  spec body L170) vs spec's accessibility note L326 "the row holds nothing focusable". The spec
+  spec body L141) vs spec's accessibility note L326 "the row holds nothing focusable". The spec
   self-contradicts.
-
----
-
-## Fixed in the 2026-10-01 pass
-
-- Foundation: score help dotted-underline `#9aa0a8` → `#6b7178`.
-- Header: logout menu item padding → `12px 10px 7px`.
-- Boards: `.lb-empty-2 a` focus-visible ring added; 561–700px intermediate strip wrap (caption line
-  1, search+jump line 2); narrow tab-row right-edge white gradient affordance.
-- Monthly board: intro now states the board is not decayed.
-- Detail: avatar hover transition `100ms` → `120ms`; other-board copy "… Board" → "… Leaderboard";
-  monthly drill-down zero state replaced the Bootstrap alert with the `.lb-d-empty` panel (handle no
-  longer repeated); monthly drill-down header now gets the zero-score grey treatment.
-- How Scores Work: example eyebrow "Worked example" → "Example"; `.hsw` body frame padding added
-  (`24px` top / `36px` bottom; horizontal gutter from the container so it aligns with the H1).
-- Highlights: "Sort by recent activity" control + "Show all N" comebacks (12 by default), mirroring
-  the detail page's Show-all-as-URL pattern.
-- Homepage: first-timer step-link hover `#8f3a10` → `#c74e16`; below `lg` the viewer's own top-5 row
-  (`.hp-board-row--you`) is no longer dropped by the `nth-child(n+5)` rule.
-- Issues/PRs by month: timeline rewrite (prior pass).
 
 ---
 
