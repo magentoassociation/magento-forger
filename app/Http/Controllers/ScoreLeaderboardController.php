@@ -187,6 +187,13 @@ class ScoreLeaderboardController extends Controller
             'groups' => $groups,
             'total' => round($groups->sum('total'), 1),
             'scoring' => $this->scoringExplainer($board, decay: false),
+            // Zero-state panel data, same shape as the rolling detail page: the
+            // board's scoring groups in config order plus the contribute CTA.
+            'scoringGroups' => array_map(
+                fn (string $action): string => self::GROUP_LABELS[$action] ?? Action::labelFor($action),
+                array_keys($weights),
+            ),
+            'cta' => $this->emptyStateCta($board),
         ]);
     }
 
@@ -605,10 +612,18 @@ class ScoreLeaderboardController extends Controller
             ->limit(20)
             ->get();
 
+        // Comebacks default to length-of-absence order (longest-away first); the
+        // ?comebacks_sort=recent toggle re-sorts by most recent activity. No cap
+        // here — the view shows 12 and the ?comebacks=all URL reveals the rest,
+        // so the full count is needed to drive the "Show all N" affordance.
+        $comebacksSort = request('comebacks_sort') === 'recent' ? 'recent' : 'absence';
         $comebacks = GithubUserStat::query()
             ->whereNotNull('returned_after_days')
-            ->orderByDesc('returned_after_days')
-            ->limit(20)
+            ->when(
+                $comebacksSort === 'recent',
+                fn ($query) => $query->orderByDesc('last_contributor_at'),
+                fn ($query) => $query->orderByDesc('returned_after_days'),
+            )
             ->get();
 
         $recentlyActive = GithubUserStat::query()
@@ -629,6 +644,7 @@ class ScoreLeaderboardController extends Controller
             'newContributors' => $newContributors,
             'rising' => $rising,
             'comebacks' => $comebacks,
+            'comebacksSort' => $comebacksSort,
             'recentlyActive' => $recentlyActive,
             'profiles' => $this->profilesFor($logins),
         ]);

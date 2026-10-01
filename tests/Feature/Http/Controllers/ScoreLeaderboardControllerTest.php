@@ -298,6 +298,74 @@ class ScoreLeaderboardControllerTest extends TestCase
             ->assertDontSee('recentreviewer');
     }
 
+    public function testComebacksCapAtTwelveByDefaultAndShowAllRevealsTheRest(): void
+    {
+        // 13 comebacks, longest-away first. cb00 has the shortest absence, so it
+        // ranks 13th and is the one hidden under the default 12-row cap.
+        foreach (range(0, 12) as $i) {
+            GithubUserStat::create([
+                'login' => sprintf('cb%02d', $i),
+                'returned_after_days' => 100 + $i,
+                'computed_at' => now(),
+            ]);
+        }
+
+        $this->get(route('leaderboard.highlights'))
+            ->assertOk()
+            ->assertSee('Show all 13')
+            ->assertDontSee('cb00');
+
+        $this->get(route('leaderboard.highlights', ['comebacks' => 'all']))
+            ->assertOk()
+            ->assertSee('cb00')
+            ->assertDontSee('Show all 13');
+    }
+
+    public function testComebacksShowAllAffordanceOnlyAppearsAboveTwelve(): void
+    {
+        foreach (range(0, 11) as $i) {
+            GithubUserStat::create([
+                'login' => sprintf('cb%02d', $i),
+                'returned_after_days' => 100 + $i,
+                'computed_at' => now(),
+            ]);
+        }
+
+        $this->get(route('leaderboard.highlights'))
+            ->assertOk()
+            ->assertSee('cb00')
+            ->assertDontSee('Show all');
+    }
+
+    public function testComebacksSortByRecentActivityControlReordersTheSection(): void
+    {
+        GithubUserStat::create([
+            'login' => 'awaylongest',
+            'returned_after_days' => 900,
+            'last_contributor_at' => now()->subDays(20),
+            'computed_at' => now(),
+        ]);
+        GithubUserStat::create([
+            'login' => 'backrecently',
+            'returned_after_days' => 50,
+            'last_contributor_at' => now()->subDay(),
+            'computed_at' => now(),
+        ]);
+
+        // Default: longest absence first, with the control offered.
+        $this->get(route('leaderboard.highlights'))
+            ->assertOk()
+            ->assertSee('Sorted by length of absence.')
+            ->assertSee('Sort by recent activity instead')
+            ->assertSeeInOrder(['awaylongest', 'backrecently']);
+
+        // Re-sorted by recent activity: order flips.
+        $this->get(route('leaderboard.highlights', ['comebacks_sort' => 'recent']))
+            ->assertOk()
+            ->assertSee('Sorted by recent activity.')
+            ->assertSeeInOrder(['backrecently', 'awaylongest']);
+    }
+
     public function testBoardShowsRealNameAndHandleWhenProfileExists(): void
     {
         LeaderboardEntry::create([
@@ -374,9 +442,10 @@ class ScoreLeaderboardControllerTest extends TestCase
             ->assertSee('idlemaintainer')    // on roster, zero score
             ->assertSee('activemaintainer')
             ->assertDontSee('outsider')      // scored but not on roster
-            // Details links only for non-zero scores.
+            // Every roster row links to its detail page, including zero-score rows — the
+            // detail page carries the zero-state panel (_board.blade links names unconditionally).
             ->assertSee(route('leaderboard.detail', ['board' => 'maintainer', 'login' => 'activemaintainer']))
-            ->assertDontSee(route('leaderboard.detail', ['board' => 'maintainer', 'login' => 'idlemaintainer']));
+            ->assertSee(route('leaderboard.detail', ['board' => 'maintainer', 'login' => 'idlemaintainer']));
     }
 
     public function testPublicMaintainerBoardHidesIdleMaintainers(): void

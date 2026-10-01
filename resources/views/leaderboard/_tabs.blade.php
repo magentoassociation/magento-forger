@@ -1,6 +1,7 @@
 @php
     $onMonthly = request()->routeIs('leaderboard.monthly') || request()->routeIs('leaderboard.monthly.index');
 @endphp
+<div class="lb-tabrow">
 <ul class="nav nav-tabs mb-4">
     @foreach ($boards as $key => $label)
         @continue($key === 'company') {{-- Company board hidden from nav; route still works if visited directly. --}}
@@ -22,3 +23,4 @@
         </a>
     </li>
 </ul>
+</div>

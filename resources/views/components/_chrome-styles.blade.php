@@ -195,7 +195,7 @@
     .acct-item:hover, .acct-item:focus { background: #262a30; color: #fff; }
     .acct-logout {
         margin-top: 5px;
-        padding-top: 5px;
+        padding: 12px 10px 7px;
         border-top: 1px solid #262a30;
         border-radius: 0 0 6px 6px;
     }
@@ -446,6 +446,9 @@
     }
 
     /* ---- How Scores Work — standalone page (20a); reuses .scm-* components ---- */
+    /* Body frame: spec wants 24px top / 36px bottom; horizontal gutter is left to the
+       page container so the body aligns with the shared H1 title block. */
+    .hsw { padding: 24px 0 36px; }
     .hsw-intro {
         max-width: 680px;
         margin: 0;
@@ -1142,7 +1145,7 @@
         color: #a8420f;
     }
     .hp-step a { color: #ee6524; text-decoration: underline; }
-    .hp-step a:hover { color: #8f3a10; }
+    .hp-step a:hover { color: #c74e16; }
 
     @media (max-width: 991.98px) {
         .hp-hero-inner { flex-direction: column; gap: 30px; padding: 34px 20px 38px; }
@@ -1152,8 +1155,9 @@
         .hp-section { padding-left: 20px; padding-right: 20px; }
         .hp-grid { grid-template-columns: minmax(0, 1fr); }
         /* Below lg the card drops to the top three (+ the visitor's row). Head is child 1,
-           so ranked rows sit at child 2–6; hide the 4th and 5th. */
-        .hp-board-row:nth-child(n+5) { display: none; }
+           so ranked rows sit at child 2–6; hide the 4th and 5th — but never the viewer's own
+           highlighted row when they rank 4 or 5 (spec: the visitor's row is never dropped). */
+        .hp-board-row:nth-child(n+5):not(.hp-board-row--you) { display: none; }
         .hp-first { flex-direction: column; gap: 0; }
         .hp-first-head { width: auto; }
         .hp-steps { flex-direction: column; margin-top: 14px; }

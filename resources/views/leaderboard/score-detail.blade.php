@@ -144,7 +144,7 @@
 
         {{-- Other-board line: a footnote below the content, only when the person is on both boards. --}}
         @if ($onOtherBoard)
-            <p class="lb-d-otherboard {{ $groups->isEmpty() ? 'lb-d-otherboard--zero' : '' }}">Your {{ strtolower($otherBoardName) }} score is tracked separately on the <a href="{{ route('leaderboard.detail', ['board' => $otherBoard, 'login' => $login]) }}">{{ $otherBoardName }} Board</a>.</p>
+            <p class="lb-d-otherboard {{ $groups->isEmpty() ? 'lb-d-otherboard--zero' : '' }}">Your {{ strtolower($otherBoardName) }} score is tracked separately on the <a href="{{ route('leaderboard.detail', ['board' => $otherBoard, 'login' => $login]) }}">{{ $otherBoardName }} Leaderboard</a>.</p>
         @endif
     </div>
 

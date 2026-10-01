@@ -34,7 +34,11 @@
     };
 
     $newContributors = $newContributors->take(10);
-    $comebacks = $comebacks->take(12);
+    // Comebacks show 12 by default; ?comebacks=all reveals the rest (Show-all-as-URL,
+    // mirroring the detail page). Keep the full count to decide the affordance.
+    $showAllComebacks = request('comebacks') === 'all';
+    $comebacksTotal = $comebacks->count();
+    $comebacksShown = $showAllComebacks ? $comebacks : $comebacks->take(12);
     $rising = $rising->take(16);
     $recentlyActive = $recentlyActive->take(16);
     $risingWindow = (int) config('leaderboard.rising.window_days', 30);
@@ -79,18 +83,24 @@
                     <h2 class="lb-section-title">Comebacks</h2>
                     <span class="lb-section-unit">Away for · then back</span>
                 </div>
-                @if ($comebacks->isEmpty())
+                @if ($comebacksTotal === 0)
                     <p class="lb-hl-note">No comebacks yet.</p>
                 @else
                     <div class="lb-hl-grid3" style="margin-top: 14px">
-                        @foreach ($comebacks as $stat)
+                        @foreach ($comebacksShown as $stat)
                             <a href="{{ $detail($stat->login) }}" class="lb-hl-card">
                                 {{ $identity($stat) }}
                                 <span class="lb-hl-away">{{ $abbrevGap((int) $stat->returned_after_days) }}</span>
                             </a>
                         @endforeach
                     </div>
-                    <p class="lb-hl-note">Sorted by length of absence.</p>
+                    @if ($comebacksTotal > 12 && ! $showAllComebacks)
+                        <a href="{{ request()->fullUrlWithQuery(['comebacks' => 'all']) }}" class="lb-hl-more">Show all {{ number_format($comebacksTotal) }} →</a>
+                    @endif
+                    <p class="lb-hl-note">
+                        {{ $comebacksSort === 'recent' ? 'Sorted by recent activity.' : 'Sorted by length of absence.' }}
+                        <a href="{{ request()->fullUrlWithQuery(['comebacks_sort' => $comebacksSort === 'recent' ? null : 'recent']) }}" class="lb-hl-sort">{{ $comebacksSort === 'recent' ? 'Sort by length of absence instead' : 'Sort by recent activity instead' }}</a>
+                    </p>
                 @endif
             </section>
 

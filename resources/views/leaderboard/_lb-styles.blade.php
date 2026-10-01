@@ -251,7 +251,7 @@
         align-items: center;
         justify-content: center;
         text-decoration: none;
-        transition: box-shadow 100ms ease;
+        transition: box-shadow 120ms ease-out;
     }
     .lbr-avatar:hover { box-shadow: 0 0 0 2px #ee6524; }
     .lbr-avatar-initials {
@@ -325,7 +325,7 @@
     }
     .lb-score-has-tip {
         cursor: help;
-        border-bottom: 1px dotted #9aa0a8;
+        border-bottom: 1px dotted #6b7178;
         padding-bottom: 1px;
     }
 
@@ -449,6 +449,9 @@
     .lb .lbr-avatar:focus-visible,
     .lb .lbr-activity a:focus-visible,
     .lb .lb-tallied:focus-visible,
+    .lb .lb-hl-more:focus-visible,
+    .lb .lb-hl-sort:focus-visible,
+    .lb .lb-empty-2 a:focus-visible,
     .lb .lb-score:focus-visible {
         outline: 2px solid #f26322;
         outline-offset: 2px;
@@ -630,6 +633,22 @@
         line-height: 1.5;
         color: #3c4148;
     }
+    .lb-hl-more {
+        display: inline-block;
+        margin-top: 14px;
+        font-family: var(--font-mono);
+        font-size: 9.5px;
+        color: #ee6524;
+        text-decoration: none;
+        border-bottom: 1px solid rgba(238, 101, 36, .4);
+    }
+    .lb-hl-more:hover { border-bottom-color: #ee6524; }
+    .lb-hl-sort {
+        color: #ee6524;
+        text-decoration: none;
+        border-bottom: 1px solid rgba(238, 101, 36, .4);
+    }
+    .lb-hl-sort:hover { border-bottom-color: #ee6524; }
     .lb-hl-empty {
         padding: 9px 0;
         font-size: 14px;
@@ -1070,12 +1089,29 @@
         .lbr-id { flex-wrap: wrap; }
         .lbr-handle { flex-basis: 100%; }
     }
+    /* Intermediate strip (561–700px): caption on line 1, search + jump share line 2,
+       both full-width — before the full unstack at 560px. */
+    @media (max-width: 700px) and (min-width: 561px) {
+        .lb-pop { flex-basis: 100%; }
+        .lb-search { margin-left: 0; flex: 1; }
+        .lb-search-input { width: 100%; min-width: 0; }
+    }
     @media (max-width: 560px) {
         .lb-strip { flex-direction: column; align-items: stretch; }
         .lb-search { margin-left: 0; }
         .lb-search-input { min-width: 0; width: 100%; }
         .lb-jump { justify-content: center; }
         .lb .nav-tabs { flex-wrap: nowrap; overflow-x: auto; }
+        /* White fade on the right edge signals the tab row scrolls. */
+        .lb-tabrow { position: relative; }
+        .lb-tabrow::after {
+            content: '';
+            position: absolute;
+            top: 0; right: 0; bottom: 0;
+            width: 32px;
+            background: linear-gradient(to right, rgba(255, 255, 255, 0), #fff);
+            pointer-events: none;
+        }
         .lb-col-rank, .lbr-rank { width: 38px; }
         .lb-colhead, .lbr { gap: 12px; }
         .lb-pager { flex-direction: column; align-items: stretch; }

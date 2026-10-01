@@ -13,13 +13,28 @@
 @section('content')
     @include('leaderboard._detail-header', [
         'scoreLabel' => $monthLabel,
+        'zero' => $groups->isEmpty(),
     ])
 
     <div class="container mx-auto lb lb-detail">
         <p class="lb-d-intro">Every scored contribution in {{ $monthFull }}, grouped by what earned the points — impact-weighted, no recency decay. Each group's points sum to the grand total. <button type="button" class="lb-tallied" data-bs-toggle="modal" data-bs-target="#scoringModal">How are scores tallied?</button></p>
 
         @if ($groups->isEmpty())
-            <div class="alert alert-info">No scored contributions in {{ $monthFull }} for <code>{{ $login }}</code>.</div>
+            {{-- Zero-state: the scoring rules with zeros in them, not a warning (no tinted alert). --}}
+            <div class="lb-d-empty">
+                <div class="lb-d-empty-head">What scores on this board</div>
+                @foreach ($scoringGroups as $groupName)
+                    <div class="lb-d-empty-row">
+                        <span class="lb-d-empty-name">{{ $groupName }}</span>
+                        <span class="lb-d-empty-count">0 items</span>
+                        <span class="lb-d-empty-pts">0.0</span>
+                    </div>
+                @endforeach
+                <div class="lb-d-empty-foot">
+                    <a href="{{ $cta['url'] }}" target="_blank" rel="noopener" class="lb-d-empty-cta">{{ $cta['label'] }}</a>
+                    <span class="lb-d-empty-hint">Nothing scored in {{ $monthFull }}. The groups above are the ones that earn {{ $board }} points.</span>
+                </div>
+            </div>
         @else
             @foreach ($groups as $group)
                 <div class="lb-d-group">

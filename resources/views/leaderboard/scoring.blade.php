@@ -60,7 +60,7 @@
                     </div>
 
                     <div class="scm-example scm-example--sm">
-                        <p class="scm-ex-eyebrow">Worked example</p>
+                        <p class="scm-ex-eyebrow">Example</p>
                         <p class="scm-ex-prose">
                             @if ($board === 'maintainer')
                                 When a <span class="scm-ex-mono">Priority: P1</span> PR you approved later merges, the
