@@ -61,14 +61,6 @@ may be the better one (left as-is by decision) · **[out of scope]** not governe
 - **[out of scope]** The `#9a` flat-list view is built and reachable via a live Grouped/List
   toggle. Spec says build `#9b` only, `#9a` if `#9b` is rejected — code ships both.
 
-## Scoring modal — `README-scoring-modal.md`
-
-- No drift. (The undocumented non-decay "monthly" modal variant is listed under Out of scope.)
-
-## How Scores Work — `README-how-scores-work.md`
-
-- No open drift. (H1 renders via the shared header; eyebrow copy, body-frame padding fixed.)
-
 ## Highlights — `README-highlights.md`
 
 - **[open]** Tab-strip literal values differ from this spec's numbers, but the shared
