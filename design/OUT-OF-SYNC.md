@@ -41,8 +41,8 @@ may be the better one (left as-is by decision) · **[out of scope]** not governe
   server-rendered (`_board.blade.php` renders the whole population; rows reveal in-place via CSS/JS,
   no XHR). These states presuppose async loading, so hosting them means converting the board from
   sync to async — which would also require re-implementing the search + jump-to-rank features that
-  currently work against the full DOM. **Pending a decision: convert to async, or accept
-  server-render and close these as architecturally N/A.**
+  currently work against the full DOM. **Deferred** — revisit if/when the boards move to async
+  loading; until then there is no async window for these states to occupy.
 - **[design call]** Month chips link via REST routes (`/leaderboard/monthly/{board}/{ym}`); spec
   L260 wants `?month=YYYY-MM` query params. Code's routing is arguably cleaner.
 - **[design call]** Search input padding `7px 30px` vs spec `7px 12px` — clears the in-field `⌕`
