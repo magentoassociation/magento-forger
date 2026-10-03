@@ -49,7 +49,8 @@ Four blocks, top to bottom, all inside the page content container:
 Verbatim from the live page; do not rewrite. Runs the **full width of the content container**,
 flush with the timeline below it — not set in a narrow measure.
 
-- `<h2>` "Why Group Open Issues by Month?" / "Why Group Open PRs by Month?" — Libre Franklin 700,
+- `<h2>` "Why group open issues by month?" / "Why group open PRs by month?" — sentence case per
+  `README.md`; this casing is the one change to the live copy. Libre Franklin 700,
   17px, `letter-spacing: -.016em`, colour `#15171b`, `margin: 0 0 10px`.
 - Paragraphs — Libre Franklin 400, 14.5px, `line-height: 1.6`, colour `#3c4148`,
   `text-wrap: pretty`, `margin: 0 0 9px` (last one `margin: 0`).
@@ -87,19 +88,20 @@ with it. The baseline rule spans the whole scrolling row, gaps included.
   `"2020 – 2026 · back to 2018"`, or just `"2020 – 2026"` when nothing is hidden.
 - Right (only when there is something to scroll): **‹ Earlier** and **Later ›** buttons, `gap: 5px`.
   Libre Franklin 600, 12.5px, `padding: 6px 11px`, `border-radius: 6px`,
-  `border: 1px solid #e3e5e8`, background `#fff`, colour `#15171b`; hover `border-color: #15171b`.
+  `border: 1px solid #d5d8dc`, background `#fff`, colour `#15171b`; hover `border-color: #15171b` —
+  the site's outlined control.
   Each scrolls by exactly one year block (smooth). At either end the button becomes a non-interactive
   span — background `#f7f8f9`, transparent border, colour `#6b7178` — same treatment as an empty
   month tile. The range text updates as the row scrolls.
 
 Inside a year block, the bars: `display: flex; align-items: flex-end; gap: 2px; height: 124px;
-padding-bottom: 9px`, with the 1px `#e3e5e8` baseline directly beneath.
+padding-bottom: 9px`, with the 1px `#e6e7ea` baseline directly beneath.
 Twelve children, one per month, each `flex: 1`.
 
 **Bar** — `border-radius: 2px 2px 0 0`, height from the scale below, fill by volume bucket
 (same buckets as the legend colours in the table further down).
 - Hover: fill `#15171b`. Whole bar is the link to that month's list.
-- Months with a count of zero: a 2px stub in `#e6e8ea` — present but visibly nothing.
+- Months with a count of zero: a 2px stub in `#e6e7ea` — present but visibly nothing.
 - Months that have not happened yet (Oct–Dec of the current year): **no bar at all**, transparent
   slot. A future month and an empty month must not look the same.
 - `title` (and `aria-label`) on every bar: `"Sep 2026 — 261 issues"`.
@@ -118,9 +120,8 @@ from the left, back to the oldest year with anything still open."
 
 #### Scale
 
-Bar height is `sqrt(n / max) * 118`, floored at 3px for any non-zero month, where `max` is the
-largest monthly count **across every loaded year**, not just the visible ones — scrolling must
-never rescale a bar. Linear height would flatten every year
+Bar height is `sqrt(n / max) * 115`, floored at 3px for any non-zero month, where `max` is the largest monthly count **across every loaded year**, not just the visible ones — scrolling must never rescale a bar. 115px is the bar row's height less its 9px bottom padding,
+so the largest month fills the row exactly. Linear height would flatten every year
 before 2026 into a sliver against Sep 2026's 261; the square root keeps a 4-issue month visible
 while still reading 261 as far larger than 66.
 
@@ -134,9 +135,9 @@ Heading row: "Pick a month" — Libre Franklin 700, 17px — followed by the yea
 Grid: `grid-template-columns: repeat(12, 1fr); gap: 5px`.
 
 **Tile with data** — an `<a>`: `padding: 8px 0 7px`, `border-radius: 6px`,
-`border: 1px solid #e3e5e8`, no fill, `display: flex; flex-direction: column; align-items:
+`border: 1px solid #d5d8dc`, no fill, `display: flex; flex-direction: column; align-items:
 center; gap: 1px`. Hover: `border-color: #15171b`.
-- Month — Martian Mono 400, 8.5px, uppercase, `letter-spacing: .04em`, colour `#6b7178`.
+- Month — Martian Mono 400, 8.5px, uppercase, `letter-spacing: .06em`, colour `#6b7178`.
 - Count — Martian Mono 700, 13px, colour `#15171b`. The number only; the noun is not repeated.
 
 **Empty or future tile** — a `<span>`, not a link: background `#f7f8f9`, no border, month and
@@ -155,14 +156,14 @@ Used for the bars. Dark ink `#15171b` throughout; these are fills only.
 | 20–39 | `#f8bd96` |
 | 40–79 | `#f59058` |
 | 80+ | `#f26322` |
-| 0 | `#e6e8ea` (2px stub) |
+| 0 | `#e6e7ea` (2px stub) |
 | no data yet | transparent |
 
 The thresholds are absolute, not relative to the page, so the same count means the same colour on
 both pages and across years. If PR volumes drift far from these ranges, re-derive the thresholds
 once and apply the same set to both pages.
 
-**Verified against real data (Sep 2026).** Across 2024, 2025 and 2026 to date — 33 months,
+**Verified against real PR data (Sep 2026).** Across PRs By Month for 2024, 2025 and 2026 to date — 33 months,
 range 6 to 107 — the buckets fill 8 / 14 / 7 / 2 / 2 from palest to hottest. Every step is used
 and none holds half the data, so the scale stands as written. Expect 2025 to render nearly
 uniformly pale (6–21, mostly low teens), 2024 a step warmer, and 2026 to climb into the top two
@@ -176,8 +177,8 @@ long tail the scroll exists to reach.
 Drawn at 420px in `#24e`.
 
 The timeline follows the same fit rule: at 380px content width three years show and the rest are a
-swipe to the left. The bar row height drops from 124px to 88px (`padding-bottom: 10px`, bar scale
-factor 82 instead of 118); `gap` stays 2px and the scale uses the same all-years `max`. Year block
+swipe to the left. The bar row height drops from 124px to 88px (`padding-bottom` stays 9px, bar scale factor 78
+instead of 115); `gap` stays 2px and the scale uses the same all-years `max`. Year block
 `gap` drops from 14px to 10px. Year label 14px, total 9px. The Earlier / Later buttons grow to a
 44px minimum height and width, 13px type; the range text is unchanged. Caption on touch reads "Tap
 for the exact count and that month's list. Swipe right for earlier years."

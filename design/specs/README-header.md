@@ -138,7 +138,7 @@ must not push the chip into the nav.
 
 Anchored to the chip's right edge, `margin-top: 8px`. `width: 196px`, background `#1c1f24`,
 `border: 1px solid #2b2f36`, `border-radius: 9px`, `padding: 6px`,
-`box-shadow: 0 12px 28px rgba(0,0,0,.28)`. Same panel values as the homepage hero card.
+`box-shadow: 0 12px 28px rgba(0,0,0,.28)`. Same fill and border as the homepage hero card; the radius, padding and shadow are the menu's own.
 
 **Header block** — `padding: 8px 10px 9px`, `border-bottom: 1px solid #262a30`,
 `margin-bottom: 5px`:
@@ -151,7 +151,7 @@ Libre Franklin 500, 13.5px, `#c9ced4`, no underline. Hover: background `#262a30`
 
 | Item | Destination | Shown to |
 |---|---|---|
-| My Contributions | the user's own **contributor** detail page | everyone |
+| My contributions | the user's own **contributor** detail page | everyone |
 | Admin | existing admin entry point | users with the admin role only |
 | Logout | existing logout route | everyone |
 
@@ -161,8 +161,7 @@ cases; do not size the panel to its contents.
 
 **Maintainers get no extra item.** A maintainer is usually on both boards, but the account menu
 is not where that distinction belongs — it would make the menu's length depend on two independent
-flags and would put a role label in front of everyone who has the role, on every page. "My
-Contributions" always goes to the **contributor** detail page; the maintainer page is reached
+flags and would put a role label in front of everyone who has the role, on every page. "My contributions" always goes to the **contributor** detail page; the maintainer page is reached
 from a line below the groups on it. See `README-detail-page.md`, "Link to the person's other
 board" — that also covers people who arrive from the board rather than the menu, which a second
 menu item would not.
@@ -297,7 +296,7 @@ Two columns, each `display: flex; flex-direction: column; gap: 9px`.
 
 | Column | Links |
 |---|---|
-| Forger | Leaderboard, Issues, Pull requests, How scores work |
+| Forger | Leaderboard, Issues, Pull Requests, How Scores Work |
 | Community | Magento Association, Magento Open Source, Mage-OS, Meet Magento, Magento on GitHub |
 
 - Column heading: Martian Mono 400, 9px, uppercase, `letter-spacing: .06em`, colour `#9aa3ae` —

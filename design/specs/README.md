@@ -22,13 +22,13 @@ contributor board, `#19b` the contributor scoring modal, and so on.
 | Spec | Covers | Prototype |
 |---|---|---|
 | `README.md` (this file) | Type scale, design tokens, capitalisation, gutter and title block — the site-wide foundation | — |
-| `README-header.md` | Dark masthead, nav, account chip, footer | `#11a` `#12a` `#24a` |
+| `README-header.md` | Dark masthead, nav, account chip, footer | `#11a` `#12a` `#13a` `#16a` `#24a` |
 | `README-homepage.md` | Hero, live top-five card, area grid, first-timer steps | `#15a` `#24d` |
-| `README-leaderboard-pages.md` | All three boards: control strip, search, jump, pagination, loading, hover, narrow widths | `#21a` `#21b` `#21c` `#22a` `#22b` `#22d` `#22c` `#23a` `#23b` `#23c` `#24a` `#25a` `#25b` |
-| `README-detail-page.md` | Contributor and maintainer detail, all four states | `#9b` `#17a` `#17b` `#17c` `#18a` `#24b` |
+| `README-leaderboard-pages.md` | All three boards: control strip, search, jump, pagination, hover, narrow widths | `#21a` `#21b` `#21c` `#22a` `#22b` `#22d` `#22c` `#23a` `#23b` `#23c` `#24a` `#25b` |
+| `README-detail-page.md` | Contributor and maintainer detail, all four states, Grouped and List views | `#17a` `#17b` `#17c` `#17d` `#18a` `#18b` `#24b` |
 | `README-scoring-modal.md` | Both scoring modals, and the tallied button rule | `#19a` `#19b` `#24c` |
 | `README-how-scores-work.md` | Standalone scoring page, both boards side by side | `#20a` |
-| `README-highlights.md` | Spotlight, Comebacks, Rising, Recently Active | `#8b` |
+| `README-highlights.md` | New contributor spotlight, Comebacks, Rising, Recently active | `#8b` |
 | `README-issues-prs-by-month.md` | Both by-month timelines, colour thresholds, month picker | `#14b` `#24e` |
 
 Three rules are stated once and apply everywhere: **capitalisation** (below), **focus rings**
@@ -40,10 +40,10 @@ This document and `README-leaderboard-pages.md` describe the same three boards a
 stages of the work. **`README-leaderboard-pages.md` supersedes this one for anything about the
 board's structure or behaviour.** Where they disagree, it wins.
 
-The section below, *Screen: Contributor Leaderboard*, is the earlier generation (`#6a`): a
-three-column table with no control strip. It is kept because its typography, tooltip and
-count-link detail are unchanged and still exact. Everything that arrived later — the activity
-column, the control strip, search, jump-to-my-rank, pagination, loading and failure states,
+The section below, *Screen: Contributor Leaderboard*, is the earlier generation (formerly card `#6a`, now removed from the prototype): a
+three-column table with no control strip. It is kept because its tooltip, avatar and name
+detail are unchanged and still exact. Everything that arrived later — the activity
+column, the control strip, search, jump-to-my-rank, pagination,
 focus rings and hover states — exists only in `README-leaderboard-pages.md` and the turn 21–25
 prototype cards.
 
@@ -58,16 +58,17 @@ should be matched.
 
 Two things in the prototype are placeholders:
 - **Avatars** are grey rounded squares with initials. In production use the real GitHub avatar
-  image (`https://avatars.githubusercontent.com/<handle>?s=68`), same 34×34 box, same 7px radius.
+  image (`https://avatars.githubusercontent.com/<handle>?s=56`) in the same box and radius as the
+  placeholder — 28×28 at 6px on the boards; each spec gives its own size elsewhere.
 - **Tooltip contents** are real only for rank 1 (taken from the live page); every other row shows
   a stand-in string. In production the tooltip is populated from the existing breakdown data.
 
 ---
 
-## Screen: Contributor Leaderboard (`#6a` — superseded in part)
+## Screen: Contributor Leaderboard (earlier generation — superseded in part)
 
 > Superseded by `README-leaderboard-pages.md` for layout and behaviour. What remains
-> authoritative here: the page title block, the name and handle treatment, the count link, the
+> authoritative here: the page title block, the name and handle treatment, the
 > score tooltip (content, position and structure), the avatar-as-GitHub-link rule, and the
 > colour tokens. Type sizes, the tab treatment, the column grid, the absence of a control strip
 > and the interaction list below are the earlier generation's — `README-leaderboard-pages.md`
@@ -85,13 +86,12 @@ then the table.
 The table is **not** a card: no border, no radius, no background fill. It sits flush with the
 page gutter — see "Page gutter and title block", which is the governing rule.
 
-Header row and each data row are a grid. The current generation is five columns — the activity
-summary moved out of the name cell in turn 21, which halved the row height:
+Header row and each data row are a flex row — the activity summary moved out of the name cell in
+turn 21, which halved the row height:
 
 ```
-grid-template-columns: 42px 28px 1fr 130px 70px;  /* rank | avatar | contributor | activity | score */
-gap: 0 16px;
-align-items: center;
+display: flex; align-items: center; gap: 16px;
+/* rank 42px | avatar 28px | contributor flex: 1 | activity 130px | score 70px */
 ```
 
 `README-leaderboard-pages.md` carries the column table and is authoritative. The earlier
@@ -104,8 +104,8 @@ today.
   H1 above it. Horizontal inset comes from the page container only.
 
 **Structural change: the Details column is removed.** It previously occupied a fourth 112px
-column with an outlined orange button per row. Its destination is now reached from the
-count link under each contributor's name (see below).
+column with an outlined orange button per row. Its destination is now reached from
+each contributor's name (see below).
 
 ### Components
 
@@ -125,7 +125,7 @@ Libre Franklin 400, 15px, `line-height: 1.6`, colour `#3c4148`, `max-width: 760p
 link. Styled as a text link: Libre Franklin 500, 14px, colour `#ee6524`,
 underlined, `text-underline-offset: 2px`, with `background: none; border: 0; padding: 0;
 font: inherit; cursor: pointer`. Behaviour and modal contents: `README-scoring-modal.md`.
-The only navigating "How scores work" affordance is the footer link.
+The only navigating "How Scores Work" affordance is the footer link.
 
 **Tabs** — Libre Franklin, 14.5px. Active tab 600 / `#15171b` on white with
 `1px solid #dfe1e4`, bottom border white, `border-radius: 7px 7px 0 0`, `margin-bottom: -1px`.
@@ -138,7 +138,7 @@ Martian Mono 700, 9px, `letter-spacing: .08em`, `text-transform: uppercase`, col
 **Rank** — Martian Mono 500, 11px, colour `#4c525a`.
 
 **Avatar — now the GitHub link.**
-34×34, `border-radius: 7px` (square-ish, not a circle: GitHub serves square images, the circle
+28×28, `border-radius: 6px` (square-ish, not a circle: GitHub serves square images, the circle
 is CSS-only). Placeholder background `#e9eaed`, initials Martian Mono 9px `#4c525a`.
 `href="https://github.com/<handle>"`. Rest state has no decoration;
 hover adds `box-shadow: 0 0 0 2px #ee6524`. Give it an accessible name
@@ -147,20 +147,12 @@ For contributors with no display name distinct from their handle (rogerdz, thai2
 DmitryFurs, KrasnoshchokBohdan), the handle is derived from the display name.
 
 **Display name** — Libre Franklin 600, 16px, `letter-spacing: -.012em`, `line-height: 1.3`,
-colour `#15171b`. **Not a link** — plain ink, truncated with ellipsis on overflow.
-(It was orange and link-coloured on the live page; making the avatar the only profile link
-leaves exactly one orange link per row, so the row reads unambiguously.)
+colour `#15171b`, no underline, truncated with ellipsis on overflow. **It links to the person's
+detail page**; hover `#ee6524`. The avatar goes to GitHub and the name to the detail page — one
+destination each, so neither needs a second label.
 
 **Handle** — Martian Mono 9.5px, colour `#5d636c`, baseline-aligned 8px after the name.
 Martian Mono is a wide face; it must sit a size step below the sans or it crowds the name.
-
-**Count link (replaces the Details button)** — second line under the name.
-Martian Mono 9.5px, `line-height: 1.7`, colour `#ee6524`,
-`border-bottom: 1px solid rgba(238,101,36,.4)` → `#ee6524` on hover, no underline.
-Links to the same destination the Details button used (the contributor's issue/PR breakdown page).
-Label: the contributor's total of scored actions, e.g. "265 actions" — the same total as the
-Activity column (see `README-leaderboard-pages.md`), not a partial breakdown. If counts aren't
-available for a row, fall back to "See contributions".
 
 **Score** — Martian Mono 700, 13px, `font-variant-numeric: tabular-nums`, colour `#15171b`,
 centred in its column. **The green pill is removed.** Its hover affordance is now
@@ -173,7 +165,8 @@ Opens on hover/focus of the score. Panel: background `#15171b`, `color: #fff`,
 `width: max-content`, `max-width: 380px`, `pointer-events: none`, `z-index: 20`.
 Positioned `top: calc(100% + 9px); right: 0` relative to the score cell — **below and
 right-aligned**, so it never clips out of the card on the first row or at the right edge.
-7px CSS triangle on the top edge, `right: 52px`.
+7px CSS triangle on the top edge, centred over the score (`right: 22px` in the 70px score column).
+Shown on `#21a`, rank 1.
 Each line is a 3-part flex row rather than a sentence:
 - label — Libre Franklin 13px, `#e3e5e8`, `flex: 1`
 - count ("201×") — Martian Mono 9.5px, `#9aa3ae`
@@ -184,7 +177,7 @@ Note the parent table card must **not** have `overflow: hidden`, or the tooltip 
 
 ### Interactions & behaviour
 - Avatar → `https://github.com/<handle>` (external; consider `target="_blank" rel="noopener"`).
-- Count link → existing contributor detail page (the old Details destination).
+- Name → existing contributor detail page (the old Details destination).
 - Score hover/focus → tooltip in, tooltip out on leave/blur. No transition in the prototype;
   a 100ms fade is fine.
 - Row hover: background `#faf9f7`, with the name link turning `#ee6524`. Every hover state on
@@ -198,9 +191,10 @@ Note the parent table card must **not** have `overflow: hidden`, or the tooltip 
 In this generation, one piece of UI state only: which row's score tooltip is open
 (`hoveredRank | null`), and no data-fetching changes — the same payload as today.
 
-The current generation adds four: the search query, the loaded row depth, the pending/failed
-state of a fetch, and the selected month on the monthly board. Three of those are reflected in
-the URL (`?month=`, `?rows=`, `#rank-N`). See `README-leaderboard-pages.md`.
+The current generation adds three: the search query, the shown row depth, and the selected month
+on the monthly board. The board is still one server-rendered payload; nothing is fetched after
+load. The depth and the month are reflected in the URL (`?rows=`, `?month=`), alongside
+`#rank-N` from a jump. See `README-leaderboard-pages.md`.
 
 ---
 
@@ -211,12 +205,13 @@ the URL (`?month=`, `?rows=`, `#rank-N`). See `README-leaderboard-pages.md`.
 Title case is for strings that name a destination — the page H1s and the tab and nav labels
 that point at them: "Contributor Leaderboard", "Maintainer Leaderboard", "Monthly Leaderboard",
 "Issues By Month", "PRs By Month", "Leaderboard Highlights", "How Scores
-Work". If it is a page and something links to it by name, it is title case, and the H1 and the
-link must match exactly.
+Work". If it is a page and something links to it by name, it is title case. A link that spells
+out the full name must match the H1 exactly. Tab, nav and footer labels may use a short form of
+the name — "Contributor", "Highlights", "Leaderboard", "Pull Requests" — and stay title case.
 
 Sentence case is for everything else: section H2s ("Where the work is"), modal titles ("How
 contributor scores are tallied"), every button ("See the leaderboard", "Show 25 more", "Jump to
-my rank", "Try again", "Join our Slack"), every link ("How are scores tallied?"), captions,
+my rank", "Join our Slack"), every link ("How are scores tallied?"), captions,
 empty states, and all body copy. Buttons are sentence case without exception — a button is an
 instruction, not a name.
 
@@ -240,17 +235,19 @@ Both are SIL Open Font License, so self-hosting is fine and preferable — subse
 preload the two weights used most (Libre Franklin 600, Martian Mono 500).
 
 ### Type scale
+Current board values, matching `README-leaderboard-pages.md`. The earlier-generation section above quotes the
+earlier sizes; these win.
+
 | role | family | size | weight | tracking |
 |---|---|---|---|---|
 | page title | sans | 40px | 700 | -.032em |
-| intro copy | sans | 15px / 1.6 | 400 | — |
-| tab label | sans | 14.5px | 500 / 600 | — |
-| table header | mono | 9px | 700 | .08em, uppercase |
-| rank | mono | 11px | 500 | — |
-| display name | sans | 16px / 1.3 | 600 | -.012em |
-| handle | mono | 9.5px | 400 | — |
-| count link | mono | 9.5px / 1.7 | 400 | — |
-| score | mono | 13px | 700 | tabular-nums |
+| intro copy | sans | 14.5px / 1.65 | 400 | — |
+| tab label | sans | 14px | 500 / 600 | — |
+| table header | mono | 9px | 400 | .06em, uppercase |
+| rank | mono | 13px | 400 (700 for ranks 1–3) | — |
+| display name | sans | 14.5px | 600 | — |
+| handle | mono | 10px | 400 | — |
+| score | mono | 14px | 700 | tabular-nums |
 | tooltip label | sans | 13px / 1.35 | 400 | — |
 | tooltip count | mono | 9.5px | 400 | — |
 | tooltip points | mono | 10px | 700 | tabular-nums |
@@ -259,20 +256,32 @@ preload the two weights used most (Libre Franklin 600, Martian Mono 500).
 | token | value | use |
 |---|---|---|
 | ink | `#15171b` | names, scores, title, tooltip background |
-| ink secondary | `#3c4148` | intro copy |
-| muted | `#5d636c` | handles |
-| muted strong | `#4c525a` | ranks, table header, avatar initials |
+| ink secondary | `#3c4148` | intro copy, board ranks 4+ |
+| muted | `#5d636c` | detail-page handle, dates, secondary copy |
+| muted light | `#6b7178` | board and Highlights handles, captions, column headers, dotted score underline |
+| muted strong | `#4c525a` | Highlights ranks and unit labels, detail group counts, avatar initials |
 | link | `#ee6524` | all links, hover states |
-| link underline rest | `rgba(238,101,36,.4)` | count link |
+| link underline rest | `rgba(238,101,36,.4)` | detail page "Show all" control |
 | hairline | `#f0f1f3` | row dividers, everywhere on every page |
-| border | `#e6e7ea` | table header divider, title-block divider |
-| border light | `#dfe1e4` | tab strip |
+| border | `#e6e7ea` | table header divider, title-block divider, tab strip, card and tile borders, by-month baseline and zero stub |
+| outline | `#d5d8dc` | outlined controls: search, buttons, detail month chips, by-month tiles |
+| border light | `#dfe1e4` | scoring modal 0× recency bar |
 | avatar placeholder | `#e9eaed` | remove once real avatars are in |
+| link hover | `#c74e16` | text-link hover |
+| chip fill | `#f7f5f2` | monthly-board month chips, priority chips |
+| close hover | `#f4f5f6` | scoring modal ✕ hover |
+| tooltip label | `#e3e5e8` | score tooltip label text, on `#15171b` only |
+| dotted affordance | `#6b7178` | score underline |
 
 One hairline, one value. Earlier prototype cards render row rules as `#eff0f2` or `#eeeff1`;
 those are the same rule at different drafts. Use `#f0f1f3` everywhere and do not reintroduce
-the near-identical variants.
-| dotted affordance | `#6b7178` | score underline |
+the near-identical variants. The same goes for borders: `#e3e5e8` and `#e6e8ea` as border or
+rule colours are `#e6e7ea`.
+
+### Score formatting
+Scores show one decimal, always (`839.3`, `15.0`, `0.0`), in tabular figures. No thousands
+separator below 1,000; a comma from 1,000 up (`1,204.5`). The same format applies on the boards,
+the detail pages, the homepage card and Highlights.
 
 ## Page gutter and title block — site-wide
 
@@ -318,10 +327,11 @@ If AA compliance for body links is required later, `#c2521a` (4.9:1, same hue) i
 replacement — swap the token, nothing else changes.
 
 ### Spacing / radius
-Row padding `10px 0` · header padding `11px 0 9px` · page header `26px 36px 24px` ·
-body block `26px 36px` · table block `20px 36px 30px` · grid gap `12px` ·
-avatar → text gap `12px` · name → handle gap `8px`.
-Radius: avatar `7px` · tooltip `9px` · tab top `7px`. The table itself has no radius.
+Row padding `10px 0` · column header `padding-bottom: 8px` · page header `26px 36px 24px` ·
+body block `24px 36px 0` · pagination block `20px 36px 30px` · row gap `16px` (rank → avatar →
+name → activity → score, avatar → name included) · name → handle gap `8px`. Current values, per
+`README-leaderboard-pages.md`.
+Radius: avatar `6px` · tooltip `9px` · tab top `7px`. The table itself has no radius.
 Shadow: tooltip only — `0 8px 24px rgba(0,0,0,.22)`.
 
 ---
@@ -331,15 +341,16 @@ None to import. Avatars come from GitHub at runtime; no icons are used (the Deta
 the only icon-adjacent element, is gone). Fonts are Google Fonts / OFL.
 
 ## Files
-- `../Leaderboard Type Directions.dc.html` — the design reference (lives beside this folder, not in it). Every option in it is approved; `#21a` is the current contributor board, `#6a` the earlier generation this document describes.
+- `../Leaderboard Type Directions.dc.html` — the design reference (lives beside this folder, not in it). Every option in it is approved; `#21a` is the current contributor board; hover or focus rank 1's score there to see the score tooltip.
 - `reference-current-page.png` — screenshot of the page as it is today, for before/after.
 
 ## Summary of changes for a reviewer
 1. Typeface pairing → Libre Franklin + Martian Mono (was the default UI sans).
 2. Green score pills removed; scores are plain tabular mono.
-3. Details column removed; its link moves under the contributor name as a contribution count.
-4. Display name is no longer a link; the avatar is, and it points at GitHub.
-5. Avatars square-ish (7px radius) rather than circular.
+3. Details column removed; the contributor name now links to the detail page.
+4. The avatar links to GitHub; the name links to the detail page.
+5. Board and detail avatars square-ish (6px radius on the boards) rather than circular. The
+   homepage card, header chip and account menu keep circular avatars.
 6. Score gains a dotted-underline + help-cursor affordance for the existing points tooltip;
    tooltip repositioned below-right so it can't clip, and its lines set as aligned columns.
 7. Link orange set to `#ee6524` — brand-matched; see the contrast exception under "On the orange".

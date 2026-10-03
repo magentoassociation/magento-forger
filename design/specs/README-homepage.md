@@ -178,7 +178,7 @@ The caption deliberately names no threshold and no specific action. Earlier draf
 merged PR puts you on the board", which is both unsafe (merging is not in the contributor's
 hands, and the number of PRs needed to rank shifts as the board moves) and an invitation to work
 the minimum. "Get on the board →" invites the action without quoting a price.
-If this ever needs to be more specific, link "How scores work" rather than naming a number.
+If this ever needs to be more specific, link "How Scores Work" rather than naming a number.
 
 Because the window rolls, a contributor who stops contributing falls off it. Do not add copy
 warning about decay on the homepage; the leaderboard's own intro paragraph ("Ranked by the last
@@ -196,7 +196,7 @@ warning about decay on the homepage; the leaderboard's own intro paragraph ("Ran
   `margin: 0 0 16px`. Copy unchanged.
 
 **Ready to code row** — one link, `display: flex; align-items: center; gap: 16px;
-padding: 18px 20px; border: 1px solid #e3e5e8; border-radius: 10px`.
+padding: 18px 20px; border: 1px solid #e6e7ea; border-radius: 10px`.
 Hover: `border-color: #15171b`.
 
 - Title "Ready to code" — Libre Franklin 700, 16.5px, `letter-spacing: -.018em`. **The 🛠 emoji
@@ -285,8 +285,7 @@ All values are existing tokens from `README-header.md` and `README.md`. New to t
 | Empty-row ink | `#f9a279` | "Your row is empty" |
 | Dashed avatar | `#4a5057` | empty avatar outline |
 
-Reused: `#15171b`, `#f26322`, `#ff7433`, `#c9ced4`, `#9aa3ae`, `#8a919b`, `#ffffff`, `#e6e7ea`,
-`#e3e5e8`, `#faf9f7`, `#3c4148`, `#5d636c`, `#fdf1ea`, `#a8420f`, `#ee6524`.
+Reused: `#15171b`, `#f26322`, `#ff7433`, `#c9ced4`, `#9aa3ae`, `#8a919b`, `#ffffff`, `#e6e7ea`, `#faf9f7`, `#3c4148`, `#5d636c`, `#fdf1ea`, `#a8420f`, `#ee6524`.
 
 ## Type
 
@@ -320,10 +319,14 @@ secondary. No mono in any headline or body paragraph.
   `<h3>`.
 - The leaderboard card is a `<ul>` of rows, not a table — it is a summary, and the real table is
   one link away. Give it an `aria-label` of "Top contributors, last 12 months".
-- The visitor's row is a `<li>`, never a link as a whole. In the two empty states (signed out;
-  signed in with no scoring activity) the caption "Get on the board →" is an `<a>` to the
-  contributor board and is the row's only focusable element. In the ranked states the caption is
-  plain text and the row holds nothing focusable.
+- The visitor's row is a `<li>`. What is focusable in it depends on the state:
+  - The two empty states (signed out; signed in with no scoring activity): the caption
+    "Get on the board →" is an `<a>` to the contributor board and is the row's only focusable
+    element. The row itself is not a link.
+  - Signed in and ranked outside the top five: the **whole row is one `<a>`** to the user's own
+    detail page, like the five ranked rows above it. The caption "Your rank over the last 12
+    months." is plain text inside that link. Give the link the accessible name
+    "Your rank, 142 — see your contributions".
 - Focus: 2px `#f26322` outline, `outline-offset: 2px`, on every link and button on the page —
   including the dark hero, where the default ring is invisible.
 - The area grid cells are links with the count in the accessible name ("Framework, 223 open"), so

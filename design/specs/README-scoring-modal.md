@@ -1,4 +1,4 @@
-# Handoff: Scoring modal — "How Scores Are Tallied"
+# Handoff: Scoring modal — "How scores are tallied"
 
 ## Overview
 Restructures the two scoring modals reached from the "How are scores tallied?" link on the
@@ -48,8 +48,8 @@ Franklin for prose and Martian Mono for all numbers, labels and code-like string
 `border-bottom: 1px solid #e6e7ea`.
 
 - Title: `<h2>`, Libre Franklin 700, 25px, `letter-spacing: -.028em`, `line-height: 1.1`,
-  colour `#15171b`. Text: "How Maintainer Scores Are Tallied" / "How Contributor Scores Are
-  Tallied" — title case, matching the other page and modal titles.
+  colour `#15171b`. Text: "How maintainer scores are tallied" / "How contributor scores are
+  tallied" — sentence case, per *Capitalisation* in `README.md`.
 - Intro paragraph: Libre Franklin 400, 14px, `line-height: 1.6`, colour `#3c4148`,
   `max-width: 620px`, `margin-top: 9px`. "priority label" and "recency factor" are weight 600.
 - Close: 32×32 box, `border-radius: 7px`, glyph 17px colour `#5d636c`, no background at rest.
@@ -93,7 +93,7 @@ One row per action. `display: flex; justify-content: space-between; gap: 14px; p
 
 - Action label: Libre Franklin 400, 14px, colour `#15171b`.
 - Value: Martian Mono 700, 13px, right-aligned.
-- `× PRIORITY` tag, where the action carries one: Martian Mono 8.5px, `letter-spacing: .04em`,
+- `× PRIORITY` tag, where the action carries one: Martian Mono 8.5px, `letter-spacing: .06em`,
   `padding: 3px 6px`, `border-radius: 4px`, background `#fdece3`, text `#8f3a10`,
   `white-space: nowrap`, `margin-left: 4px`. Sits inline after the label, inside the same span.
 
@@ -187,7 +187,7 @@ numbers spread across two sentences.
 - **It is a `<button>`, not a link.** Every in-page "How are scores tallied?" affordance — on the
   three leaderboard boards and all four detail states — is a
   `<button type="button">` that opens this modal. It does not navigate. The only exception is the
-  **footer** "How scores work" item, which is a real `<a href>` to the standalone page
+  **footer** "How Scores Work" item, which is a real `<a href>` to the standalone page
   (`README-how-scores-work.md`) — footers navigate, they do not open dialogs.
 - The button is styled exactly like a text link (Libre Franklin 500, `#ee6524`, underlined,
   `text-underline-offset: 2px`) with `background: none; border: 0; padding: 0; font: inherit;

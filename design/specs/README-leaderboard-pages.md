@@ -12,7 +12,7 @@ paragraph and the tab row, attached to nothing above or below it. It now ends th
 sentence, inline, where the reader is already thinking about how points are earned. This applies
 to every page that shows a score, including the detail pages.
 
-It is a `<button type=\"button\">` that opens the scoring modal, styled as a text link — never a
+It is a `<button type="button">` that opens the scoring modal, styled as a text link — never a
 navigating link. The standalone How Scores Work page is reached only from the footer.
 See `README-scoring-modal.md` for the button styles and modal behaviour.
 
@@ -50,8 +50,8 @@ Libre Franklin 400, 14.5px, `line-height: 1.65`, colour `#3c4148`, `max-width: 6
 
 The scoring link is the **last thing in the paragraph**, inline, after "Note that scores are
 subject to change." It is Libre Franklin 500, 14.5px, colour `#ee6524`, underlined — the
-site-wide link treatment from `README.md`. It is not a separate block, not a button, and does
-not sit on its own line.
+site-wide link treatment from `README.md`. It is not a separate block and does
+not sit on its own line; it is the `<button>` described above, styled as a link.
 
 Which modal it opens is board-dependent; see *Per-board differences*.
 
@@ -82,7 +82,7 @@ Examples: "1,284 contributors · 12 months to Sep 2026", "318 maintainers · 12 
 
 **Search** (`margin-left: auto`) — `padding: 7px 12px`, `1px solid #d5d8dc`,
 `border-radius: 7px`, `min-width: 210px`. Placeholder "Search name or handle", Libre Franklin
-13.5px colour `#9aa3ae`, with a 12px `⌕` glyph. Filters the full board, not the loaded page —
+13.5px colour `#9aa3ae`, with a 12px `⌕` glyph. Filters the full board, not just the rows currently shown —
 searching for someone in 600th place must find them without paginating there first.
 
 Once the field has a value, a clear control (`✕`, Libre Franklin 13px, `#9aa3ae` → `#15171b`)
@@ -100,9 +100,9 @@ rows filter in place — no separate results page, no modal.
 - **The population caption becomes the result count**, same type and colour:
   "3 of 1,284 contributors". It returns to the full caption when the search is cleared.
 - **Pagination applies to the filtered set** and resets to page 1. The count statement under the
-  list follows it: "Showing 3 of 3 matches". Under 25 matches there is no Load more control.
-- **No match highlighting.** The accent colour is already carrying the rank and the count link;
-  bolding substrings inside names adds a third signal to a row that does not need one.
+  list follows it: "Showing 3 of 3 matches". Under 25 matches there is no "Show 25 more" control.
+- **No match highlighting.** The accent colour already marks the name link on hover; bolding
+  substrings inside names adds a second signal to a row that does not need one.
 - The Jump to my rank control stays visible and still works — it clears the search first, then
   jumps.
 
@@ -135,16 +135,17 @@ Signed out, the control is absent — nothing takes its place.
 
 1. **Any active search is cleared first** (the field empties, the full board returns), because a
    jump into a filtered list would land on a row whose neighbours are not its real neighbours.
-2. **Pages load up to the user's rank.** The board loads the pages between the current one and
-   the page holding their rank — rank 142 means pages 1–6 are present afterwards, so scrolling
-   up from their row walks the real board rather than jumping a gap. The control shows a
-   disabled state with the label "Loading…" while this happens; it is one request per page and
-   should be batched into a single range request if the backend allows it.
+2. **Rows are shown down to the user's rank.** Every row is already in the page, so the rows
+   between the current depth and the 25-row block holding their rank are revealed — rank 142
+   means rows 1–150 are shown afterwards, so scrolling up from their row walks the real board
+   rather than jumping a gap. This is instant; the control has no pending state.
 3. **The page scrolls their row to roughly a third from the top**, not to the very top — the
    ranks above are the context that makes a rank mean anything. Use a programmatic scroll on the
    window with `behavior: smooth`, honouring `prefers-reduced-motion: reduce` by jumping
    instantly.
-4. **The row takes a highlight**: background `#fff6f1`, `box-shadow: inset 3px 0 0 #f26322`,
+4. **The row takes a highlight**: background `#fff6f1`, `box-shadow: inset 3px 0 0 #f26322`, and the
+   row extends 12px past the gutter on both sides (`margin: 0 -12px; padding: 10px 12px`) so the
+   bar sits 9px clear of the rank while the rank, avatar and score stay in their columns,
    held for 2s and then faded out over 400ms. Nothing else about the row changes — no bold, no
    badge, no permanent treatment. The highlight is decorative only.
 5. **Focus moves to the row** (`tabindex="-1"` on the row, focused after the scroll) so keyboard
@@ -152,10 +153,9 @@ Signed out, the control is absent — nothing takes its place.
    `aria-label="Your rank, 142"`; announce the arrival with a polite live region:
    "Jumped to your rank, 142 of 1,284."
 6. **The URL gains `#rank-142`** so the position survives a reload and can be shared. On load
-   with that fragment present, the board performs the same page loading and scroll without the
-   highlight.
+   with that fragment present, the board shows the same rows and scrolls without the highlight.
 
-If the user is already on the loaded page, step 2 is skipped and the rest run unchanged —
+If their row is already shown, step 2 is skipped and the rest run unchanged —
 clicking the control when the row is already visible still scrolls and highlights, which is the
 correct answer to "where am I".
 
@@ -223,8 +223,6 @@ what halves the row height.
     as specified in `README.md` (*Score tooltip*), which remains authoritative for its content,
     position and structure. It is the one hover breakdown per row; the activity total does not
     get a second one. The full item list lives on the detail page.
-  - Where a person has no counted activity, the cell reads "See contributions" (existing
-    behaviour, unchanged).
 - **Score** — Martian Mono 700, 14px, right-aligned.
 
 ## Pagination
@@ -234,7 +232,10 @@ what halves the row height.
 - Button "Show 25 more": `padding: 9px 18px`, `1px solid #d5d8dc`, `border-radius: 7px`, Libre
   Franklin 600, 13.5px, colour `#15171b`. Hover: `border-color: #15171b`.
 - Count beside it: Martian Mono 9.5px uppercase `letter-spacing: .06em` colour `#6b7178`,
-  reading "Showing 1–25 of 1,284". It updates as pages load.
+  reading "Showing 1–25 of 1,284". It updates as rows are shown.
+
+The pagination block is a page-level block beside the body block, not inside it — its 36px is
+the page gutter, not a second one.
 
 25 rows per page. The count is what makes the control honest — "Show more" alone does not tell
 the reader whether two rows remain or twelve hundred. When the last page is reached the button
@@ -276,8 +277,7 @@ keep their existing 12-month wording.
   `<a href>` carrying a `?month=YYYY-MM` query param, the convention the detail page uses
   (`leaderboard/contributor/user/lbajsarowicz?month=2026-04`). Keep the param name and format
   on the monthly board — `?month=2026-09` — so one rule covers both. Months stay linkable,
-  bookmarkable and indexable, and the back button walks the months a reader looked at. A
-  client-side fetch is fine as long as it `pushState`s the same URL.
+  bookmarkable and indexable, and the back button walks the months a reader looked at.
 - **Which months appear.** The last 12 months including the current one, most recent first, one
   chip per month — always twelve (SEP 2026 back to OCT 2025), so the row wraps at most once. Months with no scored activity are
   still shown and lead to a board with the no-activity state rather than being omitted; a
@@ -300,24 +300,26 @@ keep their existing 12-month wording.
 
 ## Pagination state
 
-- **"Show 25 more" appends.** Rows already loaded stay; the next 25 are added below and the count
-  statement updates ("Showing 1–50 of 1,284"). Nothing is replaced, so a reader who scrolled past
-  rank 30 does not lose their place. This is also what makes *Jump to my rank* possible without a
-  page-by-page walk.
-- **Focus after loading** moves to the first newly added row, so keyboard users continue where
-  the list grew rather than from the button. Announce with a polite live region: "25 more loaded.
+- **The whole board is in the page.** `_board.blade.php` renders every ranked row in one
+  response; "Show 25 more" reveals rows that are already there and never fetches. On load, rows
+  past the current depth are hidden.
+- **"Show 25 more" reveals the next 25.** Rows already shown stay; the next 25 appear below and
+  the count statement updates ("Showing 1–50 of 1,284"). Nothing is replaced, so a reader who
+  scrolled past rank 30 does not lose their place.
+- **Focus after revealing** moves to the first newly shown row, so keyboard users continue where
+  the list grew rather than from the button. Announce with a polite live region: "25 more shown.
   Showing 1–50 of 1,284."
 - **The control disappears at the end of the list**, leaving the count statement alone: "Showing
   all 1,284". It is never shown disabled.
-- **URL** — the loaded depth is written as `?rows=50`, with `history.replaceState` rather than
+- **URL** — the shown depth is written as `?rows=50`, with `history.replaceState` rather than
   `pushState`, so the back button leaves the board instead of unwinding one click at a time. On
   load with `?rows=50` the board renders 50 rows directly. A `#rank-142` fragment from a jump
   sets the depth implicitly and takes precedence.
 - **Under an active search** the filtered set paginates the same way and resets to 25 on each new
   query (see *Search results*). The `rows` parameter is dropped while a search is active, and the
   query itself is not put in the URL.
-- **Without JavaScript** the control is a plain link to `?rows=50`, which renders the longer list
-  and moves the link to `?rows=75`. The page still works; it just reloads.
+- **Without JavaScript** every row is visible and the control and count statement are absent —
+  the full board is already in the page.
 
 ## Focus rings — site-wide
 
@@ -328,7 +330,7 @@ inconsistent across the light and dark surfaces this design uses.
 
 It applies to — and is currently missing from — the search field (the ring replaces the
 `#15171b` border change), its clear control, the jump-to-my-rank chip in both forms, month
-chips, "Show 25 more", tab links, row name links, count links, the "How are scores tallied?"
+chips, "Show 25 more", tab links, row name links, the "How are scores tallied?"
 button, and the score tooltip trigger.
 
 Two notes:
@@ -338,34 +340,12 @@ Two notes:
 - Hover and focus are different states and must not share a treatment. A row that only changes
   background on hover still needs the ring, or keyboard users get no feedback at all.
 
-## Loading and failure
+## No loading or failure states
 
-Drawn in `#25a`. The rule across all four states: never blank the page, and never move a row
-that is already on screen.
-
-**First load.** Skeleton rows at the real row height and column widths — `#eceef0` bars,
-`border-radius: 4px` — so nothing shifts when the data arrives. Five rows, not twenty-five; the
-fold is all anyone sees. Vary the name-bar width per row (135–215px); identical bars read as a
-graphic rather than as pending content. No spinner. The caption below reads "Loading
-contributors…" in the population caption's own type and colour, and is an `aria-live="polite"`
-region that announces the count when the rows land.
-
-**Appending.** Loaded rows stay exactly where they are; two skeleton rows appear below them and
-the control reads "Loading…", disabled, with `#e6e7ea` border and `#9aa3ae` text. The count
-statement does not change until the rows arrive.
-
-**Whole-board failure.** Column header stays; the rows are replaced by the same block the
-no-results state uses (see *No results*) — "The leaderboard didn't load." and, below it, "This
-is usually temporary. Try again, or come back in a few minutes.", with *Try again* as an
-`#ee6524` link that re-fetches in place. No status code, no illustration. The control strip is
-hidden: there is nothing to search.
-
-**Failed append.** Everything already loaded stays on screen. The "Show 25 more" control is
-replaced by a "Try again" control in the same position with "Couldn't load more rows." beside
-it in `#5d636c`. Never replace a populated list with an error.
-
-**Timeout.** Treat as failure after 10s. A slow board that eventually loads is better than an
-error the reader has to dismiss, so only escalate once the request has actually failed.
+The board is rendered server-side as one complete page (`_board.blade.php`), so there is no
+moment where rows are pending and no partial failure to show. There are no skeleton rows, no
+in-place error or *Try again* control, no disabled "Loading…" button and no timeout. If the
+request fails, the site's standard error page applies.
 
 ## Hover states
 
@@ -375,15 +355,16 @@ lift on each of 25 rows turns scanning into a flicker.
 
 | Element | Rest | Hover |
 |---|---|---|
-| Table row | no background | `#faf9f7` |
+| Table row (boards, detail item rows, Highlights ranked rows) | no background | `#faf9f7` |
+| Comebacks card | border `#f0f1f3` | border `#d3a98f`, background `#fdfaf8` |
 | Name link | `#15171b` | `#ee6524` |
 | Tab, inactive | `#5d636c` | `#15171b` |
 | Month chip, available | `#f7f5f2` | `#ece9e4` |
-| Outlined control | border `#d5d8dc` | border `#15171b` |
+| Outlined control (buttons, detail month chips, by-month tiles) | border `#d5d8dc` | border `#15171b` |
 | Dark control | `#15171b` | `#2a2e34` |
 | Orange button | `#f26322` | `#ff7433` |
 | Text link | `#ee6524` | `#c74e16` |
-| Timeline bar | as scaled | 1px `#15171b` outline at 1px offset, plus tooltip |
+| Timeline bar | as scaled | fill `#15171b`; exact count in the bar's `title` |
 | Footer link | `#c9ced4` | `#fff` |
 
 Three families: a surface warms one step in the direction it already leans, ink darkens, or

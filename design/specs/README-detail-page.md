@@ -3,11 +3,12 @@
 Companion to `README.md` (foundations) and `README-leaderboard-pages.md` (the boards this page
 is reached from).
 The **Design tokens** and **Type scale** sections of `README.md` apply unchanged.
-Implement option **`#9b`** in `../Leaderboard Type Directions.dc.html` — the grouped version.
+Implement option **`#18a`** in `../Leaderboard Type Directions.dc.html`. Grouped is the default view;
+the Grouped / List toggle switches to a flat list (`#18b`, see *List view*).
 
 ## What this page is for
 
-It is reached from the count link under a contributor's name on the leaderboard, and its single
+It is reached from a contributor's name on the leaderboard, and its single
 job is to answer "why is this person's score 839.3?". The current page does not answer that:
 it lists items sorted by points with no subtotals, and the four-category breakdown that the
 leaderboard tooltip already shows is absent here.
@@ -27,7 +28,7 @@ leaderboard tooltip already shows is absent here.
 7. **The total doesn't reconcile.** The page says 839.4; the category figures sum to 839.3,
    which is also what the board shows. Use **839.3**.
 
-## Structure of `#9b`
+## Structure of `#18a`
 
 ```
 avatar · name · handle          |  839.3 / POINTS · 12 MONTHS     title block
@@ -85,7 +86,7 @@ the contents sit in the page container — identical to the title block in `READ
   must stay on the H1's baseline block, not drift below it.
 
 **Below the rule**, in the leaderboard's own order — nothing here sits in the title block:
-1. **Intro** — Libre Franklin 400, 14.5px/1.6, `#3c4148`, `max-width: 660px`,
+1. **Intro** — Libre Franklin 400, 14.5px/1.65, `#3c4148`, `max-width: 660px`,
    `padding-top: 24px`: "Every scored contribution in the last 12 months, grouped by what earned
    the points. Each group's points sum to the grand total."
 2. **"How are scores tallied?"** — a `<button type="button">` opening the scoring modal, inline at
@@ -107,15 +108,41 @@ This ordering matters as much as the block itself: on the leaderboard the sequen
 intro → tallied button → tabs → table, and the detail page now reads the same way.
 
 Applies to **all four detail states** — contributor and maintainer, scored and zero. See `#18a`
-in the prototype for the block with the header above it for context; `#9b`, `#17a`, `#17b` and
-`#17c` show the body treatments and predate the title block.
+in the prototype for the full scored page with the site header above it, including the working
+Show-all filter; `#17a`, `#17b` and `#17c` show the maintainer and zero-score states.
+
+### Grouped / List toggle
+`display: flex; gap: 16px`, `margin-top: 20px` below the intro. Two labels, Martian Mono 9.5px,
+uppercase, `letter-spacing: .06em`, `padding-bottom: 5px`.
+- Active — weight 700, `#15171b`, `border-bottom: 2px solid #ee6524`. Not a link.
+- Inactive — weight 400, `#6b7178`, no underline, a link; hover `#15171b`.
+
+It is the same treatment as the List view's sort headers, so the page has one kind of switch.
+
+### Month chips
+`display: flex; gap: 7px; flex-wrap: wrap`, `margin-top: 16px` below the toggle. Martian Mono
+10.5px, uppercase, `letter-spacing: .06em`, `padding: 6px 12px`, `border-radius: 6px`.
+- Selected — background `#15171b`, text `#ffffff`.
+- Others — `1px solid #d5d8dc`, colour `#3c4148`, no fill; hover `border-color: #15171b` — the
+  site's outlined control.
+- Order — "All" first, then the last 12 months, most recent first, each with its year ("SEP 2026").
+- Links — each chip is an `<a href>` with `?month=YYYY-MM`; "All" carries no param and is the default.
+
+How they differ from the monthly board's chips (`README-leaderboard-pages.md`): the detail page
+has an **All** chip, because it lists items and can show the whole 12-month window at once; a
+ranking needs exactly one window, so the board has none. The detail chips are outlined rather
+than filled because they sit directly under the Grouped / List toggle, and a second row of filled
+shapes would compete with it. They are also a size step larger than the board chips (10.5px and
+`6px 12px`, against 10px and `6px 11px`): every detail chip carries its year and a border, and
+needs the extra room. Selecting a month filters the groups (or the tiles and list) and
+keeps the current view.
 
 ### Group head
 `display: grid; grid-template-columns: 1fr auto auto; gap: 0 16px; align-items: baseline`,
 `padding-bottom: 9px`, **`border-bottom: 1px solid #15171b`** — full-strength ink, not a grey
 hairline. Group block `margin-bottom: 22px`.
 - name — Libre Franklin 700, 17px, `-.02em`
-- count — Martian Mono 700, 9px, `.08em`, uppercase, `#4c525a` (e.g. "201 items")
+- count — Martian Mono 700, 9px, `.06em`, uppercase, `#4c525a` (e.g. "201 items")
 - subtotal — Martian Mono 700, 15px, tabular, `min-width: 66px`, right-aligned
 
 **Two rule weights do the grouping**, and the difference between them is the structure of the
@@ -129,18 +156,17 @@ page:
 
 A grey hairline under the group head would read as one more row separator and the groups would
 stop being legible as groups. The black rule is what says "everything below this line belongs to
-this heading" — it is the only place on the page where ink is used as a rule, and it is why the
-page can carry four groups without boxes, cards or fills around them.
+this heading" — it is the only place on the page where ink is used as a rule, and it is why the page can carry four groups (six on the maintainer page) without boxes, cards or
+fills around them.
 
 ### Item row
 Whole row is an `<a>` to the GitHub issue or PR.
-`grid-template-columns: 1fr 112px 66px`, `gap: 0 16px`, **`align-items: start`**,
-`padding: 9px 0`, `border-bottom: 1px solid #f0f1f3`, hover `background: #fafbfb`.
-- **title** — Libre Franklin 14.5px/1.45, `text-wrap: pretty`. **Must wrap, never truncate.**
-  These titles are the content the user came for, and the identifying part is often the tail
-  ("… in CatalogWidget on 2.4.7-p5"). Rows with `align-items: start` keep the date and points
-  on the first line of a wrapped title; give them `margin-top: 3px` / `1px` for optical
-  baseline alignment.
+`grid-template-columns: 1fr 112px 66px`, `gap: 0 16px`, `align-items: baseline`,
+`padding: 9px 0`, `border-bottom: 1px solid #f0f1f3`, hover `background: #faf9f7`.
+- **title** — Libre Franklin 14.5px/1.45, one line, truncated with an ellipsis
+  (`overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0`). The List view
+  truncates the same way, so both views read alike; the full title is one click away on GitHub
+  and in the row's `title` attribute.
 - **date** — Martian Mono 9.5px, `#5d636c`, `white-space: nowrap`, format `31 Aug 2026`
   (one line, day-first, no comma).
 - **points** — Martian Mono 700, 12px, tabular, right-aligned. **No green pill.**
@@ -178,7 +204,7 @@ The line is driven by **presence on the other board**, not by a GitHub permissio
 destination always exists. A maintainer with no rows in the 12-month window still has a page; it
 shows its own empty state.
 
-Shown in the prototype on `#9b` (contributor, scored), `#17a` (maintainer, scored) and `#17b`
+Shown in the prototype on `#18a` (contributor, scored), `#17a` (maintainer, scored) and `#17b`
 (maintainer, zero). `#17c` is someone who is not a maintainer, and correctly has no line.
 
 ## "Show all" behaviour
@@ -188,7 +214,7 @@ Martian Mono 9.5px, `#ee6524`, `border-bottom: 1px solid rgba(238,101,36,.4)` �
 hover. Label "Show all 201 →".
 
 **Clicking it filters the page to that group** — it does not expand in place and does not
-paginate. The single-group view replaces the four groups with:
+paginate. The single-group view replaces the groups with:
 - "← All contributions" (Libre Franklin 500, 13.5px, `#ee6524`, `margin-bottom: 16px`)
 - the same group head, title bumped to 19px, count and subtotal unchanged
 - the group's full list, same row spec
@@ -206,18 +232,72 @@ panel. Suppress the control and show a plain line in its place
 (Libre Franklin 13.5px/1.5, `#5d636c`). In the prototype that line explains the missing sample
 data; in production the equivalent case is a genuinely empty group.
 
+## List view
+
+The toggle's second view, shown in `#18b` (contributor) and `#17d` (maintainer). Same title block, toggle and month chips as the
+grouped view; the intro reads "Every scored contribution in the last 12 months in one list. The
+points column sums to the grand total." followed by the inline "How are scores tallied?" link.
+
+**Group tiles** — one tile per group subtotal, above the list, so the page still reconciles
+without group heads: four on the contributor page, six on the maintainer page.
+`display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 12px` on the contributor
+page, `repeat(3, minmax(0,1fr))` on the maintainer page (two rows of three),
+`margin-top: 22px`. Each tile: `1px solid #e6e7ea`, `border-radius: 9px`, `padding: 16px 16px 18px`.
+- Group name — Libre Franklin 13px/1.35, `#3c4148`, `min-height: 2.7em` (two lines reserved), so a
+  long name such as "Issues resolved by a merged PR" can wrap without pushing its figure below the
+  others. The subtotals in a row always sit on one line. Never truncate the name.
+- Subtotal — Martian Mono 700, 20px, then the count "×201" in Martian Mono 10px `#5d636c`,
+  `gap: 6px`, `margin-top: 14px`.
+- Bar — 4px, radius 2px, track `#f0f1f3` (same as the Highlights score bar), fill `#ee6524`, `margin-top: 12px`. Width is the
+  group's share of the **largest** group, so the biggest bar is always full.
+- Same groups, same order as the grouped view. Narrow widths: two columns.
+
+**Table head** — `margin-top: 28px`, `padding-bottom: 10px`, `border-bottom: 1px solid #e6e7ea`
+(the site's table-header divider).
+- "Scored contributions" — Libre Franklin 700, 18px, `letter-spacing: -.018em`, an H2.
+- Sort headers Type · Date · Points — `<button>`s, Martian Mono 9px uppercase `.06em`. Inactive
+  `#6b7178` 400, hover `#15171b`; active `#15171b` 700 with a 2px `#ee6524` underline.
+  Default sort is Points, descending. Date sorts newest first; Type groups by type, points
+  descending within it. Column widths: Type 212px — wide enough for the longest tag on either page, "Issue resolved
+  by a merged PR"; Date 112px, Points 66px right-aligned — the same date and points widths as the grouped view's item row.
+
+**Rows** — `padding: 9px 0`, `border-bottom: 1px solid #f0f1f3`, hover `#faf9f7`, whole row a link.
+- Title — Libre Franklin 14.5px, one line, ellipsis — same as the grouped view.
+- Type tag — Martian Mono 9.5px, `#3c4148` on `#f0f1f3`, `padding: 3px 7px`, `border-radius: 4px`,
+  `white-space: nowrap` — a tag never wraps inside its pill.
+  The tag is the **singular** of the row's group name, in sentence case: "PR opened", "PR merged",
+  "Issue opened", "Issue resolved by a merged PR"; on the maintainer page "PR approved", "Change requested", "Review comment", "Approved PR that was
+merged", "Stale PR claimed", "Triage label applied". A row is one item, so it takes the singular;
+  the group heads and tiles name the set and stay plural.
+- Date — Martian Mono 9.5px, `#5d636c`. Points — Martian Mono 700, 12px. Row padding, date and
+  points match the grouped view's item row.
+
+**Pagination** — the boards' "Show 25 more" control and "Showing 1–25 of N" count
+(`README-leaderboard-pages.md`), `padding: 20px 36px 0`.
+
+**Other-board line** — when the person is on both boards, the same line as the grouped view
+(see "Link to the person's other board") follows the pagination block, `margin-top: 22px`, with
+`30px` below it. It is the page's last element in both views.
+
+**URL** — `?view=list` and `?sort=date|type` alongside `?month=`. Grouped and Points are the
+defaults and carry no param. Month chips filter both the tiles and the list.
+
+**Zero-score pages** suppress the toggle (see below), so the List view never renders empty.
+
 ## The maintainer detail page
 
 The maintainer board's detail page is **the same page as this one** — same header row, same
 grouped body, same month chips, same Show-all behaviour — with the maintainer dataset and the
-maintainer board's group names ("Approved PRs That Were Merged", "Changes Requested",
-"Stale PRs Claimed", …). Build one template and pass it the board.
+maintainer board's group names ("PRs approved", "Changes requested", "Review comments",
+"Approved PRs that were merged", "Stale PRs claimed", "Triage labels applied") — one group per
+scored maintainer action, the same six the board's activity column counts. Build one template and pass it the board.
 
 Only two things differ:
 - The other-board line, when shown, points at the Contributor Leaderboard.
 - The group names come from the maintainer scoring rules.
 
-See `#17a` in the prototype. Nothing else about it is new, and it needs no separate spec.
+See `#17a` (Grouped) and `#17d` (List) in the prototype. Nothing else about it is new, and it
+needs no separate spec.
 
 ## Zero-score state (`#17b`, `#17c`)
 
@@ -240,12 +320,12 @@ Unchanged, with two adjustments:
   - Maintainer: "No maintainer activity scored in the last 12 months. Reviews and merges you
     complete from here will show up on this page, grouped by what earned the points."
 
-"How are scores tallied?" stays, inline at the end of the panel's paragraph. The Grouped / List toggle and the month chips are **suppressed**
+"How are scores tallied?" stays, inline at the end of the replacement intro paragraph. The Grouped / List toggle and the month chips are **suppressed**
 — there is nothing to group, list or filter.
 
 ### The panel
 
-In place of the groups, one bordered panel: `1px solid #e3e5e8`, `border-radius: 10px`,
+In place of the groups, one bordered panel: `1px solid #e6e7ea`, `border-radius: 10px`,
 `overflow: hidden`.
 
 **Head** — `padding: 16px 20px 13px`, `background: #faf9f7`,
@@ -257,7 +337,7 @@ uppercase, `.06em`, `#6b7178`.
 border-bottom: 1px solid #f0f1f3`:
 - Name — Libre Franklin 600, 14.5px, `letter-spacing: -.012em`, `#3c4148`.
 - Count — "0 items", Martian Mono 400, 9px, uppercase, `.06em`, `#6b7178`.
-- Points — "0.0", Martian Mono 500, 12px, `#6b7178`, `width: 62px`, right-aligned.
+- Points — "0.0", Martian Mono 500, 12px, `#6b7178`, `width: 66px`, right-aligned.
 
 The rows are **not links** — there is nothing to open. They are quieter than a scored row by
 weight (500 against 700) and by the absence of a hover state, **not** by lightness: the zero
@@ -268,8 +348,8 @@ Groups shown:
 
 | Board | Groups |
 |---|---|
-| Contributor | PRs Opened · PRs Merged · Issues Opened · Issues Resolved by a Merged PR |
-| Maintainer | Approved PRs That Were Merged · Changes Requested · Stale PRs Claimed |
+| Contributor | PRs opened · PRs merged · Issues opened · Issues resolved by a merged PR |
+| Maintainer | PRs approved · Changes requested · Review comments · Approved PRs that were merged · Stale PRs claimed · Triage labels applied |
 
 These must be the **same list, in the same order, that a scored page would show** — the panel is
 the scoring rules with zeros in them, so it stays correct automatically as rules change. Do not
@@ -277,12 +357,13 @@ hand-maintain a second list.
 
 **Foot** — `padding: 16px 20px 18px`, `display: flex; align-items: center; gap: 14px;
 flex-wrap: wrap`:
-- CTA: the site's orange button — `padding: 10px 17px`, `border-radius: 7px`,
+- First, the line "The groups above are the ones that earn maintainer points. Each fills in as you
+  go." — Libre Franklin 400, 13px/1.5, `#5d636c` ("contributor points" on the contributor page).
+- Then the CTA, after the line and right-aligned (`margin-left: auto`): the site's orange button —
+  `padding: 10px 17px`, `border-radius: 7px`,
   background `#f26322`, ink `#15171b`, Libre Franklin 700, 14px, hover `#ff7433`.
   Contributor: "Find an issue to work on →" (same destination as the homepage CTA).
   Maintainer: "Find a PR to review →".
-- Beside it: "The groups above are the ones that earn maintainer points. Each fills in as you
-  go." — Libre Franklin 400, 13px/1.5, `#5d636c` ("contributor points" on the contributor page).
 
 ### Below the panel
 
@@ -298,6 +379,18 @@ empty row (see `README-homepage.md`). It says what scores, not what it costs to 
 Do not use a Bootstrap `alert` class, or any tinted status panel, for this state. It is not a
 warning, an error or a success; it is the page, with zeros.
 
+## Narrow widths
+
+Drawn at 420px in `#24b`. Below the Bootstrap `lg` breakpoint:
+- The gutter becomes 20px, as on every page; the title block is `padding: 26px 20px 24px`.
+- The H1 drops from 40px to 28px, the boards' narrow size. The identity row keeps its structure
+  — avatar, name and handle, score block on the right — and a long name wraps rather than
+  truncating.
+- The intro, inline "How are scores tallied?", Grouped / List toggle and month chips keep their
+  order. The chips wrap.
+- Group heads and item rows keep their grid. Titles truncate with an ellipsis, as on desktop.
+- The List view's group tiles drop to two columns (see *List view*).
+
 ## Data notes
 - The four category figures come from the same source as the leaderboard tooltip
   (opened a PR 201× 585.6 · PR merged 14× 195.5 · opened an issue 47× 41.0 ·
@@ -306,8 +399,9 @@ warning, an error or a success; it is the page, with zeros.
   is what the page shows, or the copy must stop claiming they reconcile.
 
 ## Files
-- `../Leaderboard Type Directions.dc.html` — implement turn 9, option `#9b`.
+- `../Leaderboard Type Directions.dc.html` — implement `#18a` (Grouped) and `#18b` (List).
 - `reference-detail-current.png` — the detail page before the redesign.
-- Turn 17 — the maintainer detail page (`#17a`) and the zero-score state on both boards
+- Turn 17 — the maintainer detail page (`#17a` Grouped, `#17d` List) and the zero-score state on both boards
   (`#17b` maintainer, `#17c` contributor).
-- Turn 18 — `#18a`, the title block, shown with the site header above it.
+- Turn 18 — `#18a`, the grouped page with the title block and Show-all filter; `#18b`, the List
+  view. (The earlier `#9b` card has been folded into `#18a` and removed.)

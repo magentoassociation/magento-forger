@@ -6,7 +6,7 @@ Two things in this folder.
 It is the visual reference: every approved design, newest first, each with an id badge
 (`21a`, `19b`, `24d`). The specs cite those ids.
 
-**`specs/`** — ten markdown documents. Start with `specs/README.md`; it opens with an index
+**`specs/`** — nine markdown documents. Start with `specs/README.md`; it opens with an index
 mapping each spec to the prototype ids it describes.
 
 ## Before you plan the work
@@ -14,15 +14,15 @@ mapping each spec to the prototype ids it describes.
 `specs/README.md` and `specs/README-leaderboard-pages.md` describe the same three boards at two
 stages. The second supersedes the first — see *Which spec governs the boards* in
 `specs/README.md`. The site currently implements the earlier generation; the later layer
-(control strip, search, jump-to-my-rank, pagination, loading and failure states, activity
-column, focus rings, hover states) is unbuilt and is the larger half of this handoff.
+(control strip, search, jump-to-my-rank, pagination, activity column, focus rings, hover
+states) is unbuilt and is the larger half of this handoff.
 
 ## Reading order
 
 1. `README.md` — type scale, tokens, capitalisation, the contributor table.
 2. `README-header.md` — masthead and footer; they frame every other page.
-3. `README-leaderboard-pages.md` — the three boards. The longest document, and the one that
-   carries three site-wide rules: focus rings, hover states, and narrow widths.
+3. `README-leaderboard-pages.md` — the three boards. The longest document, and the one that carries the site-wide focus-ring and hover-state rules, plus
+   the boards' narrow-width behaviour.
 4. Everything else as you build it.
 
 ## What the prototype is not
