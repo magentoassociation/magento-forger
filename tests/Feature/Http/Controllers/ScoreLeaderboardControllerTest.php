@@ -675,9 +675,9 @@ class ScoreLeaderboardControllerTest extends TestCase
 
         $this->get(route('leaderboard.show', ['board' => 'contributor']))
             ->assertOk()
-            // Rows past 25 are only hidden once the inline script marks the board .js.
+            // Pagination is client-side: the server marks no row hidden, even with ?rows.
             ->assertSee("classList.add('js')", false)
-            ->assertSee('class="lbr is-beyond"', false)
+            ->assertDontSee('class="lbr is-beyond"', false)
             // The pager is an in-place button, never a reload link to ?rows=.
             ->assertSee('<button type="button" class="lb-more"', false)
             ->assertDontSee('rows=26', false)
@@ -756,7 +756,7 @@ class ScoreLeaderboardControllerTest extends TestCase
             ->assertSee('in one list')
             // Singular, sentence-case type tag; Points sort carries no param.
             ->assertSee('Issue resolved by a merged PR')
-            ->assertSee('Showing all 1')
+            ->assertSee('show(PAGE);', false)
             ->assertDontSee('sort=points', false);
     }
 

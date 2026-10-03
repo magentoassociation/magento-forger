@@ -115,9 +115,9 @@
                 </form>
                 @foreach ($flat as $row)
                     @if ($row->url)
-                        <a href="{{ $row->url }}" target="_blank" rel="noopener" title="{{ $row->title }}" class="lb-a-row {{ $loop->iteration > $listPage ? 'is-beyond' : '' }}">
+                        <a href="{{ $row->url }}" target="_blank" rel="noopener" title="{{ $row->title }}" class="lb-a-row">
                     @else
-                        <div class="lb-a-row {{ $loop->iteration > $listPage ? 'is-beyond' : '' }}" title="{{ $row->title }}" tabindex="-1">
+                        <div class="lb-a-row" title="{{ $row->title }}" tabindex="-1">
                     @endif
                             <span class="lb-d-row-title">{{ $row->title }}</span>
                             <span class="lb-a-chip">{{ $row->tag }}</span>
@@ -131,8 +131,8 @@
                 @endforeach
 
                 <div class="lb-pager">
-                    <button type="button" class="lb-more" @if ($flat->count() <= $listPage) hidden @endif>Show 25 more</button>
-                    <span class="lb-count-stmt">{{ $flat->count() <= $listPage ? 'Showing all '.number_format($flat->count()) : 'Showing 1–'.$listPage.' of '.number_format($flat->count()) }}</span>
+                    <button type="button" class="lb-more" hidden>Show 25 more</button>
+                    <span class="lb-count-stmt"></span>
                 </div>
                 <span class="lb-live visually-hidden" aria-live="polite"></span>
                 <script>
@@ -142,17 +142,20 @@
                     var more = list.querySelector('.lb-more');
                     var count = list.querySelector('.lb-count-stmt');
                     var live = list.querySelector('.lb-live');
-                    var shown = Math.min(PAGE, rows.length);
+                    var shown = 0;
                     function fmt(n) { return n.toLocaleString('en-US'); }
+                    function show(depth) {
+                        shown = Math.min(depth, rows.length);
+                        rows.forEach(function (row, i) { row.classList.toggle('is-beyond', i >= shown); });
+                        count.textContent = shown >= rows.length ? 'Showing all ' + fmt(rows.length) : 'Showing 1–' + fmt(shown) + ' of ' + fmt(rows.length);
+                        more.hidden = shown >= rows.length;
+                    }
+                    show(PAGE);
                     more.addEventListener('click', function () {
                         var before = shown;
-                        shown = Math.min(shown + PAGE, rows.length);
-                        for (var i = before; i < shown; i++) { rows[i].classList.remove('is-beyond'); }
-                        var stmt = shown >= rows.length ? 'Showing all ' + fmt(rows.length) : 'Showing 1–' + fmt(shown) + ' of ' + fmt(rows.length);
-                        count.textContent = stmt;
-                        more.hidden = shown >= rows.length;
+                        show(shown + PAGE);
                         if (rows[before]) { rows[before].focus({ preventScroll: true }); }
-                        live.textContent = '25 more shown. ' + stmt + '.';
+                        live.textContent = '25 more shown. ' + count.textContent + '.';
                     });
                 })(document.currentScript.parentNode);
                 </script>

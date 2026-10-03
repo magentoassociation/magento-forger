@@ -1,15 +1,14 @@
 {{--
     The #21 ranked board: control strip, 4-column rows, activity column and
-    pagination. The whole population is rendered; rows past $initialRows carry
-    `is-beyond`, hidden only once the script has marked the board `.js`.
-    Progressive enhancement (search, jump to my rank, in-place "show more")
-    reveals them without another request; with no JavaScript every row shows and
-    the pager is absent.
+    pagination. The whole population is rendered and the inline script that
+    follows it owns pagination: it reads ?rows, hides rows past that depth, and
+    fills the count. Search, jump to my rank and "Show 25 more" reveal rows without
+    another request; with no JavaScript every row shows and the pager is absent.
 
     Expected from the including view:
       $entries, $board, $boards, $profiles,
       $total, $noun, $windowCaption,
-      $viewerLogin, $viewerRank, $viewerNotRanked, $initialRows,
+      $viewerLogin, $viewerRank, $viewerNotRanked,
       $detailUrl  — fn(string $login): string
       $emptyText  — line shown when the board has no rows
 --}}
@@ -44,7 +43,6 @@
         return [$total, $word, $aria];
     };
 
-    $shown = min($initialRows, $total);
     $isMonthly = request()->routeIs('leaderboard.monthly');
 @endphp
 
@@ -52,7 +50,6 @@
      data-total="{{ $total }}"
      data-noun="{{ $noun }}"
      data-window="{{ $windowCaption }}"
-     data-shown="{{ $shown }}"
      data-monthly="{{ $isMonthly ? '1' : '0' }}"
      @if ($viewerRank) data-viewer-rank="{{ $viewerRank }}" @endif>
     <script>document.currentScript.parentNode.classList.add('js');</script>
@@ -106,7 +103,7 @@
                 [$actCount, $actWord, $actAria] = $activity($breakdown);
                 $isViewer = $viewerLogin !== null && $entry->login === $viewerLogin;
             @endphp
-            <div class="lbr {{ $loop->iteration > $initialRows ? 'is-beyond' : '' }}"
+            <div class="lbr"
                  id="rank-{{ $rank }}" tabindex="-1"
                  data-search="{{ mb_strtolower($name.' @'.$entry->login) }}"
                  @if ($isViewer) aria-label="Your rank, {{ $rank }}" @endif>
@@ -169,14 +166,13 @@
     {{-- Pagination — JS only; without it every row is already visible. --}}
     @if ($total > 0)
         <div class="lb-pager">
-            <button type="button" class="lb-more" @if ($shown >= $total) hidden @endif>Show 25 more</button>
-            <span class="lb-count-stmt">{{ $shown >= $total ? 'Showing all '.number_format($total) : 'Showing 1–'.number_format($shown).' of '.number_format($total) }}</span>
+            <button type="button" class="lb-more" hidden>Show 25 more</button>
+            <span class="lb-count-stmt"></span>
         </div>
     @endif
 
     <span class="lb-live visually-hidden" aria-live="polite"></span>
 </div>
 
-@push('scripts')
-    @include('leaderboard._board-script')
-@endpush
+{{-- Inline, straight after the rows, so rows past the depth hide before first paint. --}}
+@include('leaderboard._board-script')

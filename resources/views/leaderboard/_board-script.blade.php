@@ -30,7 +30,8 @@
     });
 
     var query = '';
-    var fullDepth = parseInt(board.dataset.shown, 10) || PAGE;
+    // Initial depth from ?rows (default 25); never below one page.
+    var fullDepth = Math.max(PAGE, parseInt(new URLSearchParams(location.search).get('rows'), 10) || PAGE);
     var searchDepth = PAGE;
 
     function fmt(n) { return n.toLocaleString('en-US'); }
@@ -182,6 +183,8 @@
             jumpTo(parseInt(jump.dataset.rank, 10), true);
         });
     }
+
+    apply();
 
     // Deep link: #rank-N reveals up to N and scrolls, no highlight.
     var m = location.hash.match(/^#rank-(\d+)$/);
