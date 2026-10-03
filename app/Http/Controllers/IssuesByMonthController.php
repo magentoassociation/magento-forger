@@ -39,7 +39,7 @@ class IssuesByMonthController extends Controller
     private function getInfoText(): InfoText
     {
         return new InfoText(
-            title: 'Why Group Open Issues by Month?',
+            title: 'Why group open issues by month?',
             paragraphs: [
                 'A long list of open issues can be daunting and discouraging. To make things more manageable, we '.
                     'group issues by the month they were last updated. This breaks the backlog into smaller, more '.

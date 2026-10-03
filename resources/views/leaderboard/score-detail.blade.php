@@ -8,46 +8,60 @@
     $initials = collect($words)->filter()->take(2)->map(fn ($w) => mb_strtoupper(mb_substr($w, 0, 1)))->implode('')
         ?: mb_strtoupper(mb_substr($name, 0, 2));
 
-    // Full month name ("April 2026") for the intro sentence.
-    $monthFull = $activeMonth ? Carbon::createFromFormat('Y-m', $activeMonth)->format('F Y') : null;
+    // One template for the rolling (12-month) and monthly detail pages; $ym is set on monthly.
+    $windowText = $ym ? 'in '.Carbon::createFromFormat('!Y-m', $ym)->format('F Y') : 'in the last 12 months';
+    $monthFull = $activeMonth && ! $ym ? Carbon::createFromFormat('!Y-m', $activeMonth)->format('F Y') : null;
+    $scopeText = $monthFull ? 'in '.$monthFull : $windowText;
+    $monthNote = $ym ? ' — impact-weighted, no recency decay' : '';
+
+    // Monthly pages move between months; rolling pages filter by ?month=.
+    $monthUrl = fn (?string $month): string => $ym
+        ? route('leaderboard.monthly.detail', ['board' => $board, 'ym' => $month, 'login' => $login]).(request()->only(['view', 'sort']) ? '?'.http_build_query(request()->only(['view', 'sort'])) : '')
+        : request()->fullUrlWithQuery(['month' => $month, 'group' => null]);
+
+    $listPage = 25;
 @endphp
 
 @section('content')
-    @include('leaderboard._detail-header', [
-        'scoreLabel' => $monthLabel ?? '12 months',
-        'zero' => $groups->isEmpty(),
-    ])
+    @include('leaderboard._detail-header', ['scoreLabel' => $scoreLabel])
 
     <div class="container mx-auto lb lb-detail">
-        @if ($groups->isEmpty())
+        @if ($zero)
             <p class="lb-d-intro">{{ $board === 'maintainer'
-                ? 'No maintainer activity scored in the last 12 months. Reviews and merges you complete from here will show up on this page, grouped by what earned the points.'
-                : 'No scored contributions in the last 12 months. PRs and issues you open from here will show up on this page, grouped by what earned the points.' }} <button type="button" class="lb-tallied" data-bs-toggle="modal" data-bs-target="#scoringModal">How are scores tallied?</button></p>
+                ? 'No maintainer activity scored '.$windowText.'. Reviews and merges you complete from here will show up on this page, grouped by what earned the points.'
+                : 'No scored contributions '.$windowText.'. PRs and issues you open from here will show up on this page, grouped by what earned the points.' }} <button type="button" class="lb-tallied" data-bs-toggle="modal" data-bs-target="#scoringModal">How are scores tallied?</button></p>
+        @elseif ($view === 'list')
+            <p class="lb-d-intro">Every scored contribution {{ $scopeText }} in one list{{ $monthNote }}. The points column sums to the grand total. <button type="button" class="lb-tallied" data-bs-toggle="modal" data-bs-target="#scoringModal">How are scores tallied?</button></p>
         @else
-            <p class="lb-d-intro">Every scored contribution{{ $monthFull ? ' in '.$monthFull : ' in the last 12 months' }}, grouped by what earned the points. Each group's points sum to the grand total. <button type="button" class="lb-tallied" data-bs-toggle="modal" data-bs-target="#scoringModal">How are scores tallied?</button></p>
+            <p class="lb-d-intro">Every scored contribution {{ $scopeText }}, grouped by what earned the points{{ $monthNote }}. Each group's points sum to the grand total. <button type="button" class="lb-tallied" data-bs-toggle="modal" data-bs-target="#scoringModal">How are scores tallied?</button></p>
         @endif
 
-        {{-- View toggle + month filter — suppressed on the zero-state (nothing to group/list/filter). --}}
-        @unless ($groups->isEmpty())
-        <div class="lb-d-controls">
-            <span class="lb-d-toggle">
-                <a href="{{ request()->fullUrlWithQuery(['view' => 'grouped', 'group' => null]) }}" class="{{ $view === 'grouped' ? 'active' : '' }}">Grouped</a>
-                <a href="{{ request()->fullUrlWithQuery(['view' => 'list', 'group' => null]) }}" class="{{ $view === 'list' ? 'active' : '' }}">List</a>
-            </span>
-        </div>
+        {{-- View toggle + month chips — suppressed on the zero-state (nothing to group/list/filter). --}}
+        @unless ($zero)
+            <div class="lb-d-controls">
+                <span class="lb-d-toggle">
+                    @if ($view === 'grouped')
+                        <span class="active" aria-current="page">Grouped</span>
+                        <a href="{{ request()->fullUrlWithQuery(['view' => 'list', 'group' => null]) }}">List</a>
+                    @else
+                        <a href="{{ request()->fullUrlWithQuery(['view' => null, 'group' => null]) }}">Grouped</a>
+                        <span class="active" aria-current="page">List</span>
+                    @endif
+                </span>
+            </div>
 
-        @if ($months->isNotEmpty())
             <div class="lb-months">
-                <a href="{{ request()->fullUrlWithQuery(['month' => null, 'group' => null]) }}" class="lb-month {{ $activeMonth ? '' : 'active' }}">All</a>
-                @foreach ($months as $ym)
-                    <a href="{{ request()->fullUrlWithQuery(['month' => $ym, 'group' => null]) }}"
-                       class="lb-month {{ $activeMonth === $ym ? 'active' : '' }}">{{ Carbon::createFromFormat('Y-m', $ym)->format('M Y') }}</a>
+                @unless ($ym)
+                    <a href="{{ $monthUrl(null) }}" class="lb-month {{ $activeMonth ? '' : 'active' }}">All</a>
+                @endunless
+                @foreach ($months as $month)
+                    <a href="{{ $monthUrl($month) }}"
+                       class="lb-month {{ $activeMonth === $month ? 'active' : '' }}">{{ Carbon::createFromFormat('!Y-m', $month)->format('M Y') }}</a>
                 @endforeach
             </div>
-        @endif
         @endunless
 
-        @if ($groups->isEmpty())
+        @if ($zero)
             {{-- #17b/#17c: zero-score state — the scoring rules with zeros in them, not a warning. --}}
             <div class="lb-d-empty">
                 <div class="lb-d-empty-head">What scores on this board</div>
@@ -59,14 +73,18 @@
                     </div>
                 @endforeach
                 <div class="lb-d-empty-foot">
-                    <a href="{{ $cta['url'] }}" target="_blank" rel="noopener" class="lb-d-empty-cta">{{ $cta['label'] }}</a>
                     <span class="lb-d-empty-hint">The groups above are the ones that earn {{ $board }} points. Each fills in as you go.</span>
+                    <a href="{{ $cta['url'] }}" target="_blank" rel="noopener" class="lb-d-empty-cta">{{ $cta['label'] }}</a>
                 </div>
             </div>
 
+        @elseif ($groups->isEmpty())
+            {{-- A month chip with nothing in it: a plain line, not the zero-score panel. --}}
+            <p class="lb-d-none">Nothing scored {{ $scopeText }}.</p>
+
         @elseif ($view === 'list')
-            {{-- #9a: stat strip + one sortable list --}}
-            <div class="lb-a-stats">
+            {{-- #18b: group tiles + one sortable, paginated list --}}
+            <div class="lb-a-stats {{ $board === 'maintainer' ? 'lb-a-stats--3' : '' }}">
                 @foreach ($groups as $group)
                     <div class="lb-a-card">
                         <span class="lb-a-card-label">{{ $group->name }}</span>
@@ -81,32 +99,64 @@
                 @endforeach
             </div>
 
-            <div class="lb-a-head">
-                <h2 class="lb-d-group-name lb-d-group-name--single">Scored contributions</h2>
-                <a href="{{ request()->fullUrlWithQuery(['sort' => 'type']) }}"
-                   class="lb-a-sort {{ $sort === 'type' ? 'active' : '' }}">Type</a>
-                <a href="{{ request()->fullUrlWithQuery(['sort' => 'date']) }}"
-                   class="lb-a-sort {{ $sort === 'date' ? 'active' : '' }}">Date</a>
-                <a href="{{ request()->fullUrlWithQuery(['sort' => 'points']) }}"
-                   class="lb-a-sort lb-a-sort--right {{ $sort === 'points' ? 'active' : '' }}">Points</a>
+            <div class="lb-a-list">
+                <script>document.currentScript.parentNode.classList.add('js');</script>
+                {{-- Sort headers are buttons in a GET form; Points is the default and carries no param. --}}
+                <form method="get" class="lb-a-head">
+                    @foreach (request()->except(['sort', 'group']) as $key => $value)
+                        @if (is_string($value))
+                            <input type="hidden" name="{{ $key }}" value="{{ $value }}">
+                        @endif
+                    @endforeach
+                    <h2 class="lb-a-title">Scored contributions</h2>
+                    <button type="submit" name="sort" value="type" class="lb-a-sort lb-a-sort--type {{ $sort === 'type' ? 'active' : '' }}" aria-pressed="{{ $sort === 'type' ? 'true' : 'false' }}">Type</button>
+                    <button type="submit" name="sort" value="date" class="lb-a-sort {{ $sort === 'date' ? 'active' : '' }}" aria-pressed="{{ $sort === 'date' ? 'true' : 'false' }}">Date</button>
+                    <button type="submit" class="lb-a-sort lb-a-sort--right {{ $sort === 'points' ? 'active' : '' }}" aria-pressed="{{ $sort === 'points' ? 'true' : 'false' }}">Points</button>
+                </form>
+                @foreach ($flat as $row)
+                    @if ($row->url)
+                        <a href="{{ $row->url }}" target="_blank" rel="noopener" title="{{ $row->title }}" class="lb-a-row {{ $loop->iteration > $listPage ? 'is-beyond' : '' }}">
+                    @else
+                        <div class="lb-a-row {{ $loop->iteration > $listPage ? 'is-beyond' : '' }}" title="{{ $row->title }}" tabindex="-1">
+                    @endif
+                            <span class="lb-d-row-title">{{ $row->title }}</span>
+                            <span class="lb-a-chip">{{ $row->tag }}</span>
+                            <span class="lb-d-row-date">{{ $row->date?->format('j M Y') }}</span>
+                            @include('leaderboard._detail-points', ['row' => $row])
+                    @if ($row->url)
+                        </a>
+                    @else
+                        </div>
+                    @endif
+                @endforeach
+
+                <div class="lb-pager">
+                    <button type="button" class="lb-more" @if ($flat->count() <= $listPage) hidden @endif>Show 25 more</button>
+                    <span class="lb-count-stmt">{{ $flat->count() <= $listPage ? 'Showing all '.number_format($flat->count()) : 'Showing 1–'.$listPage.' of '.number_format($flat->count()) }}</span>
+                </div>
+                <span class="lb-live visually-hidden" aria-live="polite"></span>
+                <script>
+                (function (list) {
+                    var PAGE = {{ $listPage }};
+                    var rows = Array.prototype.slice.call(list.querySelectorAll('.lb-a-row'));
+                    var more = list.querySelector('.lb-more');
+                    var count = list.querySelector('.lb-count-stmt');
+                    var live = list.querySelector('.lb-live');
+                    var shown = Math.min(PAGE, rows.length);
+                    function fmt(n) { return n.toLocaleString('en-US'); }
+                    more.addEventListener('click', function () {
+                        var before = shown;
+                        shown = Math.min(shown + PAGE, rows.length);
+                        for (var i = before; i < shown; i++) { rows[i].classList.remove('is-beyond'); }
+                        var stmt = shown >= rows.length ? 'Showing all ' + fmt(rows.length) : 'Showing 1–' + fmt(shown) + ' of ' + fmt(rows.length);
+                        count.textContent = stmt;
+                        more.hidden = shown >= rows.length;
+                        if (rows[before]) { rows[before].focus({ preventScroll: true }); }
+                        live.textContent = '25 more shown. ' + stmt + '.';
+                    });
+                })(document.currentScript.parentNode);
+                </script>
             </div>
-            @foreach ($flat as $row)
-                @if ($row->url)
-                    <a href="{{ $row->url }}" target="_blank" rel="noopener" class="lb-a-row">
-                        <span class="lb-d-row-title">{{ $row->title }}</span>
-                        <span class="lb-a-chip">{{ $row->tag }}</span>
-                        <span class="lb-d-row-date">{{ $row->date?->format('j M Y') }}</span>
-                        @include('leaderboard._detail-points', ['row' => $row])
-                    </a>
-                @else
-                    <div class="lb-a-row">
-                        <span class="lb-d-row-title">{{ $row->title }}</span>
-                        <span class="lb-a-chip">{{ $row->tag }}</span>
-                        <span class="lb-d-row-date">{{ $row->date?->format('j M Y') }}</span>
-                        @include('leaderboard._detail-points', ['row' => $row])
-                    </div>
-                @endif
-            @endforeach
 
         @elseif ($activeGroup)
             {{-- #9b: single filtered group --}}
@@ -144,7 +194,9 @@
 
         {{-- Other-board line: a footnote below the content, only when the person is on both boards. --}}
         @if ($onOtherBoard)
-            <p class="lb-d-otherboard {{ $groups->isEmpty() ? 'lb-d-otherboard--zero' : '' }}">Your {{ strtolower($otherBoardName) }} score is tracked separately on the <a href="{{ route('leaderboard.detail', ['board' => $otherBoard, 'login' => $login]) }}">{{ $otherBoardName }} Leaderboard</a>.</p>
+            <p class="lb-d-otherboard {{ $zero ? 'lb-d-otherboard--zero' : '' }} {{ ! $zero && $view === 'list' ? 'lb-d-otherboard--list' : '' }}">
+                {{ $otherBoardName }} score is tracked separately on the <a href="{{ route('leaderboard.detail', ['board' => $otherBoard, 'login' => $login]) }}">{{ $otherBoardName }} Leaderboard</a>.
+            </p>
         @endif
     </div>
 

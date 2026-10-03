@@ -11,7 +11,7 @@
         <p class="lb-intro">
             Ranked by activity in {{ $monthFull }} — bigger changes count for more, with no recency
             decay, so every day of the month counts the same.
-            Points come from {{ $scoring['scoredList'] }}.
+            Points come from {{ $scoring['scoredList'] }}. Note that scores are subject to change.
             <button type="button" class="lb-tallied" data-bs-toggle="modal" data-bs-target="#scoringModal">How are scores tallied?</button>
         </p>
 
@@ -34,16 +34,10 @@
             @endforeach
         </div>
 
-        @if ($entries->isEmpty())
-            <div class="alert alert-info">
-                No scored activity for {{ $monthFull }}.
-            </div>
-        @else
-            @php
-                $detailUrl = fn (string $login): string => route('leaderboard.monthly.detail', ['board' => $board, 'ym' => $ym, 'login' => $login]);
-            @endphp
-            @include('leaderboard._board')
-        @endif
+        @php
+            $detailUrl = fn (string $login): string => route('leaderboard.monthly.detail', ['board' => $board, 'ym' => $ym, 'login' => $login]);
+        @endphp
+        @include('leaderboard._board', ['emptyText' => 'No scored activity in '.$monthFull.'.'])
     </div>
 
     @include('leaderboard._scoring-modal')

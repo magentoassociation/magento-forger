@@ -70,17 +70,20 @@
                                     $vname = $profiles->get($viewerEntry->login)?->name ?: (auth()->user()->name ?: $viewerEntry->login);
                                 @endphp
                                 <li class="hp-board-you">
-                                    <a href="{{ route('leaderboard.detail', ['board' => 'contributor', 'login' => $viewerEntry->login]) }}" class="hp-row">
-                                        <span class="hp-rank hp-rank--you">{{ str_pad((string) $viewerEntry->rank, 2, '0', STR_PAD_LEFT) }}</span>
-                                        <span class="hp-avatar">
-                                            <span class="hp-avatar-initials">{{ $initials($vname) }}</span>
-                                            <img src="https://avatars.githubusercontent.com/{{ $viewerEntry->login }}?s=52"
-                                                 alt="" width="26" height="26" loading="lazy" onerror="this.remove()">
+                                    <a href="{{ route('leaderboard.detail', ['board' => 'contributor', 'login' => $viewerEntry->login]) }}" class="hp-you-link"
+                                       aria-label="Your rank, {{ $viewerEntry->rank }} — see your contributions">
+                                        <span class="hp-row">
+                                            <span class="hp-rank hp-rank--you">{{ str_pad((string) $viewerEntry->rank, 2, '0', STR_PAD_LEFT) }}</span>
+                                            <span class="hp-avatar">
+                                                <span class="hp-avatar-initials">{{ $initials($vname) }}</span>
+                                                <img src="https://avatars.githubusercontent.com/{{ $viewerEntry->login }}?s=52"
+                                                     alt="" width="26" height="26" loading="lazy" onerror="this.remove()">
+                                            </span>
+                                            <span class="hp-name">{{ $vname }}</span>
+                                            <span class="hp-score">{{ number_format($viewerEntry->score, 1) }}</span>
                                         </span>
-                                        <span class="hp-name">{{ $vname }}</span>
-                                        <span class="hp-score">{{ number_format($viewerEntry->score, 1) }}</span>
+                                        <span class="hp-you-caption">Your rank over the last 12 months.</span>
                                     </a>
-                                    <p class="hp-you-caption">Your rank over the last 12 months.</p>
                                 </li>
                             @else
                                 {{-- Signed in, no scoring activity in the window --}}

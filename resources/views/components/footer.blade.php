@@ -19,7 +19,7 @@
                     <h3 class="sf-col-head">Forger</h3>
                     <a href="{{ route('leaderboard.index') }}">Leaderboard</a>
                     <a href="{{ route('issues.issuesByMonth') }}">Issues</a>
-                    <a href="{{ route('prs.PRsByMonth') }}">Pull requests</a>
+                    <a href="{{ route('prs.PRsByMonth') }}">Pull Requests</a>
                     <a href="{{ route('leaderboard.scoring') }}">How Scores Work</a>
                 </nav>
                 <nav class="sf-col" aria-label="Community">

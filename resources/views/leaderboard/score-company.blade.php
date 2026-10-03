@@ -13,7 +13,7 @@
             </div>
         </div>
 
-        @include('leaderboard._tabs')
+        <div class="mb-4">@include('leaderboard._tabs')</div>
 
         @if ($entries->isEmpty())
             <div class="alert alert-info">

@@ -39,7 +39,7 @@ class PrsByMonthController extends Controller
     private function getInfoText(): InfoText
     {
         return new InfoText(
-            title: 'Why Group Open PRs by Month?',
+            title: 'Why group open PRs by month?',
             paragraphs: [
                 'Instead of facing an overwhelming list of hundreds or even thousands of open PRs, we group them '.
                     'by the month they were last updated. This makes the backlog more digestible and gives developers '.

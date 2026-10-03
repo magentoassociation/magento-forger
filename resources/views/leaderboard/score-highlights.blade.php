@@ -57,11 +57,11 @@
                 No highlights yet. Run <code>ddev artisan leaderboard:compute</code> to populate.
             </div>
         @else
-            {{-- New Contributor Spotlight --}}
+            {{-- New contributor spotlight --}}
             <section class="lb-hl-spotlight">
                 <div class="lb-section-head">
-                    <h2 class="lb-section-title">New Contributor Spotlight</h2>
-                    <span class="lb-section-unit">{{ $newContributors->count() }} in the last {{ $spotlightWindow }} days</span>
+                    <h2 class="lb-section-title">New contributor spotlight</h2>
+                    <span class="lb-section-unit">First contribution · {{ $spotlightWindow }} days · Score</span>
                 </div>
                 @forelse ($newContributors as $i => $stat)
                     <a href="{{ $detail($stat->login) }}" class="lb-hl-row lb-hl-row--spot">
@@ -81,12 +81,12 @@
             <section class="lb-hl-comebacks">
                 <div class="lb-section-head">
                     <h2 class="lb-section-title">Comebacks</h2>
-                    <span class="lb-section-unit">Away for · then back</span>
+                    <span class="lb-section-unit">Time away</span>
                 </div>
                 @if ($comebacksTotal === 0)
                     <p class="lb-hl-note">No comebacks yet.</p>
                 @else
-                    <div class="lb-hl-grid3" style="margin-top: 14px">
+                    <div class="lb-hl-grid3">
                         @foreach ($comebacksShown as $stat)
                             <a href="{{ $detail($stat->login) }}" class="lb-hl-card">
                                 {{ $identity($stat) }}
@@ -95,21 +95,21 @@
                         @endforeach
                     </div>
                     @if ($comebacksTotal > 12 && ! $showAllComebacks)
-                        <a href="{{ request()->fullUrlWithQuery(['comebacks' => 'all']) }}" class="lb-hl-more">Show all {{ number_format($comebacksTotal) }} →</a>
+                        <a href="{{ request()->fullUrlWithQuery(['comebacks' => 'all']) }}" class="lb-more lb-hl-more">Show all {{ number_format($comebacksTotal) }}</a>
                     @endif
                     <p class="lb-hl-note">
-                        {{ $comebacksSort === 'recent' ? 'Sorted by recent activity.' : 'Sorted by length of absence.' }}
-                        <a href="{{ request()->fullUrlWithQuery(['comebacks_sort' => $comebacksSort === 'recent' ? null : 'recent']) }}" class="lb-hl-sort">{{ $comebacksSort === 'recent' ? 'Sort by length of absence instead' : 'Sort by recent activity instead' }}</a>
+                        {{ $comebacksSort === 'away' ? 'Longest away first.' : 'Most recently back first.' }}
+                        <a href="{{ request()->fullUrlWithQuery(['comebacks_sort' => $comebacksSort === 'away' ? null : 'away']) }}" class="lb-hl-sort">{{ $comebacksSort === 'away' ? 'Sort by most recently back instead' : 'Sort by time away instead' }}</a>.
                     </p>
                 @endif
             </section>
 
-            {{-- Rising | Recently Active --}}
+            {{-- Rising | Recently active --}}
             <div class="lb-hl-cols">
                 <section>
                     <div class="lb-section-head">
                         <h2 class="lb-section-title">Rising</h2>
-                        <span class="lb-section-unit">Gain · {{ $risingWindow }}d</span>
+                        <span class="lb-section-unit">Gain · {{ $risingWindow }} days</span>
                     </div>
                     <p class="lb-section-desc">Biggest increase in contributor score over the past {{ $risingWindow }} days.</p>
                     @forelse ($rising as $i => $stat)
@@ -125,7 +125,7 @@
 
                 <section>
                     <div class="lb-section-head">
-                        <h2 class="lb-section-title">Recently Active</h2>
+                        <h2 class="lb-section-title">Recently active</h2>
                         <span class="lb-section-unit">Score</span>
                     </div>
                     <p class="lb-section-desc">Opened a PR, had one merged, or opened an issue in the last 30 days.</p>

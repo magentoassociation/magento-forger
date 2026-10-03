@@ -1,10 +1,11 @@
 {{-- Progressive enhancement for the #21 board: search, jump-to-rank, in-place
      pagination. No build step — plain DOM, runs after the server-rendered board.
-     Without it the "Show 25 more" link and month chips still work by reloading. --}}
+     Without it every row is visible and the pager is absent; month chips still
+     work by reloading. --}}
 <script>
 (function () {
     var board = document.querySelector('.lb-board');
-    if (!board) { return; }
+    if (!board || !board.querySelector('.lbr')) { return; }
 
     var PAGE = 25;
     var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -19,7 +20,6 @@
     var pop = board.querySelector('.lb-pop');
     var countStmt = board.querySelector('.lb-count-stmt');
     var moreBtn = board.querySelector('.lb-more');
-    var pager = board.querySelector('.lb-pager');
     var input = board.querySelector('.lb-search-input');
     var clearBtn = board.querySelector('.lb-search-clear');
     var empty = board.querySelector('.lb-empty');
@@ -66,9 +66,8 @@
             }
         }
 
-        // Pager visibility
+        // Pager: the count stays (it reads "No matches"); the button goes when nothing is left.
         if (moreBtn) { moreBtn.hidden = d >= l.length; }
-        if (pager) { pager.hidden = noMatch; }
 
         // No-results block
         if (empty) {
@@ -104,6 +103,7 @@
         searchDepth = PAGE;
         if (clearBtn) { clearBtn.hidden = v === ''; }
         apply();
+        syncRows();
     }
     function clearSearch() {
         if (!input) { return; }
@@ -112,6 +112,7 @@
         searchDepth = PAGE;
         if (clearBtn) { clearBtn.hidden = true; }
         apply();
+        syncRows();
     }
     if (input) {
         input.addEventListener('input', function () {
@@ -134,19 +135,20 @@
             setDepth(depth() + PAGE);
             apply(before);
             var shown = Math.min(depth(), list().length);
-            if (!query) {
-                try { history.replaceState(null, '', updateParam(location.href, 'rows', fullDepth)); } catch (err) {}
-            }
-            announce('25 more loaded. ' + (query
+            syncRows();
+            announce('25 more shown. ' + (query
                 ? 'Showing ' + fmt(shown) + ' of ' + fmt(list().length) + ' matches.'
                 : 'Showing 1–' + fmt(shown) + ' of ' + fmt(totalNum) + '.'));
         });
     }
 
-    function updateParam(url, key, value) {
-        var u = new URL(url);
-        u.searchParams.set(key, value);
-        return u.pathname + u.search;
+    // ?rows carries the unfiltered depth; it is dropped while a search is active.
+    function syncRows() {
+        try {
+            var u = new URL(location.href);
+            if (query || fullDepth <= PAGE) { u.searchParams.delete('rows'); } else { u.searchParams.set('rows', fullDepth); }
+            history.replaceState(null, '', u.pathname + u.search + u.hash);
+        } catch (err) {}
     }
 
     // ---- Jump to my rank ----
@@ -161,8 +163,13 @@
         target.focus({ preventScroll: true });
 
         if (highlight) {
+            // Held 2s, then faded over 400ms (.is-fading carries the transition).
+            target.classList.remove('is-fading');
             target.classList.add('is-jumped');
-            window.setTimeout(function () { target.classList.remove('is-jumped'); }, 2400);
+            window.clearTimeout(target._jumpHold);
+            window.clearTimeout(target._jumpFade);
+            target._jumpHold = window.setTimeout(function () { target.classList.add('is-fading'); }, 2000);
+            target._jumpFade = window.setTimeout(function () { target.classList.remove('is-jumped', 'is-fading'); }, 2400);
             announce('Jumped to your rank, ' + rank + ' of ' + fmt(totalNum) + '.');
         }
         try { history.replaceState(null, '', '#rank-' + rank); } catch (err) {}

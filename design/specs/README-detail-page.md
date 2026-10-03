@@ -181,9 +181,9 @@ exists, so a maintainer lands on one score with no way to know the other is ther
 (below the empty-state panel on a zero-score page), `margin-top: 22px`, Libre Franklin 400,
 12.5px/1.55, `#6b7178`, `max-width: 560px`:
 
-- On the contributor page: "Your maintainer score is tracked separately on the Maintainer
+- On the contributor page: "Maintainer score is tracked separately on the Maintainer
   Leaderboard."
-- On the maintainer page: "Your contributor score is tracked separately on the Contributor
+- On the maintainer page: "Contributor score is tracked separately on the Contributor
   Leaderboard."
 
 The board name is the link — site link colour `#ee6524`, underlined. No arrow, no button.

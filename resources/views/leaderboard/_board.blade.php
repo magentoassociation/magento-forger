@@ -1,15 +1,17 @@
 {{--
     The #21 ranked board: control strip, 4-column rows, activity column and
     pagination. The whole population is rendered; rows past $initialRows carry
-    `is-beyond` and are hidden by CSS. Progressive enhancement (search, jump to
-    my rank, in-place "show more") reveals them without another request; with no
-    JavaScript the "Show 25 more" link reloads at a deeper ?rows=.
+    `is-beyond`, hidden only once the script has marked the board `.js`.
+    Progressive enhancement (search, jump to my rank, in-place "show more")
+    reveals them without another request; with no JavaScript every row shows and
+    the pager is absent.
 
     Expected from the including view:
       $entries, $board, $boards, $profiles,
       $total, $noun, $windowCaption,
       $viewerLogin, $viewerRank, $viewerNotRanked, $initialRows,
       $detailUrl  — fn(string $login): string
+      $emptyText  — line shown when the board has no rows
 --}}
 @php
     use App\DataTransferObjects\Leaderboard\Action;
@@ -53,17 +55,20 @@
      data-shown="{{ $shown }}"
      data-monthly="{{ $isMonthly ? '1' : '0' }}"
      @if ($viewerRank) data-viewer-rank="{{ $viewerRank }}" @endif>
+    <script>document.currentScript.parentNode.classList.add('js');</script>
 
     {{-- Control strip --}}
     <div class="lb-strip">
         <span class="lb-pop">{{ number_format($total) }} {{ $noun }} · {{ $windowCaption }}</span>
 
-        <div class="lb-search">
-            <span class="lb-search-ico" aria-hidden="true">⌕</span>
-            <input type="search" class="lb-search-input" autocomplete="off"
-                   placeholder="Search name or handle" aria-label="Search name or handle">
-            <button type="button" class="lb-search-clear" aria-label="Clear search" hidden>✕</button>
-        </div>
+        @if ($total > 0)
+            <div class="lb-search">
+                <span class="lb-search-ico" aria-hidden="true">⌕</span>
+                <input type="search" class="lb-search-input" autocomplete="off"
+                       placeholder="Search name or handle" aria-label="Search name or handle">
+                <button type="button" class="lb-search-clear" aria-label="Clear search" hidden>✕</button>
+            </div>
+        @endif
 
         @if ($viewerRank)
             <a class="lb-jump" href="#rank-{{ $viewerRank }}" data-rank="{{ $viewerRank }}">
@@ -103,7 +108,7 @@
             @endphp
             <div class="lbr {{ $loop->iteration > $initialRows ? 'is-beyond' : '' }}"
                  id="rank-{{ $rank }}" tabindex="-1"
-                 data-search="{{ mb_strtolower($name.' '.$entry->login) }}"
+                 data-search="{{ mb_strtolower($name.' @'.$entry->login) }}"
                  @if ($isViewer) aria-label="Your rank, {{ $rank }}" @endif>
                 <span class="lbr-rank {{ $rank <= 3 ? 'is-top' : '' }}">{{ $rank }}</span>
 
@@ -127,8 +132,6 @@
                 <span class="lbr-activity" @if ($actCount > 0) aria-label="{{ $actAria }}" @endif>
                     @if ($actCount > 0)
                         {{ number_format($actCount) }} {{ $actWord }}
-                    @elseif ($entry->score > 0)
-                        <a href="{{ $detailUrl($entry->login) }}">See contributions</a>
                     @endif
                 </span>
 
@@ -152,9 +155,9 @@
             </div>
         @endforeach
 
-        {{-- No-results (search) / whole-board-failure block, revealed by JS --}}
-        <div class="lb-empty" hidden>
-            <p class="lb-empty-1"></p>
+        {{-- Empty board (server) / search no-results (JS) block --}}
+        <div class="lb-empty" @if ($total > 0) hidden @endif>
+            <p class="lb-empty-1">{{ $total > 0 ? '' : $emptyText }}</p>
             <p class="lb-empty-2"
                data-monthly="{{ $isMonthly ? '1' : '0' }}"
                data-window="{{ $windowCaption }}"
@@ -163,13 +166,13 @@
         </div>
     </div>
 
-    {{-- Pagination --}}
-    <div class="lb-pager">
-        @if ($shown < $total)
-            <a class="lb-more" href="{{ request()->fullUrlWithQuery(['rows' => min($initialRows + 25, $total)]) }}">Show 25 more</a>
-        @endif
-        <span class="lb-count-stmt">{{ $shown >= $total ? 'Showing all '.number_format($total) : 'Showing 1–'.number_format($shown).' of '.number_format($total) }}</span>
-    </div>
+    {{-- Pagination — JS only; without it every row is already visible. --}}
+    @if ($total > 0)
+        <div class="lb-pager">
+            <button type="button" class="lb-more" @if ($shown >= $total) hidden @endif>Show 25 more</button>
+            <span class="lb-count-stmt">{{ $shown >= $total ? 'Showing all '.number_format($total) : 'Showing 1–'.number_format($shown).' of '.number_format($total) }}</span>
+        </div>
+    @endif
 
     <span class="lb-live visually-hidden" aria-live="polite"></span>
 </div>

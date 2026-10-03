@@ -10,9 +10,6 @@
     <link rel="icon" href="{{ asset('favicon.ico') }}?v=2">
     @vite(['resources/sass/app.scss', 'resources/js/app.js']) {{-- Tailwind CSS --}}
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:ital,wght@0,100..900;1,100..900&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     @include('components._fonts')
@@ -59,7 +56,7 @@
                             @if ($acctLogin)<span class="acct-head-handle">{{ '@'.$acctLogin }}</span>@endif
                         </div>
                         @if ($acctLogin)
-                            <a class="acct-item" href="{{ route('leaderboard.detail', ['board' => 'contributor', 'login' => $acctLogin]) }}">My Contributions</a>
+                            <a class="acct-item" href="{{ route('leaderboard.detail', ['board' => 'contributor', 'login' => $acctLogin]) }}">My contributions</a>
                         @endif
                         @if ($acctUser->is_admin)
                             <a class="acct-item" href="/admin">Admin</a>

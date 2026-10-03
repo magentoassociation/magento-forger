@@ -134,10 +134,10 @@ class ScoreLeaderboardController extends Controller
     }
 
     /**
-     * Per-user drill-down for a single month. Reads the persisted line items
-     * filtered to the month and summed on flat (no-decay) points, so the total
-     * reconciles with the monthly board. Same in-range/real/not-future guards as
-     * the monthly board.
+     * Per-user drill-down for a single month: the same page as the rolling
+     * detail, scoped to the month's line items and summed on flat (no-decay)
+     * points so the total reconciles with the monthly board. Same
+     * in-range/real/not-future guards as the monthly board.
      */
     public function monthlyDetail(string $board, string $ym, string $login): View
     {
@@ -149,52 +149,15 @@ class ScoreLeaderboardController extends Controller
             abort(404);
         }
 
-        $weights = (array) config('leaderboard.weights.'.$board, []);
-
-        // Grouped by action like the rolling detail page, but on flat (no-decay)
-        // points, so the subtotals reconcile with the monthly board.
-        $groups = LeaderboardLineItem::query()
+        $items = LeaderboardLineItem::query()
             ->where('login', $login)
             ->where('board', $board)
             ->where('month', $ym)
             ->where('points_flat', '>', 0)
             ->orderByDesc('points_flat')
-            ->get()
-            ->groupBy('action')
-            ->map(fn (Collection $rows, string $action): object => (object) [
-                'key' => $action,
-                'name' => self::GROUP_LABELS[$action] ?? Action::labelFor($action),
-                'count' => $rows->count(),
-                'total' => round($rows->sum('points_flat'), 1),
-                'rows' => $rows->map(fn (LeaderboardLineItem $item): object => (object) [
-                    'title' => $item->title ?: $item->url,
-                    'url' => $item->url,
-                    'date' => $item->contributed_at,
-                    'points' => round($item->points_flat, 2),
-                    'formula' => $this->scoreFormula($item, $weights, flat: true),
-                ])->values(),
-            ])
-            ->sortByDesc('total')
-            ->values();
+            ->get();
 
-        return view('leaderboard.score-monthly-detail', [
-            'board' => $board,
-            'boards' => self::BOARDS,
-            'login' => $login,
-            'ym' => $ym,
-            'monthLabel' => MonthlyWindow::label($ym),
-            'profile' => GithubProfile::query()->where('login', $login)->first(),
-            'groups' => $groups,
-            'total' => round($groups->sum('total'), 1),
-            'scoring' => $this->scoringExplainer($board, decay: false),
-            // Zero-state panel data, same shape as the rolling detail page: the
-            // board's scoring groups in config order plus the contribute CTA.
-            'scoringGroups' => array_map(
-                fn (string $action): string => self::GROUP_LABELS[$action] ?? Action::labelFor($action),
-                array_keys($weights),
-            ),
-            'cta' => $this->emptyStateCta($board),
-        ]);
+        return $this->detailPage($board, $login, $items, $ym);
     }
 
     /**
@@ -359,34 +322,34 @@ class ScoreLeaderboardController extends Controller
      * @var array<string, string>
      */
     private const GROUP_LABELS = [
-        'pr_opened' => 'PRs Opened',
-        'pr_merged' => 'PRs Merged',
-        'issue_opened' => 'Issues Opened',
-        'issue_resolved_by_merge' => 'Issues Resolved by a Merged PR',
-        'review_approved' => 'PRs Approved',
-        'review_rejected' => 'Changes Requested',
-        'review_commented' => 'Review Comments',
-        'approved_then_merged' => 'Approved PRs That Were Merged',
-        'pr_claimed' => 'Stale PRs Claimed',
-        'label_applied' => 'Triage Labels Applied',
+        'pr_opened' => 'PRs opened',
+        'pr_merged' => 'PRs merged',
+        'issue_opened' => 'Issues opened',
+        'issue_resolved_by_merge' => 'Issues resolved by a merged PR',
+        'review_approved' => 'PRs approved',
+        'review_rejected' => 'Changes requested',
+        'review_commented' => 'Review comments',
+        'approved_then_merged' => 'Approved PRs that were merged',
+        'pr_claimed' => 'Stale PRs claimed',
+        'label_applied' => 'Triage labels applied',
     ];
 
     /**
-     * Short action tags for the flat-list (#9a) view.
+     * List-view type tags: the singular of each group name — a row is one item.
      *
      * @var array<string, string>
      */
     private const CHIP_LABELS = [
-        'pr_opened' => 'Opened PR',
-        'pr_merged' => 'PR Merged',
-        'issue_opened' => 'Opened Issue',
-        'issue_resolved_by_merge' => 'Issue Resolved',
-        'review_approved' => 'Approved PR',
-        'review_rejected' => 'Requested Changes',
-        'review_commented' => 'Commented on PR',
-        'approved_then_merged' => 'Approved → Merged',
-        'pr_claimed' => 'Claimed PR',
-        'label_applied' => 'Applied Label',
+        'pr_opened' => 'PR opened',
+        'pr_merged' => 'PR merged',
+        'issue_opened' => 'Issue opened',
+        'issue_resolved_by_merge' => 'Issue resolved by a merged PR',
+        'review_approved' => 'PR approved',
+        'review_rejected' => 'Change requested',
+        'review_commented' => 'Review comment',
+        'approved_then_merged' => 'Approved PR that was merged',
+        'pr_claimed' => 'Stale PR claimed',
+        'label_applied' => 'Triage label applied',
     ];
 
     /** Rows per group shown before the "Show all" control on the grouped view. */
@@ -407,39 +370,56 @@ class ScoreLeaderboardController extends Controller
             ->orderByDesc('points')
             ->get();
 
+        return $this->detailPage($board, $login, $items);
+    }
+
+    /**
+     * The one detail page behind both the rolling (12-month, decayed) and the
+     * monthly (one month, flat points) drill-downs. $ym is null for rolling;
+     * for monthly the items are already scoped to that month and the month
+     * chips navigate between monthly pages instead of filtering.
+     *
+     * @param  Collection<int, LeaderboardLineItem>  $items
+     */
+    private function detailPage(string $board, string $login, Collection $items, ?string $ym = null): View
+    {
+        $flat = $ym !== null;
+        $points = fn (LeaderboardLineItem $item): float => (float) ($flat ? $item->points_flat : $item->points);
+
         // Base weights power the per-row "base × priority × recency" hint.
         $weights = (array) config('leaderboard.weights.'.$board, []);
 
-        // Optional month filter (?month=YYYY-MM), limited to months that have data.
-        $months = $items
-            ->map(fn (LeaderboardLineItem $item): ?string => $item->contributed_at?->format('Y-m'))
-            ->filter()->unique()->sortDesc()->values();
-        $activeMonth = $months->contains(request('month')) ? request('month') : null;
-        $scoped = $activeMonth
-            ? $items->filter(fn (LeaderboardLineItem $item): bool => $item->contributed_at?->format('Y-m') === $activeMonth)
-            : $items;
+        // Month chips: a fixed run of months, most recent first. Rolling pages
+        // filter by ?month= over the last 12; monthly pages link between months.
+        $months = collect($flat ? MonthlyWindow::allowed() : MonthlyWindow::allowed(12));
+        $activeMonth = $flat ? $ym : ($months->contains(request('month')) ? request('month') : null);
+        $scoped = $flat || $activeMonth === null
+            ? $items
+            : $items->filter(fn (LeaderboardLineItem $item): bool => $item->contributed_at?->format('Y-m') === $activeMonth);
 
-        // Grouped view (#9b): grouped by action, subtotals descending, so the
-        // subtotals add up to the headline score.
-        $groups = $scoped
+        $group = fn (Collection $rows): Collection => $rows
             ->groupBy('action')
             ->map(fn (Collection $rows, string $action): object => (object) [
                 'key' => $action,
                 'name' => self::GROUP_LABELS[$action] ?? Action::labelFor($action),
                 'count' => $rows->count(),
-                'total' => round($rows->sum('points'), 1),
-                'rows' => $rows->map(fn (LeaderboardLineItem $item): object => $this->detailRow($item, $weights))->values(),
+                'total' => round($rows->sum($points), 1),
+                'rows' => $rows->map(fn (LeaderboardLineItem $item): object => $this->detailRow($item, $weights, $flat))->values(),
             ])
             ->sortByDesc('total')
             ->values();
 
+        // Grouped view (#9b): grouped by action, subtotals descending, so the
+        // subtotals add up to the headline score.
+        $groups = $group($scoped);
+
         // Flat view (#9a): one sortable list, action shown as a tag.
-        $sort = in_array(request('sort'), ['points', 'date', 'type'], true) ? request('sort') : 'points';
-        $flat = $scoped->map(fn (LeaderboardLineItem $item): object => $this->detailRow($item, $weights, withTag: true));
-        $flat = match ($sort) {
-            'date' => $flat->sortByDesc(fn (object $row): int => $row->date?->timestamp ?? 0),
-            'type' => $flat->sortBy([['tagKey', 'asc'], ['points', 'desc']]),
-            default => $flat->sortByDesc('points'),
+        $sort = in_array(request('sort'), ['date', 'type'], true) ? request('sort') : 'points';
+        $list = $scoped->map(fn (LeaderboardLineItem $item): object => $this->detailRow($item, $weights, $flat));
+        $list = match ($sort) {
+            'date' => $list->sortByDesc(fn (object $row): int => $row->date?->timestamp ?? 0),
+            'type' => $list->sortBy([['tagKey', 'asc'], ['points', 'desc']]),
+            default => $list->sortByDesc('points'),
         };
 
         // Cross-link: the paired page exists when the person also scores on the
@@ -456,8 +436,9 @@ class ScoreLeaderboardController extends Controller
             'board' => $board,
             'boards' => self::BOARDS,
             'login' => $login,
+            'ym' => $ym,
             'profile' => GithubProfile::query()->where('login', $login)->first(),
-            'scoring' => $this->scoringExplainer($board),
+            'scoring' => $this->scoringExplainer($board, decay: ! $flat),
             'otherBoard' => $otherBoard,
             'otherBoardName' => self::BOARDS[$otherBoard],
             'onOtherBoard' => $onOtherBoard,
@@ -468,43 +449,41 @@ class ScoreLeaderboardController extends Controller
                 array_keys($weights),
             ),
             'cta' => $this->emptyStateCta($board),
+            'zero' => $items->isEmpty(),
             'view' => request('view') === 'list' ? 'list' : 'grouped',
             'groups' => $groups,
             'activeGroup' => $groups->firstWhere('key', request('group')),
             'preview' => self::DETAIL_GROUP_PREVIEW,
-            'flat' => $flat->values(),
+            'flat' => $list->values(),
             'sort' => $sort,
             'maxTotal' => (float) ($groups->max('total') ?: 1),
             'months' => $months,
             'activeMonth' => $activeMonth,
-            'monthLabel' => $activeMonth ? Carbon::createFromFormat('Y-m', $activeMonth)->format('M Y') : null,
-            // Sum of the displayed subtotals, so the page reconciles with itself.
-            'total' => round($groups->sum('total'), 1),
+            'scoreLabel' => $flat ? MonthlyWindow::label($ym) : '12 months',
+            // The headline is the whole window's score — a month chip filters the
+            // groups below it, not the score. Summed from the displayed subtotals'
+            // rounding so the unfiltered page reconciles with itself.
+            'total' => round($group($items)->sum('total'), 1),
         ]);
     }
 
     /**
-     * A single detail-page row derived from a line item. With $withTag it also
-     * carries the short action tag used by the flat (#9a) view.
+     * A single detail-page row derived from a line item, with the action tag the
+     * list view shows. $flat reads the no-decay points (monthly pages).
      *
      * @param  array<string, int|float>  $weights  action => base weight
      */
-    private function detailRow(LeaderboardLineItem $item, array $weights = [], bool $withTag = false): object
+    private function detailRow(LeaderboardLineItem $item, array $weights = [], bool $flat = false): object
     {
-        $row = [
+        return (object) [
             'title' => $item->title ?: $item->url,
             'url' => $item->url,
             'date' => $item->contributed_at,
-            'points' => round($item->points, 2),
-            'formula' => $this->scoreFormula($item, $weights),
+            'points' => round($flat ? $item->points_flat : $item->points, 2),
+            'formula' => $this->scoreFormula($item, $weights, $flat),
+            'tag' => self::CHIP_LABELS[$item->action] ?? Action::labelFor($item->action),
+            'tagKey' => $item->action,
         ];
-
-        if ($withTag) {
-            $row['tag'] = self::CHIP_LABELS[$item->action] ?? Action::labelFor($item->action);
-            $row['tagKey'] = $item->action;
-        }
-
-        return (object) $row;
     }
 
     /**
@@ -612,17 +591,17 @@ class ScoreLeaderboardController extends Controller
             ->limit(20)
             ->get();
 
-        // Comebacks default to length-of-absence order (longest-away first); the
-        // ?comebacks_sort=recent toggle re-sorts by most recent activity. No cap
-        // here — the view shows 12 and the ?comebacks=all URL reveals the rest,
+        // Comebacks default to most recently back first (who to welcome back);
+        // the ?comebacks_sort=away toggle re-sorts by time away, longest first. No
+        // cap here — the view shows 12 and the ?comebacks=all URL reveals the rest,
         // so the full count is needed to drive the "Show all N" affordance.
-        $comebacksSort = request('comebacks_sort') === 'recent' ? 'recent' : 'absence';
+        $comebacksSort = request('comebacks_sort') === 'away' ? 'away' : 'recent';
         $comebacks = GithubUserStat::query()
             ->whereNotNull('returned_after_days')
             ->when(
-                $comebacksSort === 'recent',
-                fn ($query) => $query->orderByDesc('last_contributor_at'),
+                $comebacksSort === 'away',
                 fn ($query) => $query->orderByDesc('returned_after_days'),
+                fn ($query) => $query->orderByDesc('last_contributor_at'),
             )
             ->get();
 
@@ -672,7 +651,6 @@ class ScoreLeaderboardController extends Controller
                 ->where('score', '>', 0)
                 ->orderBy('rank')
                 ->orderByDesc('score')
-                ->limit(100)
                 ->get();
         }
 

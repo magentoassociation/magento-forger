@@ -34,11 +34,11 @@
             $n >= 20 => '#f8bd96',
             $n >= 10 => '#fbddcb',
             $n >= 1 => '#fdf1ea',
-            default => '#e6e8ea',
+            default => '#e6e7ea',
         };
     };
 
-    // Height ratio sqrt(n/max) in 0..1; CSS multiplies by the per-breakpoint factor (118 / 82).
+    // Height ratio sqrt(n/max) in 0..1; CSS multiplies by the per-breakpoint factor (115 / 78).
     $barRatio = fn (int $n): string => number_format(sqrt($n / $maxMonthly), 4, '.', '');
 
     // "issues"/"PRs" but "issue"/"PR" when the count is exactly 1.
@@ -68,8 +68,11 @@
     <div class="bm-range" data-bm-range>
         <span class="bm-range-span" data-bm-span></span>
         <div class="bm-range-btns" data-bm-btns hidden>
+            {{-- At either end the button gives way to a non-interactive span. --}}
             <button type="button" class="bm-nav" data-bm-earlier>&lsaquo; Earlier</button>
+            <span class="bm-nav bm-nav--end" data-bm-earlier-end hidden>&lsaquo; Earlier</span>
             <button type="button" class="bm-nav" data-bm-later>Later &rsaquo;</button>
+            <span class="bm-nav bm-nav--end" data-bm-later-end hidden>Later &rsaquo;</span>
         </div>
     </div>
 
@@ -187,8 +190,6 @@
                     var s = root._bm;
                     if (!s) return;
                     var span = root.querySelector('[data-bm-span]');
-                    var earlier = root.querySelector('[data-bm-earlier]');
-                    var later = root.querySelector('[data-bm-later]');
                     var step = s.blockW + s.gap;
 
                     var first = Math.round(s.scroll.scrollLeft / step);
@@ -204,8 +205,16 @@
                     }
 
                     var max = s.scroll.scrollWidth - s.scroll.clientWidth;
-                    if (earlier) earlier.disabled = s.scroll.scrollLeft <= 1;
-                    if (later) later.disabled = s.scroll.scrollLeft >= max - 1;
+                    setEnd(root, 'earlier', s.scroll.scrollLeft <= 1);
+                    setEnd(root, 'later', s.scroll.scrollLeft >= max - 1);
+                }
+
+                function setEnd(root, which, atEnd) {
+                    var btn = root.querySelector('[data-bm-' + which + ']');
+                    var end = root.querySelector('[data-bm-' + which + '-end]');
+                    if (!btn || !end) return;
+                    btn.hidden = atEnd;
+                    end.hidden = !atEnd;
                 }
 
                 function wire(root) {

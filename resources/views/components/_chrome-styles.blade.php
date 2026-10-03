@@ -33,6 +33,32 @@
         padding: 0 36px;
         gap: 30px;
     }
+    /* Below lg the bar holds logo, login/account and the hamburger on one 64px row.
+       The wordmark shortens to fit; hidden words stay in the link's accessible name. */
+    @media (max-width: 991.98px) {
+        /* 64px when closed; grows to hold the open hamburger menu instead of overlapping the page. */
+        .site-nav { height: auto; }
+        .site-nav > .container { gap: 0 12px; min-height: 64px; padding-top: 12px; padding-bottom: 12px; }
+        .site-endgroup { margin-left: auto; }
+        .site-nav .navbar-toggler { padding: 4px 8px; }
+        .site-brand .brand-word .w1 {
+            position: absolute;
+            width: 1px; height: 1px;
+            overflow: hidden; clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+        }
+    }
+    @media (max-width: 575.98px) {
+        .site-nav > .container { padding-left: 20px; padding-right: 20px; }
+    }
+    @media (max-width: 399.98px) {
+        .site-brand .brand-word {
+            position: absolute;
+            width: 1px; height: 1px;
+            overflow: hidden; clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+        }
+    }
 
     /* Logo lockup */
     .site-brand {
@@ -273,18 +299,22 @@
     }
     .bm-range-btns { display: flex; gap: 5px; margin-left: auto; }
     .bm-nav {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
         font-family: 'Libre Franklin', system-ui, sans-serif;
         font-weight: 600;
         font-size: 12.5px;
         padding: 6px 11px;
         border-radius: 6px;
-        border: 1px solid #e3e5e8;
+        border: 1px solid #d5d8dc;
         background: #fff;
         color: #15171b;
         cursor: pointer;
     }
-    .bm-nav:hover:not(:disabled) { border-color: #15171b; }
-    .bm-nav:disabled {
+    .bm-nav:hover:not(.bm-nav--end) { border-color: #15171b; }
+    .bm-nav[hidden] { display: none; }
+    .bm-nav--end {
         /* non-interactive end state — same treatment as an empty month tile */
         background: #f7f8f9;
         border-color: transparent;
@@ -319,7 +349,7 @@
         right: 0;
         top: 124px;
         height: 1px;
-        background: #e3e5e8;
+        background: #e6e7ea;
     }
     .bm-year { flex: none; scroll-snap-align: start; }
     .bm-bars {
@@ -336,11 +366,11 @@
         display: block;
         width: 100%;
         border-radius: 2px 2px 0 0;
-        transition: background .12s ease;
+        transition: background 120ms ease-out;
     }
-    a.bm-bar { height: max(3px, calc(var(--bh) * 118px)); }
+    a.bm-bar { height: max(3px, calc(var(--bh) * 115px)); }
     a.bm-bar:hover { background: #15171b !important; }
-    .bm-bar--zero { height: 2px; background: #e6e8ea; }
+    .bm-bar--zero { height: 2px; background: #e6e7ea; }
 
     /* Year labels live inside each block, below the rule, and scroll with it. */
     .bm-year-label {
@@ -404,7 +434,7 @@
         gap: 1px;
         padding: 8px 0 7px;
         border-radius: 6px;
-        border: 1px solid #e3e5e8;
+        border: 1px solid #d5d8dc;
         text-decoration: none;
     }
     a.bm-tile:hover { border-color: #15171b; }
@@ -414,7 +444,7 @@
         font-weight: 400;
         font-size: 8.5px;
         text-transform: uppercase;
-        letter-spacing: .04em;
+        letter-spacing: .06em;
         color: #6b7178;
     }
     .bm-tile-count {
@@ -433,11 +463,11 @@
         .bm-grid { grid-template-columns: repeat(6, 1fr); }
     }
     @media (max-width: 575.98px) {
-        /* Shorter bars, tighter block gap; scale factor drops 118 -> 82. */
+        /* Shorter bars, tighter block gap; scale factor drops 115 -> 78. */
         .bm-timeline { gap: 10px; }
         .bm-timeline::after { top: 88px; }
-        .bm-bars { height: 88px; padding-bottom: 10px; }
-        a.bm-bar { height: max(3px, calc(var(--bh) * 82px)); }
+        .bm-bars { height: 88px; padding-bottom: 9px; }
+        a.bm-bar { height: max(3px, calc(var(--bh) * 78px)); }
         .bm-year-num { font-size: 14px; }
         .bm-year-total { font-size: 9px; }
         .bm-nav { min-width: 44px; min-height: 44px; font-size: 13px; }
@@ -446,9 +476,10 @@
     }
 
     /* ---- How Scores Work — standalone page (20a); reuses .scm-* components ---- */
-    /* Body frame: spec wants 24px top / 36px bottom; horizontal gutter is left to the
-       page container so the body aligns with the shared H1 title block. */
-    .hsw { padding: 24px 0 36px; }
+    /* Body frame: spec wants 24px top / 36px bottom. The 24px top comes from
+       .page-title-bar's margin; horizontal gutter is left to the page container so
+       the body aligns with the shared H1 title block. */
+    .hsw { padding: 0 0 36px; }
     .hsw-intro {
         max-width: 680px;
         margin: 0;
@@ -557,11 +588,17 @@
     .scm-dialog { max-width: 1000px; }
     .scm-panel {
         border: 0;
-        border-top: 3px solid #f26322;
         border-radius: 12px;
         overflow: hidden;
         background: #fff;
         box-shadow: 0 24px 60px rgba(0, 0, 0, .35);
+    }
+    /* Flush 3px strip; a border-top would curve down the rounded corners. */
+    .scm-panel::before {
+        content: '';
+        flex: none;
+        height: 3px;
+        background: #f26322;
     }
 
     .scm-header {
@@ -673,7 +710,7 @@
         font-family: 'Martian Mono', ui-monospace, monospace;
         font-size: 8.5px;
         text-transform: uppercase;
-        letter-spacing: .04em;
+        letter-spacing: .06em;
         white-space: nowrap;
         vertical-align: middle;
     }
@@ -799,6 +836,7 @@
         .scm-sechead--rec { margin-top: 0; }
         .scm-example { margin: 26px 16px 16px; }
         .scm-panel { border-radius: 10px; }
+        .scm-dialog { --bs-modal-margin: 16px; }
     }
 
     /* ================= Homepage (15a) ================= */
@@ -958,7 +996,11 @@
 
     .hp-board-you { padding: 11px 0 3px; }
     .hp-board-you .hp-row { padding: 0; }
+    .hp-you-link { display: block; text-decoration: none; border-radius: 6px; }
+    .hp-you-link:hover .hp-row { background: #22262c; }
+    .hp-you-link:hover .hp-name, .hp-you-link:hover .hp-score { color: #fff; }
     .hp-you-caption {
+        display: block;
         margin: 12px 0 0 0;
         font-family: 'Libre Franklin', system-ui, sans-serif;
         font-weight: 400;
@@ -1023,7 +1065,7 @@
         align-items: center;
         gap: 16px;
         padding: 18px 20px;
-        border: 1px solid #e3e5e8;
+        border: 1px solid #e6e7ea;
         border-radius: 10px;
         text-decoration: none;
     }
@@ -1192,7 +1234,7 @@
     .sf-cols { margin-left: auto; display: flex; gap: 56px; }
     .sf-col { display: flex; flex-direction: column; gap: 9px; }
     .sf-col-head {
-        margin: 0 0 2px;
+        margin: 0;
         font-family: 'Martian Mono', ui-monospace, monospace;
         font-weight: 400;
         font-size: 9px;
@@ -1206,6 +1248,7 @@
         font-size: 13.5px;
         color: #c9ced4;
         text-decoration: none;
+        transition: color 120ms ease-out;
     }
     .sf-col a:hover { color: #fff; }
     /* Full-bleed rule above the legal text; text stays in the container. */

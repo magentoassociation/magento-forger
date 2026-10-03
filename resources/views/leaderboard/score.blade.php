@@ -10,16 +10,10 @@
 
         @include('leaderboard._tabs')
 
-        @if ($entries->isEmpty())
-            <div class="alert alert-info">
-                No scores yet. Run <code>artisan leaderboard:compute</code> to populate.
-            </div>
-        @else
-            @php
-                $detailUrl = fn (string $login): string => route('leaderboard.detail', ['board' => $board, 'login' => $login]);
-            @endphp
-            @include('leaderboard._board')
-        @endif
+        @php
+            $detailUrl = fn (string $login): string => route('leaderboard.detail', ['board' => $board, 'login' => $login]);
+        @endphp
+        @include('leaderboard._board', ['emptyText' => 'No scores yet.'])
     </div>
 
     @include('leaderboard._scoring-modal')

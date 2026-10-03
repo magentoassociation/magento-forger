@@ -20,15 +20,15 @@
         padding: 0;
         border: 0;
         background: none;
-        font-family: var(--font-sans);
-        font-size: 14.5px;
+        font: inherit;
         font-weight: 500;
         color: #ee6524;
         text-decoration: underline;
         text-underline-offset: 2px;
         cursor: pointer;
+        transition: color 120ms ease-out;
     }
-    .lb-tallied:hover { color: #ee6524; }
+    .lb-tallied:hover { color: #c74e16; }
 
     /* Tabs — restyle the shared Bootstrap nav-tabs within the leaderboard (#21). */
     .lb .nav-tabs {
@@ -66,17 +66,20 @@
     }
     /* Detail page (#18a): outlined chips under the view toggle. */
     .lb-detail .lb-month {
-        padding: 7px 12px;
+        padding: 6px 12px;
         font-family: var(--font-mono);
-        font-size: 11px;
+        font-size: 10.5px;
         font-weight: 500;
-        border-radius: 8px;
-        border: 1px solid #dfe1e4;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+        border-radius: 6px;
+        border: 1px solid #d5d8dc;
         background: #fff;
-        color: #ee6524;
+        color: #3c4148;
         text-decoration: none;
+        transition: border-color 120ms ease-out;
     }
-    .lb-detail .lb-month:hover { border-color: #ee6524; color: #ee6524; }
+    .lb-detail .lb-month:hover { border-color: #15171b; color: #3c4148; }
     .lb-detail .lb-month.active {
         background: #15171b;
         border-color: #15171b;
@@ -154,6 +157,7 @@
         line-height: 1;
         color: #9aa3ae;
         cursor: pointer;
+        transition: color 120ms ease-out;
     }
     .lb-search-clear:hover { color: #15171b; }
 
@@ -216,11 +220,19 @@
         transition: background 120ms ease-out;
         outline: none;
     }
-    .lbr.is-beyond { display: none; }
+    /* Rows past the depth hide only with JS; without it the whole board shows. */
+    .lb-board.js .lbr.is-beyond { display: none; }
+    .lb-board:not(.js) .lb-pager { display: none; }
     .lbr:hover { background: #faf9f7; }
     .lbr.is-jumped {
+        margin: 0 -12px;
+        padding: 10px 12px;
         background: #fff6f1;
         box-shadow: inset 3px 0 0 #f26322;
+    }
+    .lbr.is-jumped.is-fading {
+        background: rgba(255, 246, 241, 0);
+        box-shadow: inset 3px 0 0 rgba(242, 99, 34, 0);
         transition: background 400ms ease-out, box-shadow 400ms ease-out;
     }
     .lbr-rank {
@@ -248,7 +260,7 @@
     .lbr-avatar:hover { box-shadow: 0 0 0 2px #ee6524; }
     .lbr-avatar-initials {
         font-family: var(--font-mono);
-        font-size: 8.5px;
+        font-size: 9px;
         color: #4c525a;
     }
     .lbr-avatar img {
@@ -294,12 +306,6 @@
         color: #6b7178;
         white-space: nowrap;
     }
-    .lbr-activity a {
-        color: #ee6524;
-        text-decoration: none;
-        border-bottom: 1px solid rgba(238, 101, 36, .4);
-    }
-    .lbr-activity a:hover { border-bottom-color: #ee6524; }
 
     .lb-score-cell {
         width: 70px;
@@ -370,7 +376,7 @@
     .lb-tip-arrow {
         position: absolute;
         bottom: 100%;
-        right: 52px;
+        right: 22px;
         width: 0;
         height: 0;
         border-left: 7px solid transparent;
@@ -396,6 +402,7 @@
         font-weight: 600;
         color: #15171b;
         text-decoration: none;
+        cursor: pointer;
         transition: border-color 120ms ease-out;
     }
     .lb-more:hover { border-color: #15171b; }
@@ -407,7 +414,7 @@
         color: #6b7178;
     }
 
-    /* No-results / whole-board failure block */
+    /* Search no-results block */
     .lb-empty {
         padding: 40px 0 44px;
         border-bottom: 1px solid #f0f1f3;
@@ -426,10 +433,15 @@
         line-height: 1.6;
         color: #5d636c;
     }
-    .lb-empty-2 a { color: #ee6524; text-decoration: underline; text-underline-offset: 2px; }
-    .lb-empty-2 a:hover { color: #ee6524; }
+    .lb-empty-2 a {
+        color: #ee6524;
+        text-decoration: underline;
+        text-underline-offset: 2px;
+        transition: color 120ms ease-out;
+    }
+    .lb-empty-2 a:hover { color: #c74e16; }
 
-    /* Focus rings — site-wide, on :focus-visible only. */
+    /* Focus rings for leaderboard controls, on :focus-visible only. */
     .lb .lb-search-input:focus-visible,
     .lb .lb-search-clear:focus-visible,
     .lb .lb-jump:focus-visible,
@@ -438,8 +450,16 @@
     .lb .nav-tabs .nav-link:focus-visible,
     .lb .lbr-name:focus-visible,
     .lb .lbr-avatar:focus-visible,
-    .lb .lbr-activity a:focus-visible,
     .lb .lb-tallied:focus-visible,
+    .lb .lb-hl-row:focus-visible,
+    .lb .lb-hl-card:focus-visible,
+    .lb .lb-d-row:focus-visible,
+    .lb .lb-a-row:focus-visible,
+    .lb .lb-d-back:focus-visible,
+    .lb .lb-d-toggle a:focus-visible,
+    .lb .lb-a-sort:focus-visible,
+    .lb .lb-d-more:focus-visible,
+    .lb .lb-d-otherboard a:focus-visible,
     .lb .lb-hl-more:focus-visible,
     .lb .lb-hl-sort:focus-visible,
     .lb .lb-empty-2 a:focus-visible,
@@ -448,14 +468,6 @@
         outline-offset: 2px;
     }
     .lb .lb-search-input:focus-visible { border-color: #d5d8dc; }
-
-    .visually-hidden {
-        position: absolute !important;
-        width: 1px; height: 1px;
-        padding: 0; margin: -1px;
-        overflow: hidden; clip: rect(0, 0, 0, 0);
-        white-space: nowrap; border: 0;
-    }
 
     /* Highlights (#8b): ranked lists with bars + comeback card grid. */
     .lb-section-head {
@@ -478,7 +490,7 @@
         font-family: var(--font-mono);
         font-size: 9px;
         font-weight: 700;
-        letter-spacing: .08em;
+        letter-spacing: .06em;
         text-transform: uppercase;
         color: #4c525a;
     }
@@ -504,8 +516,9 @@
         border-bottom: 1px solid #f0f1f3;
         text-decoration: none;
         color: inherit;
+        transition: background 120ms ease-out;
     }
-    .lb-hl-row:hover { background: #fafbfb; }
+    .lb-hl-row:hover { background: #faf9f7; }
     .lb-hl-row--spot {
         display: grid;
         grid-template-columns: 28px 250px 1fr 52px;
@@ -530,8 +543,8 @@
     .lb-hl-avatar {
         position: relative;
         flex: none;
-        width: 30px;
-        height: 30px;
+        width: 28px;
+        height: 28px;
         border-radius: 6px;
         background: #e9eaed;
         display: flex;
@@ -546,8 +559,8 @@
     .lb-hl-avatar img {
         position: absolute;
         inset: 0;
-        width: 30px;
-        height: 30px;
+        width: 28px;
+        height: 28px;
         border-radius: 6px;
         object-fit: cover;
     }
@@ -567,7 +580,7 @@
         font-family: var(--font-mono);
         font-size: 9.5px;
         line-height: 1.5;
-        color: #5d636c;
+        color: #6b7178;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -605,6 +618,7 @@
         border-radius: 8px;
         text-decoration: none;
         color: inherit;
+        transition: border-color 120ms ease-out, background 120ms ease-out;
     }
     .lb-hl-card:hover { border-color: #d3a98f; background: #fdfaf8; }
     .lb-hl-card .lb-hl-id { flex: 1; }
@@ -617,6 +631,7 @@
         font-weight: 700;
         font-variant-numeric: tabular-nums;
         color: #15171b;
+        white-space: nowrap;
     }
     .lb-hl-note {
         margin: 16px 0 0;
@@ -626,20 +641,15 @@
     }
     .lb-hl-more {
         display: inline-block;
-        margin-top: 14px;
-        font-family: var(--font-mono);
-        font-size: 9.5px;
-        color: #ee6524;
-        text-decoration: none;
-        border-bottom: 1px solid rgba(238, 101, 36, .4);
+        margin-top: 16px;
     }
-    .lb-hl-more:hover { border-bottom-color: #ee6524; }
     .lb-hl-sort {
         color: #ee6524;
-        text-decoration: none;
-        border-bottom: 1px solid rgba(238, 101, 36, .4);
+        text-decoration: underline;
+        text-underline-offset: 2px;
+        transition: color 120ms ease-out;
     }
-    .lb-hl-sort:hover { border-bottom-color: #ee6524; }
+    .lb-hl-sort:hover { color: #c74e16; }
     .lb-hl-empty {
         padding: 9px 0;
         font-size: 14px;
@@ -662,10 +672,17 @@
         font-weight: 500;
         color: #ee6524;
         text-decoration: none;
+        transition: color 120ms ease-out;
     }
-    .lb-d-back:hover { color: #ee6524; text-decoration: underline; text-underline-offset: 3px; }
+    .lb-d-back:hover { color: #c74e16; text-decoration: underline; text-underline-offset: 3px; }
     /* First body block sits 24px below the toggle / month chips / tallied link. */
-    .lb-detail :is(.lb-months, .lb-d-controls, .lb-d-tallied-row) + :is(.lb-d-group, .lb-a-stats, .lb-a-head, .lb-d-back, .lb-d-empty) { margin-top: 24px; }
+    .lb-detail :is(.lb-months, .lb-d-controls, .lb-d-tallied-row) + :is(.lb-d-group, .lb-d-back, .lb-d-empty, .lb-d-none) { margin-top: 24px; }
+    .lb-d-none {
+        margin: 0;
+        font-size: 13.5px;
+        line-height: 1.5;
+        color: #5d636c;
+    }
 
     /* Other-board line — a footnote below the content, not beside the back link. */
     .lb-d-otherboard {
@@ -676,16 +693,19 @@
         color: #6b7178;
     }
     .lb-d-otherboard--zero { margin-top: 16px; }
+    .lb-d-otherboard--list { margin-bottom: 30px; }
     .lb-d-otherboard a {
         color: #ee6524;
         text-decoration: underline;
         text-underline-offset: 2px;
+        transition: color 120ms ease-out;
     }
+    .lb-d-otherboard a:hover { color: #c74e16; }
 
     /* Zero-score state (#17b/#17c). */
     .lb-d-score--zero { color: #6b7178; }
     .lb-d-empty {
-        border: 1px solid #e3e5e8;
+        border: 1px solid #e6e7ea;
         border-radius: 10px;
         overflow: hidden;
     }
@@ -721,7 +741,7 @@
         color: #6b7178;
     }
     .lb-d-empty-pts {
-        width: 62px;
+        width: 66px;
         text-align: right;
         font-family: var(--font-mono);
         font-size: 12px;
@@ -738,6 +758,7 @@
     }
     .lb-d-empty-cta {
         flex: none;
+        margin-left: auto;
         padding: 10px 17px;
         border-radius: 7px;
         background: #f26322;
@@ -830,13 +851,12 @@
         margin: 0;
         padding-top: 24px;
         font-size: 14.5px;
-        line-height: 1.6;
+        line-height: 1.65;
         color: #3c4148;
         text-wrap: pretty;
     }
 
-    /* #18a: the rolling detail page's title-block header (larger than the monthly
-       drill-down, which keeps its in-container header). */
+    /* #18a: the detail page title-block header, sized up from the base .lb-d-* rules. */
     .lb-d-titlebar .lb-d-head { gap: 16px; }
     .lb-d-titlebar .lb-d-avatar,
     .lb-d-titlebar .lb-d-avatar img { width: 56px; height: 56px; }
@@ -883,7 +903,7 @@
         font-family: var(--font-mono);
         font-size: 9px;
         font-weight: 700;
-        letter-spacing: .08em;
+        letter-spacing: .06em;
         text-transform: uppercase;
         color: #4c525a;
     }
@@ -897,22 +917,24 @@
     .lb-d-row {
         display: grid;
         grid-template-columns: 1fr 112px 66px;
-        align-items: start;
+        align-items: baseline;
         gap: 0 16px;
         padding: 9px 0;
         border-bottom: 1px solid #f0f1f3;
         text-decoration: none;
         color: inherit;
+        transition: background 120ms ease-out;
     }
-    .lb-d-row:hover { background: #fafbfb; }
+    .lb-d-row:hover { background: #faf9f7; }
     .lb-d-row-title {
         min-width: 0;
         font-size: 14.5px;
         line-height: 1.45;
-        text-wrap: pretty;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
     .lb-d-row-date {
-        margin-top: 3px;
         font-family: var(--font-mono);
         font-size: 9.5px;
         color: #5d636c;
@@ -920,7 +942,6 @@
     }
     .lb-d-row-pts {
         position: relative;
-        margin-top: 1px;
         text-align: right;
         font-family: var(--font-mono);
         font-size: 12px;
@@ -941,8 +962,9 @@
         color: #ee6524;
         text-decoration: none;
         border-bottom: 1px solid rgba(238, 101, 36, .4);
+        transition: color 120ms ease-out, border-color 120ms ease-out;
     }
-    .lb-d-more:hover { color: #ee6524; border-bottom-color: #ee6524; }
+    .lb-d-more:hover { color: #c74e16; border-bottom-color: #c74e16; }
 
     /* Detail controls: view toggle + month filter. */
     .lb-d-controls {
@@ -954,40 +976,43 @@
     }
     .lb-d-toggle {
         display: flex;
-        gap: 14px;
+        gap: 16px;
         font-family: var(--font-mono);
-        font-size: 9px;
-        font-weight: 700;
-        letter-spacing: .08em;
+        font-size: 9.5px;
+        letter-spacing: .06em;
         text-transform: uppercase;
     }
+    .lb-d-toggle > * { padding-bottom: 5px; }
     .lb-d-toggle a {
-        color: #4c525a;
+        font-weight: 400;
+        color: #6b7178;
         text-decoration: none;
-        padding-bottom: 2px;
+        transition: color 120ms ease-out;
     }
-    .lb-d-toggle a:hover { color: #ee6524; }
-    .lb-d-toggle a.active {
+    .lb-d-toggle a:hover { color: #15171b; }
+    .lb-d-toggle .active {
+        font-weight: 700;
         color: #15171b;
         border-bottom: 2px solid #ee6524;
     }
 
-    /* Flat list view (#9a). */
+    /* List view (#18b): group tiles, then one sortable, paginated list. */
     .lb-a-stats {
         display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 14px;
-        margin-bottom: 24px;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 22px;
     }
+    .lb-a-stats--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .lb-a-card {
         border: 1px solid #e6e7ea;
-        border-radius: 8px;
-        padding: 13px 14px 12px;
+        border-radius: 9px;
+        padding: 16px 16px 18px;
     }
     .lb-a-card-label {
         display: block;
-        min-height: 34px;
-        font-size: 12.5px;
+        min-height: 2.7em;
+        font-size: 13px;
         line-height: 1.35;
         color: #3c4148;
         text-wrap: pretty;
@@ -995,27 +1020,27 @@
     .lb-a-card-val {
         display: flex;
         align-items: baseline;
-        gap: 7px;
-        margin-top: 6px;
+        gap: 6px;
+        margin-top: 14px;
     }
     .lb-a-card-pts {
         font-family: var(--font-mono);
-        font-size: 17px;
+        font-size: 20px;
         font-weight: 700;
         letter-spacing: -.03em;
         font-variant-numeric: tabular-nums;
     }
     .lb-a-card-count {
         font-family: var(--font-mono);
-        font-size: 9.5px;
+        font-size: 10px;
         color: #5d636c;
     }
     .lb-a-bar {
         display: block;
-        height: 5px;
-        border-radius: 3px;
+        height: 4px;
+        border-radius: 2px;
         background: #f0f1f3;
-        margin-top: 9px;
+        margin-top: 12px;
         overflow: hidden;
     }
     .lb-a-bar-fill {
@@ -1023,54 +1048,69 @@
         height: 100%;
         background: #ee6524;
     }
-    .lb-a-head {
+    .lb-a-head,
+    .lb-a-row {
         display: grid;
-        grid-template-columns: 1fr 104px 92px 54px;
+        grid-template-columns: minmax(0, 1fr) 212px 112px 66px;
         align-items: baseline;
-        gap: 0 28px;
+        gap: 0 16px;
+    }
+    .lb-a-head {
+        margin: 28px 0 0;
         padding-bottom: 10px;
         border-bottom: 1px solid #e6e7ea;
     }
+    .lb-a-title {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 700;
+        letter-spacing: -.018em;
+        color: #15171b;
+    }
     .lb-a-sort {
         justify-self: start;
+        padding: 0 0 2px;
+        border: 0;
+        background: none;
         font-family: var(--font-mono);
         font-size: 9px;
-        font-weight: 700;
-        letter-spacing: .08em;
+        font-weight: 400;
+        letter-spacing: .06em;
         text-transform: uppercase;
-        color: #4c525a;
-        text-decoration: none;
-        padding-bottom: 2px;
+        color: #6b7178;
+        cursor: pointer;
+        transition: color 120ms ease-out;
     }
     .lb-a-sort--right { justify-self: end; }
-    .lb-a-sort:hover { color: #ee6524; }
+    .lb-a-sort:hover { color: #15171b; }
     .lb-a-sort.active {
+        font-weight: 700;
         color: #15171b;
         border-bottom: 2px solid #ee6524;
     }
     .lb-a-row {
-        display: grid;
-        grid-template-columns: 1fr 104px 92px 54px;
-        align-items: start;
-        gap: 0 28px;
-        padding: 10px 0;
+        padding: 9px 0;
         border-bottom: 1px solid #f0f1f3;
         text-decoration: none;
         color: inherit;
+        transition: background 120ms ease-out;
     }
-    .lb-a-row:hover { background: #fafbfb; }
+    .lb-a-row:hover { background: #faf9f7; }
     .lb-a-chip {
         justify-self: start;
-        margin-top: 1px;
         font-family: var(--font-mono);
-        font-size: 9px;
+        font-size: 9.5px;
         font-weight: 500;
-        color: #4c525a;
-        background: #f2f3f5;
+        color: #3c4148;
+        background: #f0f1f3;
         border-radius: 4px;
         padding: 3px 7px;
         white-space: nowrap;
     }
+    /* Rows past the page hide only with JS; without it the whole list shows. */
+    .lb-a-list.js .lb-a-row.is-beyond { display: none; }
+    .lb-a-list:not(.js) .lb-pager { display: none; }
+    .lb-a-list .lb-pager { padding-bottom: 0; }
 
     /* Narrow widths: handle drops to its own line, score right-aligns. */
     /* Board narrow widths (#24a). Below ~700px the activity column drops and the
@@ -1107,21 +1147,29 @@
         .lb-colhead, .lbr { gap: 12px; }
         .lb-pager { flex-direction: column; align-items: stretch; }
         .lb-more { width: 100%; text-align: center; }
+        /* The shared title block's H1, only on pages whose main holds a leaderboard. */
+        .page-title-bar:has(~ main .lb) h1 { font-size: 28px; }
+    }
+    /* Detail page below lg: 20px gutter, 28px H1, two-column tiles; rows keep their grid. */
+    @media (max-width: 991.98px) {
+        .lb-d-titlebar > .container,
+        .container.lb-detail { padding-left: 20px; padding-right: 20px; }
+        .lb-d-titlebar .lb-d-name { font-size: 28px; }
+        .lb-a-stats, .lb-a-stats--3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
     @media (max-width: 640px) {
         .lb-tip { max-width: 260px; }
+        .lb-tip-line { white-space: normal; }
 
         .lb-hl-cols { grid-template-columns: 1fr; gap: 30px; }
         .lb-hl-grid3 { grid-template-columns: 1fr; }
         .lb-hl-row--spot { grid-template-columns: 24px 1fr 52px; }
         .lb-hl-row--spot .lb-hl-bar { display: none; }
 
-        .lb-d-head { flex-wrap: wrap; }
-        .lb-d-scoreblock { margin-left: 0; text-align: left; width: 100%; }
-        .lb-d-row { grid-template-columns: 1fr 92px 54px; }
-
-        .lb-a-stats { grid-template-columns: 1fr 1fr; }
-        .lb-a-row { grid-template-columns: 1fr 80px 48px; }
-        .lb-a-row .lb-a-chip { display: none; }
+        /* List rows: the type tag moves under the title so the date and points
+           columns keep the grouped view's widths. */
+        .lb-a-head, .lb-a-row { grid-template-columns: minmax(0, 1fr) 112px 66px; }
+        .lb-a-head .lb-a-sort--type,
+        .lb-a-row .lb-a-chip { grid-row: 2; grid-column: 1; margin-top: 4px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
     }
 </style>

@@ -20,7 +20,7 @@
         <div class="modal-content scm-panel">
             <div class="scm-header">
                 <div class="scm-headtext">
-                    <h2 class="scm-title" id="scoringModalLabel">How {{ $boards[$board] }} Scores Are Tallied</h2>
+                    <h2 class="scm-title" id="scoringModalLabel">How {{ strtolower($boards[$board]) }} scores are tallied</h2>
                     @if ($decay)
                         <p class="scm-intro">
                             Each action earns a base number of points, scaled by the issue/PR's
@@ -35,7 +35,7 @@
                         </p>
                     @endif
                 </div>
-                <button type="button" class="scm-close" data-bs-dismiss="modal" aria-label="Close">&times;</button>
+                <button type="button" class="scm-close" data-bs-dismiss="modal" aria-label="Close">✕</button>
             </div>
 
             <div class="scm-formula">
