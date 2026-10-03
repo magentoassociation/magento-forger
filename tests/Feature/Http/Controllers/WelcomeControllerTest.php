@@ -50,6 +50,7 @@ class WelcomeControllerTest extends TestCase
         $response->assertSee('20 open');       // Ready for Work path pill
         $response->assertSee('Framework');     // area tile (prefix stripped)
         $response->assertSee('221 open');      // area tile pill
+        $response->assertSee('aria-current="page"', false); // current nav item
     }
 
     public function testHomepageSurvivesLabelCountFailureAndDropsPills(): void

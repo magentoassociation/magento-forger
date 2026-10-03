@@ -10,9 +10,13 @@ namespace App\Http\Controllers;
 
 use App\DataTransferObjects\Search\Aggregation;
 use App\Helpers\GitHubLinkHelper;
+use App\Models\GithubProfile;
+use App\Models\LeaderboardEntry;
 use App\Services\HomepageCountsService;
 use App\Services\Search\OpenSearchService;
 use App\Services\Search\QueryBuilder;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Collection as SupportCollection;
 use Illuminate\View\View;
 
 class WelcomeController extends Controller
@@ -25,13 +29,72 @@ class WelcomeController extends Controller
 
         $labelCounts = $counts->labelCounts();
 
+        $topFive = $this->topContributors();
+        $viewerEntry = $this->viewerEntry();
+
         return view('welcome', [
             // 'monthlyStats' => $monthlyStats,
             // 'dataMissing' => $dataMissing,
             'paths' => $this->buildPaths($labelCounts),
             'areas' => $this->buildAreas($labelCounts),
             'links' => config('homepage.links'),
+            'topFive' => $topFive,
+            'viewerEntry' => $viewerEntry,
+            'profiles' => $this->profilesFor(
+                $topFive->pluck('login')->push($viewerEntry?->login)->filter()
+            ),
         ]);
+    }
+
+    /**
+     * Top five of the rolling-12-month Contributor board — a truncation of the
+     * leaderboard table, same ranking and scores.
+     *
+     * @return Collection<int, LeaderboardEntry>
+     */
+    private function topContributors(): Collection
+    {
+        return LeaderboardEntry::query()
+            ->where('board', 'contributor')
+            ->where('window', 'rolling12')
+            ->where('score', '>', 0)
+            ->orderBy('rank')
+            ->orderByDesc('score')
+            ->limit(5)
+            ->get();
+    }
+
+    /**
+     * The signed-in visitor's own Contributor board row, if any. Null when signed
+     * out or when the account has never scored in the window.
+     */
+    private function viewerEntry(): ?LeaderboardEntry
+    {
+        $login = auth()->user()?->github_username;
+
+        if (! $login) {
+            return null;
+        }
+
+        return LeaderboardEntry::query()
+            ->where('board', 'contributor')
+            ->where('window', 'rolling12')
+            ->where('login', $login)
+            ->first();
+    }
+
+    /**
+     * GitHub display profiles keyed by login, for avatars and names.
+     *
+     * @param  SupportCollection<int, string>  $logins
+     * @return SupportCollection<string, GithubProfile>
+     */
+    private function profilesFor(SupportCollection $logins): SupportCollection
+    {
+        return GithubProfile::query()
+            ->whereIn('login', $logins->unique()->values()->all())
+            ->get()
+            ->keyBy('login');
     }
 
     /**
@@ -143,6 +206,9 @@ class WelcomeController extends Controller
                 'url' => GitHubLinkHelper::issueLabelUrl($label),
             ];
         }
+
+        // Busiest areas first (README "Pick your area": by open count, descending).
+        usort($areas, static fn (array $a, array $b): int => $b['count'] <=> $a['count']);
 
         return $areas;
     }

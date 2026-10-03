@@ -52,4 +52,42 @@ enum Action: string
     {
         return self::tryFrom($action)?->label() ?? \Illuminate\Support\Str::headline($action);
     }
+
+    /**
+     * Noun-first phrasing for the board Activity cell's accessible name, e.g.
+     * "PRs opened 281, issues opened 47". Wording matches the per-board action
+     * list in README-leaderboard-pages.md.
+     */
+    public function countLabel(): string
+    {
+        return match ($this) {
+            self::ISSUE_OPENED => 'issues opened',
+            self::PR_OPENED => 'PRs opened',
+            self::PR_MERGED => 'PRs merged',
+            self::ISSUE_RESOLVED_BY_MERGE => 'issues resolved by a merged PR',
+            self::REVIEW_APPROVED => 'PRs approved',
+            self::REVIEW_REJECTED => 'changes requested',
+            self::REVIEW_COMMENTED => 'review comments',
+            self::APPROVED_THEN_MERGED => 'approved PRs that were merged',
+            self::PR_CLAIMED => 'stale PRs claimed',
+            self::LABEL_APPLIED => 'triage labels applied',
+        };
+    }
+
+    /**
+     * Actions in the order the Activity accessible name lists them: the four
+     * contributor actions first, then the six maintainer ones. The two subsets
+     * never co-occur on one board, so filtering by a row's breakdown yields that
+     * board's order.
+     *
+     * @return list<self>
+     */
+    public static function activityOrder(): array
+    {
+        return [
+            self::PR_OPENED, self::PR_MERGED, self::ISSUE_OPENED, self::ISSUE_RESOLVED_BY_MERGE,
+            self::REVIEW_APPROVED, self::REVIEW_REJECTED, self::REVIEW_COMMENTED,
+            self::APPROVED_THEN_MERGED, self::PR_CLAIMED, self::LABEL_APPLIED,
+        ];
+    }
 }

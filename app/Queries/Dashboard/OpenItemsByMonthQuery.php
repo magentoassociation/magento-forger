@@ -87,7 +87,29 @@ class OpenItemsByMonthQuery
             }
         }
 
-        return $result;
+        return $this->fillYearGaps($result);
+    }
+
+    /**
+     * Every year from the current one back to the oldest year with an open item
+     * gets a block, even when nothing in it is still open. The histogram's
+     * min_doc_count drops empty years, so they're filled here.
+     *
+     * @param  array<int|string, array{year: string, total: int, months: array<string, mixed>}>  $result
+     * @return array<int|string, array{year: string, total: int, months: array<string, mixed>}>
+     */
+    private function fillYearGaps(array $result): array
+    {
+        if ($result === []) {
+            return [];
+        }
+
+        $filled = [];
+        for ($year = max((int) date('Y'), (int) max(array_keys($result))); $year >= (int) min(array_keys($result)); $year--) {
+            $filled[$year] = $result[$year] ?? ['year' => (string) $year, 'total' => 0, 'months' => $this->emptyMonthSkeleton()];
+        }
+
+        return $filled;
     }
 
     /**

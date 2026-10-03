@@ -26,4 +26,19 @@ class GitHubLinkHelper
 
         return sprintf('https://github.com/%s/issues?q=%s', $repo, urlencode($query));
     }
+
+    /**
+     * Build a browser URL to the configured repo's open pull requests filtered by a
+     * single label — e.g. the "pending review" label a maintainer would pick up.
+     *
+     * @param  string  $label  Exact GitHub label name.
+     * @return string Absolute github.com PR-search URL.
+     */
+    public static function pullRequestLabelUrl(string $label): string
+    {
+        $repo = config('github.repo');
+        $query = sprintf('is:pr is:open label:"%s"', $label);
+
+        return sprintf('https://github.com/%s/pulls?q=%s', $repo, urlencode($query));
+    }
 }

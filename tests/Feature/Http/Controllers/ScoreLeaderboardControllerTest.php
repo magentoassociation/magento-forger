@@ -78,6 +78,10 @@ class ScoreLeaderboardControllerTest extends TestCase
             ->assertDontSee('Leaderboard.show')
             ->assertSee('jane')
             ->assertSee('42.5')
+            // Activity column is one written-out total of scored actions, not an
+            // abbreviated breakdown; its accessible name spells the per-action counts.
+            ->assertSee('2 actions')
+            ->assertSee('2 actions: PRs opened 2')
             // Breakdown shows proper English, not the raw action key.
             ->assertSee('Opened a PR')
             ->assertDontSee('pr_opened');
@@ -90,6 +94,8 @@ class ScoreLeaderboardControllerTest extends TestCase
         $this->get(route('leaderboard.show', ['board' => 'contributor']))
             ->assertOk()
             ->assertSee('How are scores tallied?')
+            // Modal heading is sentence case.
+            ->assertSee('How contributor scores are tallied')
             ->assertSee('Opened a PR')
             // Oxford comma before the final "and".
             ->assertSee('Points come from opening issues, opening PRs, and getting a PR merged.')
@@ -111,8 +117,8 @@ class ScoreLeaderboardControllerTest extends TestCase
 
         $this->get(route('leaderboard.detail', ['board' => 'contributor', 'login' => 'jane']))
             ->assertOk()
-            ->assertSee('Contributor Contributions')
-            ->assertSee('jane')
+            ->assertSee('grouped by what earned the points')   // detail intro
+            ->assertSee('jane')                                // person is the H1
             ->assertSee('Fix the thing')
             ->assertSee('PR was merged')
             ->assertDontSee('pr_merged');
@@ -194,7 +200,6 @@ class ScoreLeaderboardControllerTest extends TestCase
 
         $this->get(route('leaderboard.detail', ['board' => 'contributor', 'login' => 'jane']))
             ->assertOk()
-            ->assertSee('data-bs-toggle="tooltip"', false)
             ->assertSee('10 base × 2× priority × 0.55× recency = 11 pts');
     }
 
@@ -269,12 +274,9 @@ class ScoreLeaderboardControllerTest extends TestCase
         $this->get(route('leaderboard.highlights'))
             ->assertOk()
             ->assertSee('Leaderboard Highlights')
-            ->assertSee('newbie')
-            ->assertSee('https://github.com/magento/magento2/pull/7')
-            ->assertSee('climber')
-            ->assertSee('returner')
-            ->assertSee('back after 1 year')
-            ->assertSee('https://github.com/magento/magento2/pull/999');
+            ->assertSee('newbie')      // New Contributor Spotlight
+            ->assertSee('climber')     // Rising
+            ->assertSee('returner');   // Comebacks
     }
 
     public function testRecentlyActiveUsesContributorRecencyNotMaintainerActivity(): void
@@ -300,6 +302,75 @@ class ScoreLeaderboardControllerTest extends TestCase
             ->assertOk()
             ->assertSee('activecontrib')
             ->assertDontSee('recentreviewer');
+    }
+
+    public function testComebacksCapAtTwelveByDefaultAndShowAllRevealsTheRest(): void
+    {
+        // 13 comebacks, most recently back first. cb00 came back longest ago, so
+        // it ranks 13th and is the one hidden under the default 12-row cap.
+        foreach (range(0, 12) as $i) {
+            GithubUserStat::create([
+                'login' => sprintf('cb%02d', $i),
+                'returned_after_days' => 100 + $i,
+                'last_contributor_at' => now()->subDays(20 - $i),
+                'computed_at' => now(),
+            ]);
+        }
+
+        $this->get(route('leaderboard.highlights'))
+            ->assertOk()
+            ->assertSee('Show all 13')
+            ->assertDontSee('cb00');
+
+        $this->get(route('leaderboard.highlights', ['comebacks' => 'all']))
+            ->assertOk()
+            ->assertSee('cb00')
+            ->assertDontSee('Show all 13');
+    }
+
+    public function testComebacksShowAllAffordanceOnlyAppearsAboveTwelve(): void
+    {
+        foreach (range(0, 11) as $i) {
+            GithubUserStat::create([
+                'login' => sprintf('cb%02d', $i),
+                'returned_after_days' => 100 + $i,
+                'computed_at' => now(),
+            ]);
+        }
+
+        $this->get(route('leaderboard.highlights'))
+            ->assertOk()
+            ->assertSee('cb00')
+            ->assertDontSee('Show all');
+    }
+
+    public function testComebacksSortByTimeAwayControlReordersTheSection(): void
+    {
+        GithubUserStat::create([
+            'login' => 'awaylongest',
+            'returned_after_days' => 900,
+            'last_contributor_at' => now()->subDays(20),
+            'computed_at' => now(),
+        ]);
+        GithubUserStat::create([
+            'login' => 'backrecently',
+            'returned_after_days' => 50,
+            'last_contributor_at' => now()->subDay(),
+            'computed_at' => now(),
+        ]);
+
+        // Default: most recently back first, with the control offered.
+        $this->get(route('leaderboard.highlights'))
+            ->assertOk()
+            ->assertSee('Most recently back first.')
+            ->assertSee('Sort by time away instead</a>.', false)
+            ->assertSeeInOrder(['backrecently', 'awaylongest']);
+
+        // Re-sorted by time away: order flips.
+        $this->get(route('leaderboard.highlights', ['comebacks_sort' => 'away']))
+            ->assertOk()
+            ->assertSee('Longest away first.')
+            ->assertSeeInOrder(['awaylongest', 'backrecently']);
     }
 
     public function testBoardShowsRealNameAndHandleWhenProfileExists(): void
@@ -378,9 +449,10 @@ class ScoreLeaderboardControllerTest extends TestCase
             ->assertSee('idlemaintainer')    // on roster, zero score
             ->assertSee('activemaintainer')
             ->assertDontSee('outsider')      // scored but not on roster
-            // Details links only for non-zero scores.
+            // Every roster row links to its detail page, including zero-score rows — the
+            // detail page carries the zero-state panel (_board.blade links names unconditionally).
             ->assertSee(route('leaderboard.detail', ['board' => 'maintainer', 'login' => 'activemaintainer']))
-            ->assertDontSee(route('leaderboard.detail', ['board' => 'maintainer', 'login' => 'idlemaintainer']));
+            ->assertSee(route('leaderboard.detail', ['board' => 'maintainer', 'login' => 'idlemaintainer']));
     }
 
     public function testPublicMaintainerBoardHidesIdleMaintainers(): void
@@ -472,7 +544,8 @@ class ScoreLeaderboardControllerTest extends TestCase
 
         $this->get(route('leaderboard.monthly', ['board' => 'contributor', 'ym' => '2026-07']))
             ->assertOk()
-            ->assertSee('Contributor Leaderboard — Jul 2026')
+            ->assertSee('Monthly Leaderboard')      // shared board H1
+            ->assertSee('Jul 2026')                 // selected month chip
             ->assertSee('jane')
             ->assertSee('21')
             ->assertDontSee('olduser')
@@ -490,8 +563,10 @@ class ScoreLeaderboardControllerTest extends TestCase
 
         $this->get(route('leaderboard.monthly', ['board' => 'contributor', 'ym' => '2026-07']))
             ->assertOk()
-            ->assertSee('Jul 2026')
-            ->assertSee('Jun 2026')
+            ->assertSee('Jul 2026')       // selected chip carries the year
+            ->assertSee('Jun')            // available chips are month-only (#21c)
+            ->assertSee('Dec 2025')       // first chip of an earlier year carries its year
+            ->assertDontSee('All months') // chips are the only month navigation now
             ->assertSee(route('leaderboard.monthly', ['board' => 'contributor', 'ym' => '2026-06']));
 
         Carbon::setTestNow();
@@ -541,7 +616,8 @@ class ScoreLeaderboardControllerTest extends TestCase
 
         $this->get(route('leaderboard.monthly.detail', ['board' => 'contributor', 'ym' => '2026-07', 'login' => 'jane']))
             ->assertOk()
-            ->assertSee('Contributor Contributions — Jul 2026')
+            ->assertSee('jane')          // person is the H1
+            ->assertSee('July 2026')     // month-scoped drill-down (intro)
             ->assertSee('Add feature')
             ->assertSee('Fix bug')
             ->assertDontSee('June work')
@@ -586,5 +662,159 @@ class ScoreLeaderboardControllerTest extends TestCase
         $this->get(route('leaderboard.show', ['board' => 'company']))
             ->assertOk()
             ->assertSee('Acme');
+    }
+
+    public function testBoardRowsStayVisibleWithoutJavaScript(): void
+    {
+        foreach (range(1, 30) as $rank) {
+            LeaderboardEntry::create([
+                'login' => 'user'.$rank, 'board' => 'contributor', 'window' => 'rolling12',
+                'score' => 100 - $rank, 'rank' => $rank, 'computed_at' => now(),
+            ]);
+        }
+
+        $this->get(route('leaderboard.show', ['board' => 'contributor']))
+            ->assertOk()
+            // Pagination is client-side: the server marks no row hidden, even with ?rows.
+            ->assertSee("classList.add('js')", false)
+            ->assertDontSee('class="lbr is-beyond"', false)
+            // The pager is an in-place button, never a reload link to ?rows=.
+            ->assertSee('<button type="button" class="lb-more"', false)
+            ->assertDontSee('rows=26', false)
+            // Search matches the handle as displayed, with its @.
+            ->assertSee('data-search="user1 @user1"', false);
+    }
+
+    public function testBoardActivityCellHasNoSeeContributionsLink(): void
+    {
+        LeaderboardEntry::create([
+            'login' => 'jane', 'board' => 'contributor', 'window' => 'rolling12',
+            'score' => 5.0, 'breakdown' => [], 'rank' => 1, 'computed_at' => now(),
+        ]);
+
+        $this->get(route('leaderboard.show', ['board' => 'contributor']))
+            ->assertOk()
+            ->assertDontSee('See contributions');
+    }
+
+    public function testEmptyBoardRendersTheBoardWithoutTheComputeHint(): void
+    {
+        $this->get(route('leaderboard.show', ['board' => 'contributor']))
+            ->assertOk()
+            ->assertSee('No scores yet.')
+            ->assertSee('<div class="lb-colhead"', false)
+            ->assertDontSee('leaderboard:compute')
+            ->assertDontSee('alert-info', false);
+    }
+
+    public function testEmptyMonthRendersTheBoardWithTheNoActivityState(): void
+    {
+        Carbon::setTestNow('2026-07-15T12:00:00Z');
+
+        $this->get(route('leaderboard.monthly', ['board' => 'contributor', 'ym' => '2026-07']))
+            ->assertOk()
+            ->assertSee('Note that scores are subject to change.')
+            ->assertSee('No scored activity in July 2026.')
+            ->assertSee('<div class="lb-strip">', false)
+            ->assertDontSee('alert-info', false);
+
+        Carbon::setTestNow();
+    }
+
+    public function testMaintainerFallbackShowsTheWholeBoard(): void
+    {
+        foreach (range(1, 101) as $rank) {
+            LeaderboardEntry::create([
+                'login' => 'm'.$rank, 'board' => 'maintainer', 'window' => 'rolling12',
+                'score' => 200 - $rank, 'rank' => $rank, 'computed_at' => now(),
+            ]);
+        }
+
+        $this->get(route('leaderboard.show', ['board' => 'maintainer']))
+            ->assertOk()
+            ->assertSee('id="rank-101"', false);
+    }
+
+    public function testDetailUsesSentenceCaseGroupsAndDefaultParamsAreOmitted(): void
+    {
+        LeaderboardLineItem::create([
+            'login' => 'jane', 'board' => 'contributor', 'action' => 'issue_resolved_by_merge',
+            'title' => 'Fix it', 'url' => 'https://github.com/magento/magento2/pull/1',
+            'contributed_at' => now(), 'points' => 4.0, 'points_flat' => 4.0, 'computed_at' => now(),
+        ]);
+
+        $grouped = $this->get(route('leaderboard.detail', ['board' => 'contributor', 'login' => 'jane']))
+            ->assertOk()
+            ->assertSee('Issues resolved by a merged PR')
+            // Grouped is active (not a link); List is the only toggle link.
+            ->assertSee('<span class="active" aria-current="page">Grouped</span>', false)
+            ->assertSee('view=list', false)
+            ->assertDontSee('view=grouped', false);
+
+        $this->get(route('leaderboard.detail', ['board' => 'contributor', 'login' => 'jane', 'view' => 'list']))
+            ->assertOk()
+            ->assertSee('in one list')
+            // Singular, sentence-case type tag; Points sort carries no param.
+            ->assertSee('Issue resolved by a merged PR')
+            ->assertSee('show(PAGE);', false)
+            ->assertDontSee('sort=points', false);
+    }
+
+    public function testDetailShowsTwelveMonthChipsAndKeepsTheTwelveMonthScoreUnderAFilter(): void
+    {
+        Carbon::setTestNow('2026-07-15T12:00:00Z');
+
+        LeaderboardLineItem::create([
+            'login' => 'jane', 'board' => 'contributor', 'action' => 'pr_opened',
+            'title' => 'July', 'url' => 'https://github.com/magento/magento2/pull/1',
+            'contributed_at' => '2026-07-04T00:00:00Z', 'points' => 3.0, 'points_flat' => 3.0, 'computed_at' => now(),
+        ]);
+        LeaderboardLineItem::create([
+            'login' => 'jane', 'board' => 'contributor', 'action' => 'pr_opened',
+            'title' => 'March', 'url' => 'https://github.com/magento/magento2/pull/2',
+            'contributed_at' => '2026-03-04T00:00:00Z', 'points' => 2.0, 'points_flat' => 2.0, 'computed_at' => now(),
+        ]);
+
+        $this->get(route('leaderboard.detail', ['board' => 'contributor', 'login' => 'jane', 'month' => '2026-05']))
+            ->assertOk()
+            // A month with no data still has a chip, and filtering to it shows a plain line.
+            ->assertSee('Aug 2025')
+            ->assertSee('Nothing scored in May 2026.')
+            // The headline stays the 12-month score.
+            ->assertSee('5.0')
+            ->assertSee('Points · 12 months');
+
+        Carbon::setTestNow();
+    }
+
+    public function testMonthlyDetailUsesTheSharedDetailTemplate(): void
+    {
+        Carbon::setTestNow('2026-07-15T12:00:00Z');
+
+        foreach (range(1, 7) as $i) {
+            LeaderboardLineItem::create([
+                'login' => 'jane', 'board' => 'contributor', 'action' => 'pr_opened',
+                'title' => 'PR '.$i, 'url' => 'https://github.com/magento/magento2/pull/'.$i,
+                'contributed_at' => '2026-07-04T00:00:00Z', 'month' => '2026-07',
+                'points' => 1.0, 'points_flat' => 1.0, 'computed_at' => now(),
+            ]);
+        }
+
+        $this->get(route('leaderboard.monthly.detail', ['board' => 'contributor', 'ym' => '2026-07', 'login' => 'jane']))
+            ->assertOk()
+            ->assertSee('<span class="lb-d-toggle">', false)
+            ->assertSee('Show all 7')
+            ->assertSee(route('leaderboard.monthly.detail', ['board' => 'contributor', 'ym' => '2026-06', 'login' => 'jane']))
+            ->assertSee('Points · Jul 2026');
+
+        Carbon::setTestNow();
+    }
+
+    public function testZeroScorePanelPutsTheHintBeforeTheButton(): void
+    {
+        $this->get(route('leaderboard.detail', ['board' => 'contributor', 'login' => 'nobody']))
+            ->assertOk()
+            ->assertSeeInOrder(['Each fills in as you go.', 'Find an issue to work on'])
+            ->assertDontSee('<span class="lb-d-toggle">', false);
     }
 }

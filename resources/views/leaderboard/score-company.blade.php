@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
-    <div class="container">
+    <div>
         <div class="row mb-3">
             <div class="col-12">
                 <p class="text-muted">
@@ -13,7 +13,7 @@
             </div>
         </div>
 
-        @include('leaderboard._tabs')
+        <div class="mb-4">@include('leaderboard._tabs')</div>
 
         @if ($entries->isEmpty())
             <div class="alert alert-info">

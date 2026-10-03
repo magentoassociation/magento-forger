@@ -19,6 +19,7 @@ Route::get('/api/charts/{method}', [Controllers\ChartController::class, 'dispatc
 // maintainers from the public; maintainers/council members see the full roster.
 Route::get('leaderboard', [Controllers\ScoreLeaderboardController::class, 'index'])->name('leaderboard.index');
 Route::get('leaderboard/highlights', [Controllers\ScoreLeaderboardController::class, 'highlights'])->name('leaderboard.highlights');
+Route::get('leaderboard/scoring', [Controllers\ScoreLeaderboardController::class, 'scoring'])->name('leaderboard.scoring');
 Route::get('leaderboard/monthly/{board}', [Controllers\ScoreLeaderboardController::class, 'monthlyIndex'])->name('leaderboard.monthly.index');
 Route::get('leaderboard/monthly/{board}/{ym}', [Controllers\ScoreLeaderboardController::class, 'monthly'])
     ->where('ym', '[0-9]{4}-[0-9]{2}')->name('leaderboard.monthly');

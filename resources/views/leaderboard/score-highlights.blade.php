@@ -1,34 +1,54 @@
 @extends('layouts.app')
 
 @php
-    $userLink = function (string $login) use ($profiles) {
-        $profile = $profiles->get($login);
-        $avatar = $profile?->avatar_url ?: 'https://github.com/'.$login.'.png?size=48';
-        $label = $profile?->name
-            ? e($profile->name).' <span class="text-muted small">@'.e($login).'</span>'
-            : e($login);
+    $initials = function (string $name): string {
+        $words = preg_split('/\s+/', trim($name)) ?: [];
+        $letters = collect($words)->filter()->take(2)->map(fn ($w) => mb_strtoupper(mb_substr($w, 0, 1)));
 
-        return '<a href="https://github.com/'.e($login).'" target="_blank" rel="noopener noreferrer" class="text-decoration-none fw-medium">'
-            .'<img src="'.e($avatar).'" alt="" width="20" height="20" class="rounded-circle me-2" loading="lazy" onerror="this.style.display=\'none\'">'
-            .$label.'</a>';
+        return $letters->implode('') ?: mb_strtoupper(mb_substr($name, 0, 2));
     };
 
-    $humanGap = function (int $days) {
-        if ($days < 60) {
-            return number_format($days).' days';
-        }
+    $identity = function ($stat) use ($profiles, $initials) {
+        $profile = $profiles->get($stat->login);
+        $name = $profile?->name ?: $stat->login;
 
-        return \Carbon\Carbon::now()->subDays($days)->diffForHumans(\Carbon\Carbon::now(), true, false, 2);
+        return view('leaderboard._highlight-id', [
+            'login' => $stat->login,
+            'name' => $name,
+            'initials' => $initials($name),
+        ]);
     };
+
+    $detail = fn ($login) => route('leaderboard.detail', ['board' => 'contributor', 'login' => $login]);
+
+    // Abbreviate "10 years 3 weeks" → "10y 3w"; keep the unit the source gives.
+    $abbrevGap = function (int $days): string {
+        $gap = \Carbon\Carbon::now()->subDays($days)
+            ->diffForHumans(\Carbon\Carbon::now(), \Carbon\CarbonInterface::DIFF_ABSOLUTE, false, 2);
+
+        return strtr($gap, [
+            ' years' => 'y', ' year' => 'y', ' months' => 'm', ' month' => 'm',
+            ' weeks' => 'w', ' week' => 'w', ' days' => 'd', ' day' => 'd',
+            ' hours' => 'h', ' hour' => 'h', ' minutes' => 'min', ' minute' => 'min',
+        ]);
+    };
+
+    $newContributors = $newContributors->take(10);
+    // Comebacks show 12 by default; ?comebacks=all reveals the rest (Show-all-as-URL,
+    // mirroring the detail page). Keep the full count to decide the affordance.
+    $showAllComebacks = request('comebacks') === 'all';
+    $comebacksTotal = $comebacks->count();
+    $comebacksShown = $showAllComebacks ? $comebacks : $comebacks->take(12);
+    $rising = $rising->take(16);
+    $recentlyActive = $recentlyActive->take(16);
+    $risingWindow = (int) config('leaderboard.rising.window_days', 30);
+    $spotlightWindow = (int) config('leaderboard.spotlight.window_days', 30);
+    $topScore = (float) ($newContributors->max('contributor_score') ?: 1);
 @endphp
 
 @section('content')
-    <div class="container">
-        <div class="row mb-3">
-            <div class="col-12">
-                <p class="text-muted">A closer look at newcomers, fast risers, returning contributors, and who's active right now — not just the all-time leaders.</p>
-            </div>
-        </div>
+    <div class="lb">
+        <p class="lb-intro">A closer look at newcomers, fast risers, returning contributors, and who's active right now — not just the all-time leaders.</p>
 
         @include('leaderboard._tabs')
 
@@ -37,102 +57,93 @@
                 No highlights yet. Run <code>ddev artisan leaderboard:compute</code> to populate.
             </div>
         @else
-            <div class="row g-4">
-                {{-- New contributor spotlight --}}
-                <div class="col-md-6">
-                    <div class="card h-100">
-                        <div class="card-header">
-                            <strong>New Contributor Spotlight</strong>
-                            <div class="small text-muted">People whose first-ever contribution to the project landed in the last 30 days, ranked by contributor score.</div>
-                        </div>
-                        <ul class="list-group list-group-flush">
-                            @forelse ($newContributors as $stat)
-                                <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    {!! $userLink($stat->login) !!}
-                                    <span class="d-flex align-items-center gap-2">
-                                        @if ($stat->first_contribution_url)
-                                            <a href="{{ $stat->first_contribution_url }}" target="_blank" rel="noopener noreferrer"
-                                               class="text-muted small text-decoration-none text-end" title="{{ $stat->first_contribution_title }}">
-                                                first contribution &rarr;
-                                            </a>
-                                        @endif
-                                        <span class="badge text-bg-success rounded-pill">{{ number_format($stat->contributor_score, 1) }}</span>
-                                    </span>
-                                </li>
-                            @empty
-                                <li class="list-group-item text-muted">Nobody new yet.</li>
-                            @endforelse
-                        </ul>
-                    </div>
+            {{-- New contributor spotlight --}}
+            <section class="lb-hl-spotlight">
+                <div class="lb-section-head">
+                    <h2 class="lb-section-title">New contributor spotlight</h2>
+                    <span class="lb-section-unit">First contribution · {{ $spotlightWindow }} days · Score</span>
                 </div>
+                @forelse ($newContributors as $i => $stat)
+                    <a href="{{ $detail($stat->login) }}" class="lb-hl-row lb-hl-row--spot">
+                        <span class="lb-hl-rank">{{ $i + 1 }}</span>
+                        {{ $identity($stat) }}
+                        <span class="lb-hl-bar">
+                            <span class="lb-hl-bar-fill" style="width: {{ round($stat->contributor_score / $topScore * 100, 2) }}%"></span>
+                        </span>
+                        <span class="lb-hl-value">{{ number_format($stat->contributor_score, 1) }}</span>
+                    </a>
+                @empty
+                    <div class="lb-hl-empty">Nobody new yet.</div>
+                @endforelse
+            </section>
 
-                {{-- Comebacks --}}
-                <div class="col-md-6">
-                    <div class="card h-100">
-                        <div class="card-header">
-                            <strong>Comebacks</strong>
-                            <div class="small text-muted">Contributors who have started up again after an absence.</div>
-                        </div>
-                        <ul class="list-group list-group-flush">
-                            @forelse ($comebacks as $stat)
-                                <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    {!! $userLink($stat->login) !!}
-                                    @if ($stat->comeback_url)
-                                        <a href="{{ $stat->comeback_url }}" target="_blank" rel="noopener noreferrer"
-                                           class="text-muted small text-decoration-none text-end" title="{{ $stat->comeback_title }}">
-                                            back after {{ $humanGap($stat->returned_after_days) }} &rarr;
-                                        </a>
-                                    @else
-                                        <span class="text-muted small">back after {{ $humanGap($stat->returned_after_days) }}</span>
-                                    @endif
-                                </li>
-                            @empty
-                                <li class="list-group-item text-muted">No comebacks yet.</li>
-                            @endforelse
-                        </ul>
-                    </div>
+            {{-- Comebacks --}}
+            <section class="lb-hl-comebacks">
+                <div class="lb-section-head">
+                    <h2 class="lb-section-title">Comebacks</h2>
+                    <span class="lb-section-unit">Time away</span>
                 </div>
+                @if ($comebacksTotal === 0)
+                    <p class="lb-hl-note">No comebacks yet.</p>
+                @else
+                    <div class="lb-hl-grid3">
+                        @foreach ($comebacksShown as $stat)
+                            <a href="{{ $detail($stat->login) }}" class="lb-hl-card">
+                                {{ $identity($stat) }}
+                                <span class="lb-hl-away">{{ $abbrevGap((int) $stat->returned_after_days) }}</span>
+                            </a>
+                        @endforeach
+                    </div>
+                    @if ($comebacksTotal > 12 && ! $showAllComebacks)
+                        <a href="{{ request()->fullUrlWithQuery(['comebacks' => 'all']) }}" class="lb-more lb-hl-more">Show all {{ number_format($comebacksTotal) }}</a>
+                    @endif
+                    <p class="lb-hl-note">
+                        {{ $comebacksSort === 'away' ? 'Longest away first.' : 'Most recently back first.' }}
+                        <a href="{{ request()->fullUrlWithQuery(['comebacks_sort' => $comebacksSort === 'away' ? null : 'away']) }}" class="lb-hl-sort">{{ $comebacksSort === 'away' ? 'Sort by most recently back instead' : 'Sort by time away instead' }}</a>.
+                    </p>
+                @endif
+            </section>
 
-                {{-- Rising --}}
-                <div class="col-md-6">
-                    <div class="card h-100">
-                        <div class="card-header">
-                            <strong>Rising</strong>
-                            <div class="small text-muted">Biggest gain in contributor score over the past {{ config('leaderboard.rising.window_days', 7) }} days (the badge shows the increase).</div>
-                        </div>
-                        <ul class="list-group list-group-flush">
-                            @forelse ($rising as $stat)
-                                <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    {!! $userLink($stat->login) !!}
-                                    <span class="badge text-bg-primary rounded-pill">+{{ number_format($stat->contributor_score - $stat->rising_baseline_score, 1) }}</span>
-                                </li>
-                            @empty
-                                <li class="list-group-item text-muted">No movement yet.</li>
-                            @endforelse
-                        </ul>
+            {{-- Rising | Recently active --}}
+            <div class="lb-hl-cols">
+                <section>
+                    <div class="lb-section-head">
+                        <h2 class="lb-section-title">Rising</h2>
+                        <span class="lb-section-unit">Gain · {{ $risingWindow }} days</span>
                     </div>
-                </div>
+                    <p class="lb-section-desc">Biggest increase in contributor score over the past {{ $risingWindow }} days.</p>
+                    @forelse ($rising as $i => $stat)
+                        <a href="{{ $detail($stat->login) }}" class="lb-hl-row lb-hl-row--rank">
+                            <span class="lb-hl-rank">{{ $i + 1 }}</span>
+                            {{ $identity($stat) }}
+                            <span class="lb-hl-value">+{{ number_format($stat->contributor_score - $stat->rising_baseline_score, 1) }}</span>
+                        </a>
+                    @empty
+                        <div class="lb-hl-empty">No movement yet.</div>
+                    @endforelse
+                </section>
 
-                {{-- Recently active --}}
-                <div class="col-md-6">
-                    <div class="card h-100">
-                        <div class="card-header">
-                            <strong>Recently Active</strong>
-                            <div class="small text-muted">Opened a PR, had a PR merged, or opened an issue in the last 30 days, ranked by contributor score.</div>
-                        </div>
-                        <ul class="list-group list-group-flush">
-                            @forelse ($recentlyActive as $stat)
-                                <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    {!! $userLink($stat->login) !!}
-                                    <span class="badge text-bg-success rounded-pill">{{ number_format($stat->contributor_score, 1) }}</span>
-                                </li>
-                            @empty
-                                <li class="list-group-item text-muted">Nobody recent yet.</li>
-                            @endforelse
-                        </ul>
+                <section>
+                    <div class="lb-section-head">
+                        <h2 class="lb-section-title">Recently active</h2>
+                        <span class="lb-section-unit">Score</span>
                     </div>
-                </div>
+                    <p class="lb-section-desc">Opened a PR, had one merged, or opened an issue in the last 30 days.</p>
+                    @forelse ($recentlyActive as $i => $stat)
+                        <a href="{{ $detail($stat->login) }}" class="lb-hl-row lb-hl-row--rank">
+                            <span class="lb-hl-rank">{{ $i + 1 }}</span>
+                            {{ $identity($stat) }}
+                            <span class="lb-hl-value">{{ number_format($stat->contributor_score, 1) }}</span>
+                        </a>
+                    @empty
+                        <div class="lb-hl-empty">Nobody recent yet.</div>
+                    @endforelse
+                </section>
             </div>
         @endif
     </div>
 @endsection
+
+@push('head')
+    @include('leaderboard._lb-styles')
+@endpush

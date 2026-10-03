@@ -23,5 +23,6 @@ final class ClaimRecord
         public readonly CarbonInterface $claimedAt,
         public readonly ?CarbonInterface $pendingReviewAt,
         public readonly ?CarbonInterface $firstReviewAt,
+        public readonly ?string $title = null,
     ) {}
 }

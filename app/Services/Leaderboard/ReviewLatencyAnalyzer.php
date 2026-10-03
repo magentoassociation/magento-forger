@@ -67,7 +67,7 @@ class ReviewLatencyAnalyzer
                 Action::PR_CLAIMED,
                 $claim->claimedAt,
                 1.0,
-                title: 'PR #'.$claim->prNumber,
+                title: $claim->title ?? 'PR #'.$claim->prNumber,
                 url: $this->repo !== null && $this->repo !== ''
                     ? "https://github.com/{$this->repo}/pull/{$claim->prNumber}"
                     : null,
