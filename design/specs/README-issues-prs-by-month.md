@@ -100,7 +100,8 @@ Twelve children, one per month, each `flex: 1`.
 
 **Bar** — `border-radius: 2px 2px 0 0`, height from the scale below, fill by volume bucket
 (same buckets as the legend colours in the table further down).
-- Hover: fill `#15171b`. Whole bar is the link to that month's list.
+- Hover: fill `#15171b`. Whole bar links to a GitHub search for that month's issues (or PRs),
+  filtered by repository and created date. The Forger has no per-month list page of its own.
 - Months with a count of zero: a 2px stub in `#e6e7ea` — present but visibly nothing.
 - Months that have not happened yet (Oct–Dec of the current year): **no bar at all**, transparent
   slot. A future month and an empty month must not look the same.
@@ -134,7 +135,7 @@ Heading row: "Pick a month" — Libre Franklin 700, 17px — followed by the yea
 
 Grid: `grid-template-columns: repeat(12, 1fr); gap: 5px`.
 
-**Tile with data** — an `<a>`: `padding: 8px 0 7px`, `border-radius: 6px`,
+**Tile with data** — an `<a>` to the same GitHub search as that month's bar: `padding: 8px 0 7px`, `border-radius: 6px`,
 `border: 1px solid #d5d8dc`, no fill, `display: flex; flex-direction: column; align-items:
 center; gap: 1px`. Hover: `border-color: #15171b`.
 - Month — Martian Mono 400, 8.5px, uppercase, `letter-spacing: .06em`, colour `#6b7178`.
@@ -202,4 +203,4 @@ The intro block and the caption release their `max-width` and run the container 
 - Focus: 2px `#f26322` outline, `outline-offset: 2px`, same as the chrome.
 
 ## Out of scope
-The per-month issue/PR list pages the tiles link to are unchanged.
+The GitHub searches the bars and tiles link to.

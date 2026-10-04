@@ -193,7 +193,8 @@ In this generation, one piece of UI state only: which row's score tooltip is ope
 
 The current generation adds three: the search query, the shown row depth, and the selected month
 on the monthly board. The board is still one server-rendered payload; nothing is fetched after
-load. The depth and the month are reflected in the URL (`?rows=`, `?month=`), alongside
+load. The depth and the month are reflected in the URL (`?rows=`, and the month as a path segment,
+`/leaderboard/monthly/{board}/YYYY-MM`), alongside
 `#rank-N` from a jump. See `README-leaderboard-pages.md`.
 
 ---

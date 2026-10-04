@@ -89,6 +89,7 @@ the contents sit in the page container — identical to the title block in `READ
 1. **Intro** — Libre Franklin 400, 14.5px/1.65, `#3c4148`, `max-width: 660px`,
    `padding-top: 24px`: "Every scored contribution in the last 12 months, grouped by what earned
    the points. Each group's points sum to the grand total."
+   The monthly detail page words this differently; see *The monthly detail page*.
 2. **"How scoring works"** — a `<button type="button">` opening the scoring modal, inline at
    the **end of the intro paragraph above**, not on a line of its own. Libre Franklin 500, 14.5px,
    `#ee6524`, underlined, link-reset button styles (`README-scoring-modal.md`). This matches the
@@ -138,11 +139,12 @@ needs the extra room. Selecting a month filters the groups (or the tiles and lis
 keeps the current view.
 
 ### Group head
-`display: grid; grid-template-columns: 1fr auto auto; gap: 0 16px; align-items: baseline`,
+`display: grid; grid-template-columns: 1fr 112px 66px; gap: 0 16px; align-items: baseline` — the
+item row's columns, so the count sits over the dates and the subtotal over the points,
 `padding-bottom: 9px`, **`border-bottom: 1px solid #15171b`** — full-strength ink, not a grey
 hairline. Group block `margin-bottom: 22px`.
 - name — Libre Franklin 700, 17px, `-.02em`
-- count — Martian Mono 700, 9px, `.06em`, uppercase, `#4c525a` (e.g. "201 items")
+- count — Martian Mono 700, 9px, `.06em`, uppercase, `#4c525a` (e.g. "201 items"; singular "1 item")
 - subtotal — Martian Mono 700, 15px, tabular, `min-width: 66px`, right-aligned
 
 **Two rule weights do the grouping**, and the difference between them is the structure of the
@@ -160,7 +162,8 @@ this heading" — it is the only place on the page where ink is used as a rule, 
 fills around them.
 
 ### Item row
-Whole row is an `<a>` to the GitHub issue or PR.
+Whole row is an `<a>` to the GitHub issue or PR. Within a group, rows sort by points descending,
+ties newest first — the same order as the List view's default.
 `grid-template-columns: 1fr 112px 66px`, `gap: 0 16px`, `align-items: baseline`,
 `padding: 9px 0`, `border-bottom: 1px solid #f0f1f3`, hover `background: #faf9f7`.
 - **title** — Libre Franklin 14.5px/1.45, one line, truncated with an ellipsis
@@ -258,7 +261,8 @@ page, `repeat(3, minmax(0,1fr))` on the maintainer page (two rows of three),
 - Sort headers Type · Date · Points — `<button>`s, Martian Mono 9px uppercase `.06em`. Inactive
   `#6b7178` 400, hover `#15171b`; active `#15171b` 700 with a 2px `#ee6524` underline.
   Default sort is Points, descending. Date sorts newest first; Type sorts in the same order as
-  the group tiles above (subtotal descending), points descending within each type. Column widths: Type 212px — wide enough for the longest tag on either page, "Issue resolved
+  the group tiles above (subtotal descending), points descending within each type. Equal points
+  break newest first, in every sort. Column widths: Type 212px — wide enough for the longest tag on either page, "Issue resolved
   by a merged PR"; Date 112px, Points 66px right-aligned — the same date and points widths as the grouped view's item row.
 
 **Rows** — `padding: 9px 0`, `border-bottom: 1px solid #f0f1f3`, hover `#faf9f7`, whole row a link.
@@ -283,6 +287,26 @@ merged", "Stale PR claimed", "Triage label applied". A row is one item, so it ta
 defaults and carry no param. Month chips filter both the tiles and the list.
 
 **Zero-score pages** suppress the toggle (see below), so the List view never renders empty.
+
+## The monthly detail page
+
+Reached from a name on the Monthly board. Shown in `#18c` (Grouped) and `#18d` (List). It is
+the same page and template as the 12-month detail page, scoped to one month. Groups, Show all,
+tiles, list sorts and pagination are unchanged. Only these differ:
+
+- **Score block** — the month's score, the same figure as the Monthly board. Caption
+  "Points · Aug 2026" (the selected month) instead of "Points · 12 months".
+- **Intro** — names the month, and the first sentence ends with "— impact-weighted, no recency
+  decay" so the reader knows how the monthly score differs from the 12-month one:
+  - Grouped: "Every scored contribution in August 2026, grouped by what earned the points —
+    impact-weighted, no recency decay. Each group's points sum to the grand total."
+  - List: "Every scored contribution in August 2026 in one list — impact-weighted, no recency
+    decay. The points column sums to the grand total."
+  - The inline "How scoring works" follows, as on every detail state.
+- **Month chips** — no "All" chip. The page always shows exactly one month, as the Monthly board
+  does. Twelve chips, most recent first, the selected month filled (`#15171b`, white text);
+  the others keep the outlined treatment above. A chip goes to that month's detail page for the
+  same person.
 
 ## The maintainer detail page
 

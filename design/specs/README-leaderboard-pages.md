@@ -80,7 +80,8 @@ colour `#6b7178`. Two facts, separated by ` · `: how many people are ranked, an
 Examples: "1,284 contributors · 12 months to Sep 2026", "318 maintainers · 12 months to Sep
 2026", "214 contributors · September 2026".
 
-**Search** (`margin-left: auto`) — `padding: 7px 12px`, `1px solid #d5d8dc`,
+**Search** (`margin-left: auto`) — `padding: 7px 30px` (the horizontal padding makes room for
+the search glyph and the clear button inside the box), `1px solid #d5d8dc`,
 `border-radius: 7px`, `min-width: 210px`. Placeholder "Search name or handle", Libre Franklin
 13.5px colour `#9aa3ae`, with a 12px `⌕` glyph. Filters the full board, not just the rows currently shown —
 searching for someone in 600th place must find them without paginating there first.
@@ -245,13 +246,27 @@ No download or export control.
 
 ## Per-board differences
 
-Everything above is shared. Only these three things change:
+Everything above is shared. Only these four things change:
 
 | | Contributor (21a) | Maintainer (21b) | Monthly (21c) |
 |---|---|---|---|
 | Activity column | total of 4 contributor actions | total of 6 maintainer actions (`592 actions`) | total of 4 contributor actions, that month |
 | Scoring link opens | contributor modal (19b) | maintainer modal (19a) | contributor modal (19b) |
 | Window control | caption only | caption only | month chips |
+| People with 0.0 points | not listed | listed only to signed-in admins | not listed |
+
+**Zero-point maintainers (21b only).** Signed-in users with the admin role also see maintainers
+with 0.0 points on the Maintainer board. Everyone else — signed out, or signed in without the
+admin role — sees only maintainers who scored in the window. No control shows or hides them; the
+role alone decides. Their rows keep running ranks, show "0 actions" and 0.0, and sort after every scored row. The population caption counts them when
+they are shown, so an admin's caption is higher than everyone else's ("318 maintainers" becomes,
+say, "352 maintainers"). Drawn in `#21d`.
+
+**Inactive maintainers.** A maintainer who is no longer active carries an "Inactive" tag after
+their handle, wherever their row appears and whoever is viewing. Martian Mono 400, 9px,
+uppercase, `letter-spacing: .06em`, colour `#5d636c`, `border: 1px solid #d5d8dc`,
+`border-radius: 4px`, `padding: 2px 6px`, vertically centred on the name line. It is a status,
+not a warning: no fill and no colour (replace the current yellow badge). Shown in `#21d`.
 
 **Month chips (21c only).** A row between the tabs and the control strip:
 `display: flex; gap: 7px; flex-wrap: wrap; padding-top: 16px`. Selected month is Martian Mono
@@ -274,9 +289,9 @@ keep their existing 12-month wording.
   range. Clicking a chip selects it and deselects the previous one. A chip cannot be
   deselected — the board always shows a month.
 - **It navigates, it does not filter in place.** This is how the chips already work: each is an
-  `<a href>` carrying a `?month=YYYY-MM` query param, the convention the detail page uses
-  (`leaderboard/contributor/user/lbajsarowicz?month=2026-04`). Keep the param name and format
-  on the monthly board — `?month=2026-09` — so one rule covers both. Months stay linkable,
+  `<a href>` to a path segment, `/leaderboard/monthly/{board}/YYYY-MM` (e.g.
+  `/leaderboard/monthly/contributor/2026-09`), for cleaner addresses. The `YYYY-MM` format matches
+  the detail page's `?month=` param; the detail page keeps its query param. Months stay linkable,
   bookmarkable and indexable, and the back button walks the months a reader looked at.
 - **Which months appear.** The last 12 months including the current one, most recent first, one
   chip per month — always twelve (SEP 2026 back to OCT 2025), so the row wraps at most once. Months with no scored activity are
@@ -290,8 +305,8 @@ keep their existing 12-month wording.
   returns to the top of the table rather than the top of the page, so the chips stay in view and
   a second month is one click away. The jump-to-my-rank control recalculates for the new month
   and may switch to its not-ranked form.
-- **`?month` and `?rows` are independent, and changing month drops `?rows`.** A chip link
-  carries `?month=2026-08` alone, never the current depth — 50 rows into September says nothing
+- **The month and `?rows` are independent, and changing month drops `?rows`.** A chip link
+  goes to `/leaderboard/monthly/{board}/2026-08` alone, never the current depth — 50 rows into September says nothing
   about August, and a board with 31 contributors should not open claiming to show 50. The new
   month starts at 25 and re-accumulates `?rows` from there.
 - **Keyboard**: the chips are an ordinary list of links in DOM order — `Tab` through them, no

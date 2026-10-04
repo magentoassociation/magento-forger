@@ -154,12 +154,14 @@ Libre Franklin 500, 13.5px, `#c9ced4`, no underline. Hover: background `#262a30`
 
 | Item | Destination | Shown to |
 |---|---|---|
-| My contributions | the user's own **contributor** detail page | everyone |
+| My contributions | the user's own **contributor** detail page | users with a GitHub username |
 | Admin | existing admin entry point | users with the admin role only |
 | Logout | existing logout route | everyone |
 
 Order is fixed. **Admin is omitted entirely for non-admins** — not disabled, not greyed — so the
-menu is two items for most people and three for admins. The width is fixed at 196px in both
+menu is two items for most people and three for admins. **My contributions is likewise omitted when
+the user has no GitHub username** — the detail page is keyed by username, so there is nothing to
+link to; such a user sees Logout alone (or Admin and Logout). The width is fixed at 196px in both
 cases; do not size the panel to its contents.
 
 **Maintainers get no extra item.** A maintainer is usually on both boards, but the account menu
@@ -249,7 +251,12 @@ Both families and their loading are specified in `README.md`.
   default browser ring is not visible enough on `#15171b`.
 - Responsive: below the Bootstrap `lg` breakpoint the primary nav and utility links collapse into
   the existing hamburger menu; logo, hairline, and the login button or account chip stay. Bar
-  height stays 64px.
+  height stays 64px when closed. Opening the hamburger menu expands the header to fit the menu,
+  pushing the page down rather than overlapping it; the 64px top row is unchanged.
+- Wordmark below `lg`: shortens to "Forger" (700 / `#ffffff`); below 400px the mark stands alone.
+  "Magento Open Source" (and below 400px, "Forger") is visually hidden, not removed, so the
+  link's accessible name stays "Magento Open Source Forger". Without this the logo, login button
+  and hamburger do not fit one 64px row and the button wraps over the page title.
 
 ## Accessibility
 
