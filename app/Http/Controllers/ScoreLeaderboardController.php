@@ -384,6 +384,13 @@ class ScoreLeaderboardController extends Controller
         $flat = $ym !== null;
         $points = fn (LeaderboardLineItem $item): float => (float) ($flat ? $item->points_flat : $item->points);
 
+        // Points descending, ties newest first. Every sort below is stable, so
+        // this order is the tie-break for groups and all three list sorts.
+        $items = $items->sortBy([
+            fn (LeaderboardLineItem $a, LeaderboardLineItem $b): int => $points($b) <=> $points($a),
+            fn (LeaderboardLineItem $a, LeaderboardLineItem $b): int => ($b->contributed_at?->timestamp ?? 0) <=> ($a->contributed_at?->timestamp ?? 0),
+        ])->values();
+
         // Base weights power the per-row "base × priority × recency" hint.
         $weights = (array) config('leaderboard.weights.'.$board, []);
 
@@ -414,10 +421,13 @@ class ScoreLeaderboardController extends Controller
         // Flat view (#9a): one sortable list, action shown as a tag.
         $sort = in_array(request('sort'), ['date', 'type'], true) ? request('sort') : 'points';
         $list = $scoped->map(fn (LeaderboardLineItem $item): object => $this->detailRow($item, $weights, $flat));
+        // Type follows the group tiles' order (subtotal descending); within a
+        // type the incoming points order stands.
+        $typeOrder = $groups->pluck('key')->flip();
         $list = match ($sort) {
             'date' => $list->sortByDesc(fn (object $row): int => $row->date?->timestamp ?? 0),
-            'type' => $list->sortBy([['tagKey', 'asc'], ['points', 'desc']]),
-            default => $list->sortByDesc('points'),
+            'type' => $list->sortBy(fn (object $row): int => $typeOrder[$row->tagKey]),
+            default => $list,
         };
 
         // Cross-link: the paired page exists when the person also scores on the
@@ -669,7 +679,7 @@ class ScoreLeaderboardController extends Controller
             ->when(! $includeZeros, fn (Collection $rows): Collection => $rows->filter(
                 fn (object $row): bool => $row->score > 0,
             ))
-            ->sortBy([['active', 'desc'], ['score', 'desc']])
+            ->sortBy([['score', 'desc'], ['active', 'desc']])
             ->values();
     }
 

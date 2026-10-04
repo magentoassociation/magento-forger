@@ -173,7 +173,7 @@
             window.clearTimeout(target._jumpFade);
             target._jumpHold = window.setTimeout(function () { target.classList.add('is-fading'); }, 2000);
             target._jumpFade = window.setTimeout(function () { target.classList.remove('is-jumped', 'is-fading'); }, 2400);
-            announce('Jumped to your rank, ' + rank + ' of ' + fmt(totalNum) + '.');
+            announce('Jumped to your rank, ' + fmt(rank) + ' of ' + fmt(totalNum) + '.');
         }
         try { history.replaceState(null, '', '#rank-' + rank); } catch (err) {}
     }

@@ -113,7 +113,7 @@
                 @if ($board === 'maintainer')
                     @if ($decay)
                         <p class="scm-ex-prose">
-                            A <span class="scm-ex-mono">Priority: P1</span> PR you approved later merges. The merge
+                            When a <span class="scm-ex-mono">Priority: P1</span> PR you approved later merges, the merge
                             bonus alone earns <strong>{{ $n($exBase) }}</strong> base ×
                             <strong>{{ $n($exPriority) }}×</strong> priority × <strong>{{ $n($exRecency) }}×</strong>
                             recency (≈6 months old) = <strong>{{ $n($exBase * $exPriority * $exRecency) }} pts</strong>, on top of the points
@@ -127,7 +127,7 @@
                         </div>
                     @else
                         <p class="scm-ex-prose">
-                            A <span class="scm-ex-mono">Priority: P1</span> PR you approved later merges. The merge
+                            When a <span class="scm-ex-mono">Priority: P1</span> PR you approved later merges, the merge
                             bonus alone earns <strong>{{ $n($exBase) }}</strong> base points, scaled
                             <strong>{{ $n($exPriority) }}×</strong> for P1. Monthly totals apply no recency decay.
                         </p>

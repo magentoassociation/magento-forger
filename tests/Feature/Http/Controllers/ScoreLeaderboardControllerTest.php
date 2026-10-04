@@ -817,4 +817,65 @@ class ScoreLeaderboardControllerTest extends TestCase
             ->assertSeeInOrder(['Each fills in as you go.', 'Find an issue to work on'])
             ->assertDontSee('<span class="lb-d-toggle">', false);
     }
+
+    public function testMaintainerBoardSortsZeroScoresAfterEveryScoredRow(): void
+    {
+        RoleEligibility::create(['login' => 'idleactive', 'role' => 'maintainer', 'active' => true]);
+        RoleEligibility::create(['login' => 'scoredinactive', 'role' => 'maintainer', 'active' => false]);
+        LeaderboardEntry::create([
+            'login' => 'scoredinactive', 'board' => 'maintainer', 'window' => 'rolling12',
+            'score' => 4.0, 'rank' => 1, 'computed_at' => now(),
+        ]);
+
+        $this->get(route('leaderboard.show', ['board' => 'maintainer']))
+            ->assertOk()
+            ->assertSeeInOrder(['@scoredinactive', 'Inactive', '@idleactive'])
+            ->assertSee('<span class="lbr-inactive"', false)
+            ->assertDontSee('badge text-bg-secondary', false);
+    }
+
+    public function testDetailGroupCountIsSingularForOneItem(): void
+    {
+        $this->lineItem('pr_opened', 'Only one', 3.0, '2026-07-04');
+
+        $this->get(route('leaderboard.detail', ['board' => 'contributor', 'login' => 'jane']))
+            ->assertOk()
+            ->assertSee('1 item<', false)
+            ->assertDontSee('1 items');
+    }
+
+    public function testDetailBreaksEqualPointsNewestFirst(): void
+    {
+        $this->lineItem('pr_opened', 'Older PR', 3.0, '2026-05-01');
+        $this->lineItem('pr_opened', 'Newer PR', 3.0, '2026-07-01');
+        $this->lineItem('pr_opened', 'Bigger PR', 5.0, '2026-04-01');
+
+        $url = route('leaderboard.detail', ['board' => 'contributor', 'login' => 'jane']);
+
+        $this->get($url)->assertSeeInOrder(['Bigger PR', 'Newer PR', 'Older PR']);
+        $this->get($url.'?view=list')->assertSeeInOrder(['Bigger PR', 'Newer PR', 'Older PR']);
+        $this->get($url.'?view=list&sort=type')->assertSeeInOrder(['Bigger PR', 'Newer PR', 'Older PR']);
+    }
+
+    public function testDetailListTypeSortFollowsGroupSubtotals(): void
+    {
+        // issue_opened sorts first alphabetically but has the smaller subtotal.
+        $this->lineItem('issue_opened', 'Small issue', 1.0, '2026-07-01');
+        $this->lineItem('pr_opened', 'Low PR', 2.0, '2026-07-01');
+        $this->lineItem('pr_opened', 'High PR', 4.0, '2026-07-01');
+
+        $this->get(route('leaderboard.detail', ['board' => 'contributor', 'login' => 'jane']).'?view=list&sort=type')
+            ->assertOk()
+            ->assertSeeInOrder(['High PR', 'Low PR', 'Small issue']);
+    }
+
+    private function lineItem(string $action, string $title, float $points, string $date): void
+    {
+        LeaderboardLineItem::create([
+            'login' => 'jane', 'board' => 'contributor', 'action' => $action,
+            'title' => $title, 'url' => 'https://github.com/magento/magento2/pull/'.crc32($title),
+            'contributed_at' => $date, 'month' => substr($date, 0, 7),
+            'points' => $points, 'points_flat' => $points, 'computed_at' => now(),
+        ]);
+    }
 }

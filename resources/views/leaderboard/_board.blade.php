@@ -101,12 +101,10 @@
                 $breakdown = $entry->breakdown ?? [];
                 $hasBreakdown = ! empty($breakdown);
                 [$actCount, $actWord, $actAria] = $activity($breakdown);
-                $isViewer = $viewerLogin !== null && $entry->login === $viewerLogin;
             @endphp
             <div class="lbr"
                  id="rank-{{ $rank }}" tabindex="-1"
-                 data-search="{{ mb_strtolower($name.' @'.$entry->login) }}"
-                 @if ($isViewer) aria-label="Your rank, {{ $rank }}" @endif>
+                 data-search="{{ mb_strtolower($name.' @'.$entry->login) }}">
                 <span class="lbr-rank {{ $rank <= 3 ? 'is-top' : '' }}">{{ $rank }}</span>
 
                 <a class="lbr-avatar" href="https://github.com/{{ $entry->login }}" target="_blank" rel="noopener"
@@ -122,7 +120,7 @@
                     <a class="lbr-name" href="{{ $detailUrl($entry->login) }}">{{ $name }}</a>
                     <span class="lbr-handle">{{ '@'.$entry->login }}</span>
                     @if (($entry->active ?? true) === false)
-                        <span class="badge text-bg-secondary" title="No longer on the maintainer team">Inactive</span>
+                        <span class="lbr-inactive" title="No longer on the maintainer team">Inactive</span>
                     @endif
                 </span>
 

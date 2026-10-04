@@ -170,7 +170,7 @@
             <div class="lb-d-group">
                 <div class="lb-d-grouphead">
                     <h2 class="lb-d-group-name lb-d-group-name--single">{{ $activeGroup->name }}</h2>
-                    <span class="lb-d-group-count">{{ number_format($activeGroup->count) }} items</span>
+                    <span class="lb-d-group-count">{{ number_format($activeGroup->count) }} {{ $activeGroup->count === 1 ? 'item' : 'items' }}</span>
                     <span class="lb-d-group-total">{{ number_format($activeGroup->total, 1) }}</span>
                 </div>
                 @foreach ($activeGroup->rows as $row)
@@ -184,7 +184,7 @@
                 <div class="lb-d-group">
                     <div class="lb-d-grouphead">
                         <h2 class="lb-d-group-name">{{ $group->name }}</h2>
-                        <span class="lb-d-group-count">{{ number_format($group->count) }} items</span>
+                        <span class="lb-d-group-count">{{ number_format($group->count) }} {{ $group->count === 1 ? 'item' : 'items' }}</span>
                         <span class="lb-d-group-total">{{ number_format($group->total, 1) }}</span>
                     </div>
                     @foreach ($group->rows->take($preview) as $row)

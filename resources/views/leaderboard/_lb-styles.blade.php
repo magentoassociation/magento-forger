@@ -297,6 +297,19 @@
         font-size: 10px;
         color: #6b7178;
     }
+    /* A status, not a warning: no fill, no colour. */
+    .lbr-inactive {
+        flex: none;
+        align-self: center;
+        font-family: var(--font-mono);
+        font-size: 9px;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+        color: #5d636c;
+        border: 1px solid #d5d8dc;
+        border-radius: 4px;
+        padding: 2px 6px;
+    }
     .lbr-activity {
         width: 130px;
         flex: none;
