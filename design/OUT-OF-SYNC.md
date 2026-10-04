@@ -1,10 +1,9 @@
 # Out of sync — spec vs code
 
 Where the live site differs from the design specs in `design/specs/`. Last checked **2026-10-04**,
-against the second spec edit of the same day (header wordmark and menu height, My contributions
-gating, path-segment month links, search padding, detail group-header widths, monthly detail
-page, row tie-breaks, singular item count, by-month GitHub links, zero-point maintainers,
-Inactive tag). Only current differences are listed; anything fixed is deleted, not kept as history.
+against the third spec edit of the same day ("See how scoring works." intro sentence, zero-point
+maintainers shown to admins and maintainers). Only current differences are listed; anything fixed
+is deleted, not kept as history.
 
 ## How to read this
 
@@ -27,14 +26,7 @@ None at the moment.
 
 ## Unsure
 
-### Who sees zero-point maintainers (`User::canViewFullMaintainerBoard`)
-
-- **Pages:** Maintainer board.
-- **Spec says:** only signed-in admins see maintainers with 0.0 points; everyone else sees only
-  maintainers who scored (`README-leaderboard-pages.md`, "Zero-point maintainers").
-- **Code does:** admins, active maintainers and active community council members all see them.
-  Tests pin this (`testMaintainerViewerSeesIdleMaintainers`, `testCouncilViewerSeesIdleMaintainers`).
-- **Decide:** narrow the code to admins, or widen the spec to maintainers and council.
+None at the moment.
 
 ## Kept on purpose
 

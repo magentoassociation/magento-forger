@@ -48,10 +48,16 @@ Standard site chrome: dark header per `README-header.md`, white title block, dar
 Libre Franklin 400, 14.5px, `line-height: 1.65`, colour `#3c4148`, `max-width: 660px`,
 `text-wrap: pretty`.
 
-The scoring link is the **last thing in the paragraph**, inline, after "Note that scores are
-subject to change." It is Libre Franklin 500, 14.5px, colour `#ee6524`, underlined — the
-site-wide link treatment from `README.md`. It is not a separate block and does
-not sit on its own line; it is the `<button>` described above, styled as a link.
+The scoring link is the **last sentence of the paragraph**: "See how scoring works.", after "Note
+that scores are subject to change." "See how scoring works" is the `<button>`; only the full
+stop is plain paragraph text. A bare "How scoring works"
+after the full stop read as a fragment hanging outside the paragraph; the two words make it a
+sentence again. The button is Libre Franklin 500, 14.5px, colour `#ee6524`, underlined — the
+site-wide link treatment from `README.md`. It is not a separate block and does not sit on its
+own line. Shown in `#26a`.
+
+The footer link is unchanged: it is a navigation label, not a sentence, and stays "How scoring
+works" (`README-header.md`).
 
 Which modal it opens is board-dependent; see *Per-board differences*.
 
@@ -253,13 +259,13 @@ Everything above is shared. Only these four things change:
 | Activity column | total of 4 contributor actions | total of 6 maintainer actions (`592 actions`) | total of 4 contributor actions, that month |
 | Scoring link opens | contributor modal (19b) | maintainer modal (19a) | contributor modal (19b) |
 | Window control | caption only | caption only | month chips |
-| People with 0.0 points | not listed | listed only to signed-in admins | not listed |
+| People with 0.0 points | not listed | listed only to signed-in admins and maintainers | not listed |
 
-**Zero-point maintainers (21b only).** Signed-in users with the admin role also see maintainers
-with 0.0 points on the Maintainer board. Everyone else — signed out, or signed in without the
-admin role — sees only maintainers who scored in the window. No control shows or hides them; the
-role alone decides. Their rows keep running ranks, show "0 actions" and 0.0, and sort after every scored row. The population caption counts them when
-they are shown, so an admin's caption is higher than everyone else's ("318 maintainers" becomes,
+**Zero-point maintainers (21b only).** Two groups of signed-in users see the whole maintainer list,
+including maintainers with 0.0 points: admins (the community council members) and maintainers.
+Everyone else — signed out, or signed in as neither — sees only maintainers who scored in the
+window. No control shows or hides them; the role alone decides. Their rows keep running ranks, show "0 actions" and 0.0, and sort after every scored row. The population caption counts them when
+they are shown, so an admin's or maintainer's caption is higher than everyone else's ("318 maintainers" becomes,
 say, "352 maintainers"). Drawn in `#21d`.
 
 **Inactive maintainers.** A maintainer who is no longer active carries an "Inactive" tag after

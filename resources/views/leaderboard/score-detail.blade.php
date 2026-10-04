@@ -30,13 +30,13 @@
             <p class="lb-d-intro">{{ $board === 'maintainer'
                 ? 'No maintainer activity scored '.$windowText.'. Reviews and merges you complete from here will show up on this page, grouped by what earned the points.'
                 : 'No scored contributions '.$windowText.'. PRs and issues you open from here will show up on this page, grouped by what earned the points.' }}
-                <button type="button" class="lb-tallied" data-bs-toggle="modal" data-bs-target="#scoringModal">How scoring works</button></p>
+                <button type="button" class="lb-tallied" data-bs-toggle="modal" data-bs-target="#scoringModal">See how scoring works</button>.</p>
         @elseif ($view === 'list')
             <p class="lb-d-intro">Every scored contribution {{ $scopeText }} in one list{{ $monthNote }}. The points column sums to the grand total.
-                <button type="button" class="lb-tallied" data-bs-toggle="modal" data-bs-target="#scoringModal">How scoring works</button></p>
+                <button type="button" class="lb-tallied" data-bs-toggle="modal" data-bs-target="#scoringModal">See how scoring works</button>.</p>
         @else
             <p class="lb-d-intro">Every scored contribution {{ $scopeText }}, grouped by what earned the points{{ $monthNote }}. Each group's points sum to the grand total.
-                <button type="button" class="lb-tallied" data-bs-toggle="modal" data-bs-target="#scoringModal">How scoring works</button></p>
+                <button type="button" class="lb-tallied" data-bs-toggle="modal" data-bs-target="#scoringModal">See how scoring works</button>.</p>
         @endif
 
         {{-- View toggle + month chips — suppressed on the zero-state (nothing to group/list/filter). --}}

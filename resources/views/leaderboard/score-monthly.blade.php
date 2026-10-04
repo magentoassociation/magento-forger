@@ -12,7 +12,7 @@
             Ranked by activity in {{ $monthFull }} — bigger changes count for more, with no recency
             decay, so every day of the month counts the same.
             Points come from {{ $scoring['scoredList'] }}. Note that scores are subject to change.
-            <button type="button" class="lb-tallied" data-bs-toggle="modal" data-bs-target="#scoringModal">How scoring works</button>
+            <button type="button" class="lb-tallied" data-bs-toggle="modal" data-bs-target="#scoringModal">See how scoring works</button>.
         </p>
 
         @include('leaderboard._tabs')

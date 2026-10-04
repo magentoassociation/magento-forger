@@ -195,7 +195,8 @@ numbers spread across two sentences.
 
 ## Behaviour
 
-- **It is a `<button>`, not a link.** Every in-page "How scoring works" affordance — on the
+- **It is a `<button>`, not a link.** Every in-page "See how scoring works" affordance (the last
+  sentence of each intro; the full stop sits outside the button) — on the
   three leaderboard boards and all four detail states — is a
   `<button type="button">` that opens this modal. It does not navigate. The only exception is the
   **footer** "How scoring works" item, which is a real `<a href>` to the standalone page

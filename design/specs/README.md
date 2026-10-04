@@ -125,7 +125,9 @@ Libre Franklin 400, 15px, `line-height: 1.6`, colour `#3c4148`, `max-width: 760p
 link. Styled as a text link: Libre Franklin 500, 14px, colour `#ee6524`,
 underlined, `text-underline-offset: 2px`, with `background: none; border: 0; padding: 0;
 font: inherit; cursor: pointer`. Behaviour and modal contents: `README-scoring-modal.md`.
-The only navigating route to the How scoring works page is the footer link, labelled "How scoring works".
+In the intro it reads as a sentence, "See how scoring works.", with "See how scoring works" as
+the button (see `README-leaderboard-pages.md`). The only navigating route to the How scoring
+works page is the footer link, labelled "How scoring works".
 
 **Tabs** — Libre Franklin, 14.5px. Active tab 600 / `#15171b` on white with
 `1px solid #dfe1e4`, bottom border white, `border-radius: 7px 7px 0 0`, `margin-bottom: -1px`.
@@ -209,8 +211,9 @@ that point at them: "Contributor Leaderboard", "Maintainer Leaderboard", "Monthl
 out the full name must match the H1 exactly. Tab, nav and footer labels may use a short form of
 the name — "Contributor", "Highlights", "Leaderboard", "Pull Requests" — and stay title case.
 The one exception is the standalone scoring page: its H1 is sentence case, "How scoring works",
-and the footer link to it and the in-page button that opens the scoring modal use the same
-words, "How scoring works".
+and the footer link to it uses the same words, "How scoring works". The in-page button that
+opens the scoring modal is a sentence, "See how scoring works." — the button label is "See how
+scoring works" and the full stop sits outside it.
 
 Sentence case is for everything else: section H2s ("Where the work is"), modal titles ("How
 contributor scores are tallied"), every button ("See the leaderboard", "Show 25 more", "Jump to

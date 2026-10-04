@@ -93,7 +93,8 @@ class ScoreLeaderboardControllerTest extends TestCase
 
         $this->get(route('leaderboard.show', ['board' => 'contributor']))
             ->assertOk()
-            ->assertSee('How scoring works')
+            // The intro's last sentence; the full stop sits outside the button.
+            ->assertSee('See how scoring works</button>.', false)
             // Modal heading is sentence case.
             ->assertSee('How contributor scores are tallied')
             ->assertSee('Opened a PR')
@@ -118,6 +119,7 @@ class ScoreLeaderboardControllerTest extends TestCase
         $this->get(route('leaderboard.detail', ['board' => 'contributor', 'login' => 'jane']))
             ->assertOk()
             ->assertSee('grouped by what earned the points')   // detail intro
+            ->assertSee('See how scoring works</button>.</p>', false)
             ->assertSee('jane')                                // person is the H1
             ->assertSee('Fix the thing')
             ->assertSee('PR was merged')

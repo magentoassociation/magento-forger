@@ -90,8 +90,9 @@ the contents sit in the page container — identical to the title block in `READ
    `padding-top: 24px`: "Every scored contribution in the last 12 months, grouped by what earned
    the points. Each group's points sum to the grand total."
    The monthly detail page words this differently; see *The monthly detail page*.
-2. **"How scoring works"** — a `<button type="button">` opening the scoring modal, inline at
-   the **end of the intro paragraph above**, not on a line of its own. Libre Franklin 500, 14.5px,
+2. **"See how scoring works."** — the intro's last sentence; "See how scoring works" is a
+   `<button type="button">` opening the scoring modal, inline at the **end of the intro paragraph
+   above**, not on a line of its own (same wording as the boards, `README-leaderboard-pages.md`). Libre Franklin 500, 14.5px,
    `#ee6524`, underlined, link-reset button styles (`README-scoring-modal.md`). This matches the
    leaderboard pages (`README-leaderboard-pages.md`), where it was moved into the intro
    sentence because standing alone it read as a stray. Which modal it opens follows the page:
