@@ -12,7 +12,7 @@ fold as real data with a visible empty slot for the visitor, and removes the thr
 closing CTA repeat.
 
 ## About the design files
-`../Leaderboard Type Directions.dc.html`, one level up from this folder, is a design reference
+`../Leaderboard prototype.html`, one level up from this folder, is a design reference
 written in HTML — a prototype of the
 intended look and behaviour, not production code to copy. Reproduce the spec below in the
 Laravel/Blade + Bootstrap codebase using its existing template conventions.
@@ -47,7 +47,7 @@ Top to bottom:
 6. Footer — 12a, unchanged.
 
 **Removed from the current page:** the three benefit cards, and the closing "Ready to ship your
-first fix?" block with its duplicate CTA pair. The hero CTAs are the only CTAs; "Ready to code"
+first fix?" block with its duplicate CTA pair. The hero CTA is the only CTA; "Ready to code"
 and the area list carry the rest of the intent.
 
 All sections use the **same centred content container as the rest of the site**
@@ -90,26 +90,14 @@ The first two sentences are the live page's copy verbatim; the third replaces th
 recognized" card. Keep the paragraph to three sentences — the `max-width: 420px` measure is what
 lets the board card sit beside it.
 
-**CTA pair** — `display: flex; gap: 10px; margin-top: 26px`.
+**CTA** — one button, `margin-top: 26px`: "Find an issue to work on →". `padding: 12px 20px`,
+`border-radius: 7px`, background `#f26322`, ink `#15171b`, Libre Franklin 700, 14.5px. Hover:
+background `#ff7433`.
 
-| | Primary | Secondary |
-|---|---|---|
-| Label | "Find an issue to work on →" | "Login with GitHub" |
-| Padding | `12px 20px` | `12px 20px` |
-| Radius | `7px` | `7px` |
-| Fill | `#f26322` | none |
-| Border | none | `1px solid #3a3f46` |
-| Ink | `#15171b` | `#ffffff` |
-| Type | Libre Franklin 700, 14.5px | Libre Franklin 600, 14.5px |
-| Hover | background `#ff7433` | border-color `#c9ced4` |
-
-Both are larger than the header's login button (`8px 15px` / 13.5px) — deliberate, so the hero
-CTA outranks the one in the bar. The secondary button carries the GitHub mark at ~15px, as it
-does today.
-
-When the visitor is signed in, the secondary button is dropped and the primary becomes the only
-CTA; the CTA row keeps its `margin-top`. The header shows the account chip in place of the login
-button — see `README-header.md`, "Signed-in state (16a)".
+It is larger than the header's login button (`8px 15px` / 13.5px) — deliberate, so the hero CTA
+outranks the one in the bar. There is no second hero button: signing in lives in the header only
+("Login with GitHub", or the account chip when signed in — see `README-header.md`,
+"Signed-in state (16a)"). The CTA is the same whether or not the visitor is signed in.
 
 ### Right column — the leaderboard card
 
@@ -178,7 +166,7 @@ The caption deliberately names no threshold and no specific action. Earlier draf
 merged PR puts you on the board", which is both unsafe (merging is not in the contributor's
 hands, and the number of PRs needed to rank shifts as the board moves) and an invitation to work
 the minimum. "Get on the board →" invites the action without quoting a price.
-If this ever needs to be more specific, link "How Scores Work" rather than naming a number.
+If this ever needs to be more specific, link "How scoring works" rather than naming a number.
 
 Because the window rolls, a contributor who stops contributing falls off it. Do not add copy
 warning about decay on the homepage; the leaderboard's own intro paragraph ("Ranked by the last
@@ -234,7 +222,7 @@ gap: 10px; padding: 13px 16px; background: #fff`. Hover: `background: #faf9f7`.
 - Count — Martian Mono 400, 10.5px, `#5d636c`, text "N open".
 
 Order is by open count, descending — highest first, so the busiest areas lead. Ten areas as
-today; the list is data-driven and any count is acceptable. An odd count leaves one cell empty:
+today; the list is data-driven and any number of areas is acceptable. Areas with no open issues are omitted. An odd count leaves one cell empty:
 render an empty `#fff` cell so the rules stay square.
 
 This replaces four columns of drop-shadowed cards. At two columns the names are long enough to
@@ -281,7 +269,6 @@ All values are existing tokens from `README-header.md` and `README.md`. New to t
 | Hero card border | `#2b2f36` | leaderboard card border |
 | Hero row rule | `#262a30` | rules between leaderboard rows |
 | Hero row hover | `#22262c` | leaderboard row hover fill |
-| Secondary border | `#3a3f46` | hero secondary button border |
 | Empty-row ink | `#f9a279` | "Your row is empty" |
 | Dashed avatar | `#4a5057` | empty avatar outline |
 
@@ -339,7 +326,7 @@ Drawn at 420px in `#24d`.
 Below the Bootstrap `lg` breakpoint:
 - The hero stacks: text column, then the leaderboard card, `gap: 30px`. Hero padding drops to
   `34px 20px 38px`; H1 to 36px; the body's `max-width` is released.
-- The CTA pair stays a row until it can't, then each button goes full width with `gap: 8px`.
+- The CTA goes full width.
 - The area grid collapses to one column; the 1px-gap rule technique still applies.
 - The first-timer block stacks: heading block, then the three steps in a column with
   `border-left` swapped for `border-top: 1px solid #e6e7ea` and `padding: 14px 0 0`.

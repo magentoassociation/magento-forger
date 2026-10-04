@@ -3,7 +3,7 @@
 Companion to `README.md` (Contributor Leaderboard). Everything in the **Design tokens** and
 **Type scale** sections of that document applies here unchanged; this file covers only what is
 specific to the Highlights page. Implement option **`#8b`** in
-`../Leaderboard Type Directions.dc.html`.
+`../Leaderboard prototype.html`.
 
 ## What changes and why
 
@@ -148,6 +148,6 @@ All other copy, including the page intro, is unchanged.
   indicator. Do not lighten it.
 
 ## Files
-- `../Leaderboard Type Directions.dc.html` — implement turn 8, option `#8b`.
+- `../Leaderboard prototype.html` — implement turn 8, option `#8b`.
 - `README.md` — the Contributor Leaderboard spec (tokens and type scale live there).
 - `reference-current-page.png` — the all-time Contributor page before the refresh.

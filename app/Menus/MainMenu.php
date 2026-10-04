@@ -69,7 +69,7 @@ class MainMenu
                     $dropdownHtml = sprintf(
                         '<li class="nav-item dropdown">
         <a class="nav-link dropdown-toggle%s" href="#" id="dropdown-%s" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-            %s
+            %s <span class="nav-caret" aria-hidden="true">▾</span>
         </a>
         <ul class="dropdown-menu" aria-labelledby="dropdown-%s">
             %s

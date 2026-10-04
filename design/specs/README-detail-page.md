@@ -3,7 +3,7 @@
 Companion to `README.md` (foundations) and `README-leaderboard-pages.md` (the boards this page
 is reached from).
 The **Design tokens** and **Type scale** sections of `README.md` apply unchanged.
-Implement option **`#18a`** in `../Leaderboard Type Directions.dc.html`. Grouped is the default view;
+Implement option **`#18a`** in `../Leaderboard prototype.html`. Grouped is the default view;
 the Grouped / List toggle switches to a flat list (`#18b`, see *List view*).
 
 ## What this page is for
@@ -89,7 +89,7 @@ the contents sit in the page container — identical to the title block in `READ
 1. **Intro** — Libre Franklin 400, 14.5px/1.65, `#3c4148`, `max-width: 660px`,
    `padding-top: 24px`: "Every scored contribution in the last 12 months, grouped by what earned
    the points. Each group's points sum to the grand total."
-2. **"How are scores tallied?"** — a `<button type="button">` opening the scoring modal, inline at
+2. **"How scoring works"** — a `<button type="button">` opening the scoring modal, inline at
    the **end of the intro paragraph above**, not on a line of its own. Libre Franklin 500, 14.5px,
    `#ee6524`, underlined, link-reset button styles (`README-scoring-modal.md`). This matches the
    leaderboard pages (`README-leaderboard-pages.md`), where it was moved into the intro
@@ -105,7 +105,7 @@ group and the first group head or panel edge — the intro must not sit directly
 below it.
 
 This ordering matters as much as the block itself: on the leaderboard the sequence is title →
-intro → tallied button → tabs → table, and the detail page now reads the same way.
+intro → scoring button → tabs → table, and the detail page now reads the same way.
 
 Applies to **all four detail states** — contributor and maintainer, scored and zero. See `#18a`
 in the prototype for the full scored page with the site header above it, including the working
@@ -236,7 +236,7 @@ data; in production the equivalent case is a genuinely empty group.
 
 The toggle's second view, shown in `#18b` (contributor) and `#17d` (maintainer). Same title block, toggle and month chips as the
 grouped view; the intro reads "Every scored contribution in the last 12 months in one list. The
-points column sums to the grand total." followed by the inline "How are scores tallied?" link.
+points column sums to the grand total." followed by the inline "How scoring works" link.
 
 **Group tiles** — one tile per group subtotal, above the list, so the page still reconciles
 without group heads: four on the contributor page, six on the maintainer page.
@@ -257,8 +257,8 @@ page, `repeat(3, minmax(0,1fr))` on the maintainer page (two rows of three),
 - "Scored contributions" — Libre Franklin 700, 18px, `letter-spacing: -.018em`, an H2.
 - Sort headers Type · Date · Points — `<button>`s, Martian Mono 9px uppercase `.06em`. Inactive
   `#6b7178` 400, hover `#15171b`; active `#15171b` 700 with a 2px `#ee6524` underline.
-  Default sort is Points, descending. Date sorts newest first; Type groups by type, points
-  descending within it. Column widths: Type 212px — wide enough for the longest tag on either page, "Issue resolved
+  Default sort is Points, descending. Date sorts newest first; Type sorts in the same order as
+  the group tiles above (subtotal descending), points descending within each type. Column widths: Type 212px — wide enough for the longest tag on either page, "Issue resolved
   by a merged PR"; Date 112px, Points 66px right-aligned — the same date and points widths as the grouped view's item row.
 
 **Rows** — `padding: 9px 0`, `border-bottom: 1px solid #f0f1f3`, hover `#faf9f7`, whole row a link.
@@ -320,7 +320,7 @@ Unchanged, with two adjustments:
   - Maintainer: "No maintainer activity scored in the last 12 months. Reviews and merges you
     complete from here will show up on this page, grouped by what earned the points."
 
-"How are scores tallied?" stays, inline at the end of the replacement intro paragraph. The Grouped / List toggle and the month chips are **suppressed**
+"How scoring works" stays, inline at the end of the replacement intro paragraph. The Grouped / List toggle and the month chips are **suppressed**
 — there is nothing to group, list or filter.
 
 ### The panel
@@ -386,7 +386,7 @@ Drawn at 420px in `#24b`. Below the Bootstrap `lg` breakpoint:
 - The H1 drops from 40px to 28px, the boards' narrow size. The identity row keeps its structure
   — avatar, name and handle, score block on the right — and a long name wraps rather than
   truncating.
-- The intro, inline "How are scores tallied?", Grouped / List toggle and month chips keep their
+- The intro, inline "How scoring works", Grouped / List toggle and month chips keep their
   order. The chips wrap.
 - Group heads and item rows keep their grid. Titles truncate with an ellipsis, as on desktop.
 - The List view's group tiles drop to two columns (see *List view*).
@@ -399,7 +399,7 @@ Drawn at 420px in `#24b`. Below the Bootstrap `lg` breakpoint:
   is what the page shows, or the copy must stop claiming they reconcile.
 
 ## Files
-- `../Leaderboard Type Directions.dc.html` — implement `#18a` (Grouped) and `#18b` (List).
+- `../Leaderboard prototype.html` — implement `#18a` (Grouped) and `#18b` (List).
 - `reference-detail-current.png` — the detail page before the redesign.
 - Turn 17 — the maintainer detail page (`#17a` Grouped, `#17d` List) and the zero-score state on both boards
   (`#17b` maintainer, `#17c` contributor).

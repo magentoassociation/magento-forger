@@ -5,7 +5,7 @@
         <p class="lb-intro">
             Ranked by the last 12 months of activity — recent work and bigger changes count for more.
             Points come from {{ $scoring['scoredList'] }}. Note that scores are subject to change.
-            <button type="button" class="lb-tallied" data-bs-toggle="modal" data-bs-target="#scoringModal">How are scores tallied?</button>
+            <button type="button" class="lb-tallied" data-bs-toggle="modal" data-bs-target="#scoringModal">How scoring works</button>
         </p>
 
         @include('leaderboard._tabs')

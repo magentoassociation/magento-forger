@@ -7,13 +7,13 @@ small differences, listed under *Per-board differences*.
 
 Two problems are fixed.
 
-**The scoring link had no home.** "How are scores tallied?" sat on its own line between the intro
+**The scoring link had no home.** "How scoring works" sat on its own line between the intro
 paragraph and the tab row, attached to nothing above or below it. It now ends the intro
 sentence, inline, where the reader is already thinking about how points are earned. This applies
 to every page that shows a score, including the detail pages.
 
 It is a `<button type="button">` that opens the scoring modal, styled as a text link — never a
-navigating link. The standalone How Scores Work page is reached only from the footer.
+navigating link. The standalone How scoring works page is reached only from the footer.
 See `README-scoring-modal.md` for the button styles and modal behaviour.
 
 **The list was a wall.** The board rendered every ranked person in one uninterrupted column —
@@ -23,7 +23,7 @@ row height for information that reads better as a column. The board now states i
 offers search and a jump-to-me control, and paginates.
 
 ## About the design files
-`../Leaderboard Type Directions.dc.html`, one level up from this folder, is a design reference
+`../Leaderboard prototype.html`, one level up from this folder, is a design reference
 written in HTML — a prototype of the intended look and behaviour, not production code to copy.
 Reproduce the spec below in the Laravel/Blade + Bootstrap codebase using its existing template
 conventions. Turn 21 holds all three boards.
@@ -149,9 +149,9 @@ Signed out, the control is absent — nothing takes its place.
    held for 2s and then faded out over 400ms. Nothing else about the row changes — no bold, no
    badge, no permanent treatment. The highlight is decorative only.
 5. **Focus moves to the row** (`tabindex="-1"` on the row, focused after the scroll) so keyboard
-   and screen-reader users arrive where sighted users do. The row carries
-   `aria-label="Your rank, 142"`; announce the arrival with a polite live region:
-   "Jumped to your rank, 142 of 1,284."
+   and screen-reader users arrive where sighted users do; the row's contents are read on arrival.
+   Announce the jump with a polite live region: "Jumped to your rank, 142 of 1,284." Do not put
+   an `aria-label` on the row unless it has a row role.
 6. **The URL gains `#rank-142`** so the position survives a reload and can be shared. On load
    with that fragment present, the board shows the same rows and scrolls without the highlight.
 
@@ -330,7 +330,7 @@ inconsistent across the light and dark surfaces this design uses.
 
 It applies to — and is currently missing from — the search field (the ring replaces the
 `#15171b` border change), its clear control, the jump-to-my-rank chip in both forms, month
-chips, "Show 25 more", tab links, row name links, the "How are scores tallied?"
+chips, "Show 25 more", tab links, row name links, the "How scoring works"
 button, and the score tooltip trigger.
 
 Two notes:

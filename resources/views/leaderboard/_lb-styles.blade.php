@@ -660,8 +660,7 @@
 
     /* #18a: title block — same full-bleed white block as every other page.
        Padding is inherited from .page-title-bar (26/24); the body's intro
-       supplies the gap below the rule, so no bottom margin here. */
-    .lb-d-titlebar { margin-bottom: 0; }
+       supplies the gap below the rule. */
     /* Body below the rule carries its own vertical rhythm; main is full-bleed here. */
     .lb-detail { padding-bottom: 48px; }
 
@@ -1132,7 +1131,8 @@
         .lb-search { margin-left: 0; }
         .lb-search-input { min-width: 0; width: 100%; }
         .lb-jump { justify-content: center; }
-        .lb .nav-tabs { flex-wrap: nowrap; overflow-x: auto; }
+        .lb .nav-tabs { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+        .lb .nav-tabs::-webkit-scrollbar { display: none; }
         /* White fade on the right edge signals the tab row scrolls. */
         .lb-tabrow { position: relative; }
         .lb-tabrow::after {

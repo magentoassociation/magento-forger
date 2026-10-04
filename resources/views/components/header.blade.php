@@ -15,7 +15,7 @@
     } elseif ($currentRouteName === 'leaderboard.highlights') {
         $formattedLabel = 'Leaderboard Highlights';
     } elseif ($currentRouteName === 'leaderboard.scoring') {
-        $formattedLabel = 'How Scores Work';
+        $formattedLabel = 'How scoring works';
     } elseif ($currentRouteName === 'leaderboard.monthly') {
         $formattedLabel = 'Monthly Leaderboard';
     } elseif ($currentRouteName === 'leaderboard.monthly.detail') {

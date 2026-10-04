@@ -8,7 +8,7 @@ The two pages share one template. Only the dataset and the noun change ("issues"
 including in the headings, the year totals and the hover text.
 
 ## About the design files
-`../Leaderboard Type Directions.dc.html`, one level up from this folder, is a design reference
+`../Leaderboard prototype.html`, one level up from this folder, is a design reference
 written in HTML — a prototype of the
 intended look and behaviour, not production code to copy. Reproduce the spec below in the
 Laravel/Blade + Bootstrap codebase using its existing template conventions.

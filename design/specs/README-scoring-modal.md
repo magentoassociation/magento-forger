@@ -1,7 +1,7 @@
 # Handoff: Scoring modal — "How scores are tallied"
 
 ## Overview
-Restructures the two scoring modals reached from the "How are scores tallied?" link on the
+Restructures the two scoring modals reached from the "How scoring works" link on the
 leaderboard and detail pages. Approved directions: **19a — maintainer scores** and
 **19b — contributor scores**. They are the same layout with different base-point rows and a
 different example; build one component, pass it the two data sets.
@@ -21,7 +21,7 @@ The copy is unchanged from the live modals. What changes is structure and chrome
 At 1000px the whole modal fits without scrolling.
 
 ## About the design files
-`../Leaderboard Type Directions.dc.html`, one level up from this folder, is a design reference
+`../Leaderboard prototype.html`, one level up from this folder, is a design reference
 written in HTML — a prototype of the intended look and behaviour, not production code to copy.
 Reproduce the spec below in the Laravel/Blade + Bootstrap codebase using its existing template
 conventions. Turn 19 holds both modals.
@@ -174,9 +174,20 @@ Dark panel: `margin: 26px 30px 30px`, `padding: 18px 20px`, background `#15171b`
   colour `#f26322`, followed by "points" in Martian Mono 10px uppercase `letter-spacing: .06em`
   colour `#9aa3ae`.
 
-**19a (maintainer):** 6 × 3 × 0.5 = 9 points. Prose is the live copy verbatim.
+**19a (maintainer):** 6 × 3 × 0.5 = 9 points. Prose:
 
-**19b (contributor):** 10 × 3 × 0.5 = 15 points. Prose is the live copy verbatim.
+> When a `Priority: P1` PR you approved later merges, the merge bonus alone earns 6 base × 3×
+> priority × 0.5× recency (≈6 months old) = 9 pts, on top of the points for the approval itself.
+> The same work today, before any decay, would be worth twice as much.
+
+**19b (contributor):** 10 × 3 × 0.5 = 15 points. Prose:
+
+> When a `Priority: P1` PR you opened merges, the author merge bonus alone earns 10 base × 3×
+> priority × 0.5× recency (≈6 months old) = 15 pts, on top of the points for opening it. The same
+> work today, before any decay, would be worth twice as much.
+
+This is the canonical copy for both the modal and the How scoring works page. The live
+templates word the examples differently; replace both with the text above.
 
 The equation row restates the paragraph's arithmetic. It is the one piece of the modal that is
 not in the current copy; it exists because the paragraph asks the reader to multiply three
@@ -184,10 +195,10 @@ numbers spread across two sentences.
 
 ## Behaviour
 
-- **It is a `<button>`, not a link.** Every in-page "How are scores tallied?" affordance — on the
+- **It is a `<button>`, not a link.** Every in-page "How scoring works" affordance — on the
   three leaderboard boards and all four detail states — is a
   `<button type="button">` that opens this modal. It does not navigate. The only exception is the
-  **footer** "How Scores Work" item, which is a real `<a href>` to the standalone page
+  **footer** "How scoring works" item, which is a real `<a href>` to the standalone page
   (`README-how-scores-work.md`) — footers navigate, they do not open dialogs.
 - The button is styled exactly like a text link (Libre Franklin 500, `#ee6524`, underlined,
   `text-underline-offset: 2px`) with `background: none; border: 0; padding: 0; font: inherit;
@@ -208,7 +219,7 @@ four columns at any width — the bars shrink, the labels do not wrap. Panel mar
 and `border-radius` to 10px.
 
 ## Related
-The standalone **How Scores Work** page carries the same data. It is specified separately in
+The standalone **How scoring works** page carries the same data. It is specified separately in
 `README-how-scores-work.md` and reuses the components defined here — formula strip, action rows,
 priority chips, recency decay bar, example panel. Build them once.
 

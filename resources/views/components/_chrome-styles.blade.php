@@ -100,6 +100,10 @@
         font-weight: 600;
     }
 
+    /* Dropdown parents carry a ▾ glyph in the label (matches the account chip), not Bootstrap's border caret. */
+    .site-nav .navbar-nav .dropdown-toggle::after { display: none; }
+    .site-nav .nav-caret { font-size: 10px; line-height: 1; opacity: .75; }
+
     /* Right-hand group: utility links + login */
     .site-endgroup {
         display: flex;
@@ -126,7 +130,8 @@
         border: 0;
         white-space: nowrap;
     }
-    .site-login { font-size: 13.5px; gap: 6px; }
+    .site-login { font-size: 13.5px; gap: 8px; }
+    .site-login .fa-github { font-size: 14px; }
     .site-login:hover,
     .sf-slack:hover { background: #ff7433; color: #15171b; }
 
@@ -218,7 +223,7 @@
         color: #c9ced4;
         text-decoration: none;
     }
-    .acct-item:hover, .acct-item:focus { background: #262a30; color: #fff; }
+    .acct-item:hover, .acct-item:focus, .acct-item:active { background: #262a30; color: #fff; }
     .acct-logout {
         margin-top: 5px;
         padding: 12px 10px 7px;
@@ -247,7 +252,6 @@
         background: #fff;
         padding-top: 26px;
         padding-bottom: 24px;
-        margin-bottom: 24px;
         box-shadow: none;
         border-bottom: 1px solid #e6e7ea;
     }
@@ -475,9 +479,9 @@
         .bm-grid { grid-template-columns: repeat(4, 1fr); }
     }
 
-    /* ---- How Scores Work — standalone page (20a); reuses .scm-* components ---- */
+    /* ---- How scoring works — standalone page (20a); reuses .scm-* components ---- */
     /* Body frame: spec wants 24px top / 36px bottom. The 24px top comes from
-       .page-title-bar's margin; horizontal gutter is left to the page container so
+       main's padding; horizontal gutter is left to the page container so
        the body aligns with the shared H1 title block. */
     .hsw { padding: 0 0 36px; }
     .hsw-intro {
@@ -881,22 +885,22 @@
         color: #c9ced4;
         text-wrap: pretty;
     }
-    .hp-cta { display: flex; gap: 10px; margin-top: 26px; flex-wrap: wrap; }
-    .hp-cta-primary, .hp-cta-secondary {
+    .hp-cta { margin-top: 26px; }
+    .hp-cta-primary {
         display: inline-flex;
         align-items: center;
-        gap: 8px;
+        justify-content: center;
         padding: 12px 20px;
         border-radius: 7px;
+        background: #f26322;
+        color: #15171b;
         font-family: 'Libre Franklin', system-ui, sans-serif;
         font-size: 14.5px;
+        font-weight: 700;
         text-decoration: none;
         white-space: nowrap;
     }
-    .hp-cta-primary { background: #f26322; color: #15171b; font-weight: 700; border: 0; }
     .hp-cta-primary:hover { background: #ff7433; color: #15171b; }
-    .hp-cta-secondary { background: transparent; color: #fff; font-weight: 600; border: 1px solid #3a3f46; }
-    .hp-cta-secondary:hover { border-color: #c9ced4; color: #fff; }
 
     /* Leaderboard card */
     .hp-board {
@@ -1193,6 +1197,7 @@
         .hp-hero-inner { flex-direction: column; gap: 30px; padding: 34px 20px 38px; }
         .hp-h1 { font-size: 36px; }
         .hp-lead { max-width: none; }
+        .hp-cta-primary { display: flex; }
         .hp-hero-right { width: 100%; align-self: stretch; }
         .hp-section { padding-left: 20px; padding-right: 20px; }
         .hp-grid { grid-template-columns: minmax(0, 1fr); }
@@ -1208,10 +1213,6 @@
             border-left: 0;
             border-top: 1px solid #e6e7ea;
         }
-    }
-    @media (max-width: 575.98px) {
-        .hp-cta { gap: 8px; }
-        .hp-cta-primary, .hp-cta-secondary { flex: 1; justify-content: center; }
     }
 
     /* ---- Footer (12a) ---- */

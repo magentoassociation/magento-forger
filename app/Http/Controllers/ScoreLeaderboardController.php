@@ -196,7 +196,7 @@ class ScoreLeaderboardController extends Controller
     }
 
     /**
-     * Data for the "How are scores tallied?" modal: the configured weights for
+     * Data for the "How scoring works" modal: the configured weights for
      * this board plus the multipliers, so the modal stays in sync with config.
      * $decay is false for the monthly boards, which apply impact but no recency
      * decay, so the modal can drop the recency copy.
@@ -557,7 +557,7 @@ class ScoreLeaderboardController extends Controller
     }
 
     /**
-     * Standalone "How scores work" page: the same explainer the leaderboard modal
+     * Standalone "How scoring works" page: the same explainer the leaderboard modal
      * shows, for every scored board, using the rolling (decayed) scoring.
      */
     public function scoring(): View

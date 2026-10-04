@@ -38,7 +38,7 @@
                         ?: mb_strtoupper(mb_substr((string) $acctName, 0, 2));
                 @endphp
                 <div class="dropdown">
-                    <button type="button" class="acct-chip" data-bs-toggle="dropdown" data-bs-display="static"
+                    <button type="button" id="acct-chip" class="acct-chip" data-bs-toggle="dropdown" data-bs-display="static"
                             aria-expanded="false" aria-haspopup="menu" aria-label="Account menu, {{ $acctName }}">
                         <span class="acct-avatar">
                             <span class="acct-avatar-initials">{{ $acctInitials }}</span>
@@ -50,26 +50,44 @@
                         <span class="acct-name">{{ $acctName }}</span>
                         <span class="acct-caret" aria-hidden="true">▾</span>
                     </button>
-                    <div class="dropdown-menu dropdown-menu-end acct-menu">
-                        <div class="acct-head">
+                    <div class="dropdown-menu dropdown-menu-end acct-menu" role="menu" aria-labelledby="acct-chip">
+                        {{-- Name is already in the chip's accessible name; hide the visual repeat. --}}
+                        <div class="acct-head" aria-hidden="true">
                             <span class="acct-head-name">{{ $acctName }}</span>
                             @if ($acctLogin)<span class="acct-head-handle">{{ '@'.$acctLogin }}</span>@endif
                         </div>
                         @if ($acctLogin)
-                            <a class="acct-item" href="{{ route('leaderboard.detail', ['board' => 'contributor', 'login' => $acctLogin]) }}">My contributions</a>
+                            <a class="dropdown-item acct-item" role="menuitem" tabindex="-1" href="{{ route('leaderboard.detail', ['board' => 'contributor', 'login' => $acctLogin]) }}">My contributions</a>
                         @endif
                         @if ($acctUser->is_admin)
-                            <a class="acct-item" href="/admin">Admin</a>
+                            <a class="dropdown-item acct-item" role="menuitem" tabindex="-1" href="/admin">Admin</a>
                         @endif
-                        <form action="{{ route('logout') }}" method="POST">
+                        <form action="{{ route('logout') }}" method="POST" role="none">
                             @csrf
-                            <button type="submit" class="acct-item acct-logout">Logout</button>
+                            <button type="submit" class="dropdown-item acct-item acct-logout" role="menuitem" tabindex="-1">Logout</button>
                         </form>
                     </div>
                 </div>
+                @push('scripts')
+                    <script>
+                        // Account menu (README-header "Behaviour"): Enter/Space opens and focuses the
+                        // first item. Up/down, Esc, outside click and Tab-out closing are Bootstrap's
+                        // own, which is why the items carry .dropdown-item.
+                        (function () {
+                            var chip = document.getElementById('acct-chip');
+                            var openedByKey = false;
+                            chip.addEventListener('keydown', function (e) { openedByKey = e.key === 'Enter' || e.key === ' '; });
+                            chip.addEventListener('shown.bs.dropdown', function () {
+                                var first = chip.nextElementSibling.querySelector('[role="menuitem"]');
+                                if (openedByKey && first) { first.focus(); }
+                                openedByKey = false;
+                            });
+                        })();
+                    </script>
+                @endpush
             @endauth
             @guest
-                <a href="{{ route('github_login') }}" class="site-login"><i class="fab fa-github"></i> Login with GitHub</a>
+                <a href="{{ route('github_login') }}" class="site-login"><i class="fab fa-github" aria-hidden="true"></i> Login with GitHub</a>
             @endguest
         </div>
 
@@ -88,7 +106,7 @@
 @endunless
 
 @php ($isFullBleed = request()->routeIs('home', 'leaderboard.detail', 'leaderboard.monthly.detail'))
-<main role="main" class="{{ $isFullBleed ? '' : 'container mx-auto pb-4 mb-4' }}">
+<main role="main" class="{{ $isFullBleed ? '' : 'container mx-auto pt-4 pb-4 mb-4' }}">
     @yield('content')
 </main>
 

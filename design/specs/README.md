@@ -8,7 +8,7 @@ and footer, the detail pages, the monthly views, and the scoring explanations.
 Approved type direction: **Libre Franklin (sans) + Martian Mono (mono)**, applied throughout.
 
 ## About the design files
-`../Leaderboard Type Directions.dc.html`, one level up from this folder, is a **design reference
+`../Leaderboard prototype.html`, one level up from this folder, is a **design reference
 written in HTML** — a prototype showing the intended look and behaviour. It is not production
 code to copy. The Forger is a Laravel/Blade + Bootstrap app; the task is to reproduce the
 specifications in this folder in that codebase, using its existing template and CSS conventions.
@@ -26,7 +26,7 @@ contributor board, `#19b` the contributor scoring modal, and so on.
 | `README-homepage.md` | Hero, live top-five card, area grid, first-timer steps | `#15a` `#24d` |
 | `README-leaderboard-pages.md` | All three boards: control strip, search, jump, pagination, hover, narrow widths | `#21a` `#21b` `#21c` `#22a` `#22b` `#22d` `#22c` `#23a` `#23b` `#23c` `#24a` `#25b` |
 | `README-detail-page.md` | Contributor and maintainer detail, all four states, Grouped and List views | `#17a` `#17b` `#17c` `#17d` `#18a` `#18b` `#24b` |
-| `README-scoring-modal.md` | Both scoring modals, and the tallied button rule | `#19a` `#19b` `#24c` |
+| `README-scoring-modal.md` | Both scoring modals, and the scoring button rule | `#19a` `#19b` `#24c` |
 | `README-how-scores-work.md` | Standalone scoring page, both boards side by side | `#20a` |
 | `README-highlights.md` | New contributor spotlight, Comebacks, Rising, Recently active | `#8b` |
 | `README-issues-prs-by-month.md` | Both by-month timelines, colour thresholds, month picker | `#14b` `#24e` |
@@ -80,7 +80,7 @@ profile or to the detail page listing the issues and PRs behind their score.
 
 ### Layout
 Unchanged from the current page: full-width container, page title block, intro paragraph,
-"How are scores tallied?" button, four tabs (Contributor / Maintainer / Monthly / Highlights),
+"How scoring works" button, four tabs (Contributor / Maintainer / Monthly / Highlights),
 then the table.
 
 The table is **not** a card: no border, no radius, no background fill. It sits flush with the
@@ -121,11 +121,11 @@ merged PR. Note that scores are subject to change."
 Libre Franklin 400, 15px, `line-height: 1.6`, colour `#3c4148`, `max-width: 760px`,
 `text-wrap: pretty`.
 
-**"How are scores tallied?"** — a `<button type="button">` that opens the scoring modal, not a
+**"How scoring works"** — a `<button type="button">` that opens the scoring modal, not a
 link. Styled as a text link: Libre Franklin 500, 14px, colour `#ee6524`,
 underlined, `text-underline-offset: 2px`, with `background: none; border: 0; padding: 0;
 font: inherit; cursor: pointer`. Behaviour and modal contents: `README-scoring-modal.md`.
-The only navigating "How Scores Work" affordance is the footer link.
+The only navigating route to the How scoring works page is the footer link, labelled "How scoring works".
 
 **Tabs** — Libre Franklin, 14.5px. Active tab 600 / `#15171b` on white with
 `1px solid #dfe1e4`, bottom border white, `border-radius: 7px 7px 0 0`, `margin-bottom: -1px`.
@@ -204,14 +204,16 @@ load. The depth and the month are reflected in the URL (`?rows=`, `?month=`), al
 
 Title case is for strings that name a destination — the page H1s and the tab and nav labels
 that point at them: "Contributor Leaderboard", "Maintainer Leaderboard", "Monthly Leaderboard",
-"Issues By Month", "PRs By Month", "Leaderboard Highlights", "How Scores
-Work". If it is a page and something links to it by name, it is title case. A link that spells
+"Issues By Month", "PRs By Month", "Leaderboard Highlights". If it is a page and something links to it by name, it is title case. A link that spells
 out the full name must match the H1 exactly. Tab, nav and footer labels may use a short form of
 the name — "Contributor", "Highlights", "Leaderboard", "Pull Requests" — and stay title case.
+The one exception is the standalone scoring page: its H1 is sentence case, "How scoring works",
+and the footer link to it and the in-page button that opens the scoring modal use the same
+words, "How scoring works".
 
 Sentence case is for everything else: section H2s ("Where the work is"), modal titles ("How
 contributor scores are tallied"), every button ("See the leaderboard", "Show 25 more", "Jump to
-my rank", "Join our Slack"), every link ("How are scores tallied?"), captions,
+my rank", "Join our Slack"), every link ("How scoring works"), captions,
 empty states, and all body copy. Buttons are sentence case without exception — a button is an
 instruction, not a name.
 
@@ -341,7 +343,7 @@ None to import. Avatars come from GitHub at runtime; no icons are used (the Deta
 the only icon-adjacent element, is gone). Fonts are Google Fonts / OFL.
 
 ## Files
-- `../Leaderboard Type Directions.dc.html` — the design reference (lives beside this folder, not in it). Every option in it is approved; `#21a` is the current contributor board; hover or focus rank 1's score there to see the score tooltip.
+- `../Leaderboard prototype.html` — the design reference (lives beside this folder, not in it). Every option in it is approved; `#21a` is the current contributor board; hover or focus rank 1's score there to see the score tooltip.
 - `reference-current-page.png` — screenshot of the page as it is today, for before/after.
 
 ## Summary of changes for a reviewer

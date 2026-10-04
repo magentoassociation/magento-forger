@@ -157,7 +157,9 @@
         var target = document.getElementById('rank-' + rank);
         if (!target) { return; }
         if (query) { clearSearch(); }
-        if (rank > fullDepth) { setDepth(rank); apply(); }
+        // Reveal to the end of the rank's 25-row block: context below the row, and depth
+        // stays on the pager's 25-step grid (rank 142 shows 1–150).
+        if (rank > fullDepth) { setDepth(Math.ceil(rank / PAGE) * PAGE); apply(); }
 
         var y = target.getBoundingClientRect().top + window.pageYOffset - window.innerHeight / 3;
         window.scrollTo({ top: Math.max(0, y), behavior: reduce ? 'auto' : 'smooth' });

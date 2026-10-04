@@ -66,6 +66,19 @@ class WelcomeControllerTest extends TestCase
         $response->assertDontSee('20 open');     // no pill when counts are unavailable
     }
 
+    public function testHeroHasSingleCtaForGuests(): void
+    {
+        $this->bindClient($this->prAggregations(), []);
+
+        $response = $this->get(route('home'));
+
+        $response->assertOk();
+        $response->assertSee('Find an issue to work on →');
+        // Signing in lives in the header only; the hero carries no second button.
+        $response->assertDontSee('hp-cta-secondary', false);
+        $this->assertSame(1, substr_count($response->getContent(), 'Login with GitHub'));
+    }
+
     /**
      * Bind a mocked OpenSearch client that answers the PR aggregation and the label
      * aggregation independently, keyed by index.

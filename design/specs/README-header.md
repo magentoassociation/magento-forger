@@ -12,7 +12,7 @@ content below the header is unchanged, except on the homepage, which has its own
 (`README-homepage.md`) and omits the white page-title block.
 
 ## About the design files
-`../Leaderboard Type Directions.dc.html`, one level up from this folder, is a design reference
+`../Leaderboard prototype.html`, one level up from this folder, is a design reference
 written in HTML — a prototype of the
 intended look and behaviour, not production code to copy. Reproduce the spec below in the
 Laravel/Blade + Bootstrap codebase using its existing template conventions.
@@ -98,6 +98,9 @@ secondary links quiet next to the 14px nav.
 **Login button** — "Login with GitHub". Signed out only.
 `padding: 8px 15px`, `border-radius: 7px`, background `#f26322`, text `#15171b`,
 Libre Franklin 700, 13.5px, no underline. Hover: background `#ff7433`.
+The GitHub mark sits before the label at 14px, in the label's ink (`#15171b`):
+`display: inline-flex; align-items: center; gap: 8px`. The mark is decorative (`aria-hidden`);
+the label carries the name.
 When signed in it is replaced by the account chip below, in the same position.
 
 Right-hand group: `display: flex; align-items: center; gap: 10px` signed out, `gap: 14px` signed
@@ -289,6 +292,7 @@ A flex row, `align-items: flex-start; gap: 40px`.
   This is the same button as the header's "Login with GitHub" — same fill, radius, ink and hover.
   It is the only orange in the footer besides the hairline.
   The prototype substitutes a mono `#` for the Slack mark; use the real logo at ~15px.
+  Omit the button (keep the heading) when `homepage.slack_invite_url` is unset.
 
 **Right — link columns** (`margin-left: auto`, `display: flex; gap: 56px`):
 
@@ -296,7 +300,7 @@ Two columns, each `display: flex; flex-direction: column; gap: 9px`.
 
 | Column | Links |
 |---|---|
-| Forger | Leaderboard, Issues, Pull Requests, How Scores Work |
+| Forger | Leaderboard, Issues, Pull Requests, How scoring works |
 | Community | Magento Association, Magento Open Source, Mage-OS, Meet Magento, Magento on GitHub |
 
 - Column heading: Martian Mono 400, 9px, uppercase, `letter-spacing: .06em`, colour `#9aa3ae` —

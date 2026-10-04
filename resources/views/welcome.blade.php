@@ -27,11 +27,6 @@
                 <div class="hp-cta">
                     <a href="{{ $ready['url'] ?? route('leaderboard.show', ['board' => 'contributor']) }}"
                        target="magentoForgerGitHub" rel="noopener" class="hp-cta-primary">Find an issue to work on →</a>
-                    @guest
-                        <a href="{{ route('github_login') }}" class="hp-cta-secondary">
-                            <i class="fab fa-github" style="font-size: 15px;"></i> Login with GitHub
-                        </a>
-                    @endguest
                 </div>
             </div>
 
