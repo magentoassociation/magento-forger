@@ -8,6 +8,8 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Http\Controllers;
 
+use App\Helpers\GitHubLinkHelper;
+use App\Services\GitHub\GitHubIssueService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Mockery;
@@ -51,6 +53,64 @@ class WelcomeControllerTest extends TestCase
         $response->assertSee('Framework');     // area tile (prefix stripped)
         $response->assertSee('221 open');      // area tile pill
         $response->assertSee('aria-current="page"', false); // current nav item
+    }
+
+    public function testReadyToCodeUsesAllLabeledIssuesWhileUnclaimedOnlyIsOff(): void
+    {
+        config(['homepage.paths.0.unclaimed_only' => false]);
+        $this->bindClient($this->prAggregations(), [['key' => 'Issue: Ready for Work', 'doc_count' => 20]]);
+        $issues = Mockery::mock(GitHubIssueService::class);
+        $issues->shouldNotReceive('searchIssueCount');
+        $this->app->instance(GitHubIssueService::class, $issues);
+
+        $response = $this->get(route('home'));
+
+        $response->assertOk();
+        $response->assertSee(e(GitHubLinkHelper::issueLabelUrl('Issue: Ready for Work')), false);
+        $response->assertDontSee('no%3Aassignee', false);
+        $response->assertSee('20 open');
+    }
+
+    public function testReadyToCodeLinkAndCountExcludeClaimedIssuesWhenUnclaimedOnlyIsOn(): void
+    {
+        config(['homepage.paths.0.unclaimed_only' => true]);
+        $this->bindClient($this->prAggregations(), [
+            ['key' => 'Issue: Ready for Work', 'doc_count' => 20],
+            ['key' => 'Area: Framework', 'doc_count' => 221],
+        ]);
+        $issues = Mockery::mock(GitHubIssueService::class);
+        $issues->shouldReceive('searchIssueCount')
+            ->once()
+            ->with('repo:'.config('github.repo').' is:issue is:open label:"Issue: Ready for Work" no:assignee -linked:pr')
+            ->andReturn(3);
+        $this->app->instance(GitHubIssueService::class, $issues);
+
+        $response = $this->get(route('home'));
+
+        $response->assertOk();
+        $readyUrl = e(GitHubLinkHelper::issueLabelUrl('Issue: Ready for Work', unclaimed: true));
+        $this->assertStringContainsString('no%3Aassignee+-linked%3Apr', $readyUrl);
+        $response->assertSee($readyUrl, false);
+        $response->assertSee('3 open');
+        $response->assertDontSee('20 open');
+        // Area tiles are unaffected by the flag.
+        $response->assertSee(e(GitHubLinkHelper::issueLabelUrl('Area: Framework')), false);
+        $response->assertDontSee(e(GitHubLinkHelper::issueLabelUrl('Area: Framework', unclaimed: true)), false);
+    }
+
+    public function testUnclaimedCountFailureDropsPillButKeepsLink(): void
+    {
+        config(['homepage.paths.0.unclaimed_only' => true]);
+        $this->bindClient($this->prAggregations(), [['key' => 'Issue: Ready for Work', 'doc_count' => 20]]);
+        $issues = Mockery::mock(GitHubIssueService::class);
+        $issues->shouldReceive('searchIssueCount')->andThrow(new RuntimeException('github down'));
+        $this->app->instance(GitHubIssueService::class, $issues);
+
+        $response = $this->get(route('home'));
+
+        $response->assertOk();
+        $response->assertSee(e(GitHubLinkHelper::issueLabelUrl('Issue: Ready for Work', unclaimed: true)), false);
+        $response->assertDontSee('20 open');
     }
 
     public function testHomepageSurvivesLabelCountFailureAndDropsPills(): void

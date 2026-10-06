@@ -26,6 +26,9 @@ return [
             'blurb' => 'Confirmed, prioritized issues waiting for a developer.',
             'cta' => 'Browse Ready for Work',
             'label' => 'Issue: Ready for Work',
+            // When true, the link and count skip issues that are assigned or have a linked
+            // PR (count fetched live from GitHub search). Off until that pool is bigger.
+            'unclaimed_only' => false,
         ],
         // [
         //     'icon' => '🔍',

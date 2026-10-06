@@ -512,7 +512,10 @@ class ScoreLeaderboardController extends Controller
 
         return [
             'label' => 'Find an issue to work on →',
-            'url' => GitHubLinkHelper::issueLabelUrl((string) config('homepage.paths.0.label')),
+            'url' => GitHubLinkHelper::issueLabelUrl(
+                (string) config('homepage.paths.0.label'),
+                (bool) config('homepage.paths.0.unclaimed_only', false),
+            ),
         ];
     }
 
