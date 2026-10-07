@@ -54,21 +54,6 @@ class GitHubIssueServiceTest extends TestCase
         $this->assertSame(10, $result->closed);
     }
 
-    public function testSearchIssueCountSendsQueryAndReturnsIssueCount(): void
-    {
-        $mock = new MockHandler([
-            new Response(200, [], json_encode([
-                'data' => ['search' => ['issueCount' => 3]],
-            ], JSON_THROW_ON_ERROR)),
-        ]);
-
-        $result = $this->createService($mock)->searchIssueCount('repo:o/r is:issue no:assignee');
-
-        $this->assertSame(3, $result);
-        $sent = json_decode((string) $mock->getLastRequest()->getBody(), true, 512, JSON_THROW_ON_ERROR);
-        $this->assertSame('repo:o/r is:issue no:assignee', $sent['variables']['query']);
-    }
-
     public function testFetchIssueCountReturnsZerosWhenRepositoryDataIsMissing(): void
     {
         $mock = new MockHandler([

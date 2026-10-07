@@ -25,8 +25,10 @@
                     will use. Every contribution scores and moves you up the contributor leaderboard.
                 </p>
                 <div class="hp-cta">
+                    {{-- GitHub opens in the shared GitHub window; the internal fallback stays in this tab. --}}
                     <a href="{{ $ready['url'] ?? route('leaderboard.show', ['board' => 'contributor']) }}"
-                       target="magentoForgerGitHub" rel="noopener" class="hp-cta-primary">Find an issue to work on →</a>
+                       @if ($ready) target="magentoForgerGitHub" rel="noopener" @endif
+                       class="hp-cta-primary">Find an issue to work on →</a>
                 </div>
             </div>
 
@@ -175,7 +177,8 @@
                 </li>
                 <li class="hp-step">
                     <span class="hp-step-num">03</span>
-                    <a href="{{ $ready['url'] ?? '#' }}" target="magentoForgerGitHub" rel="noopener">Claim an issue</a> and open your first PR
+                    <a href="{{ $ready['url'] ?? route('leaderboard.show', ['board' => 'contributor']) }}"
+                       @if ($ready) target="magentoForgerGitHub" rel="noopener" @endif>Claim an issue</a> and open your first PR
                 </li>
             </ol>
         </div>

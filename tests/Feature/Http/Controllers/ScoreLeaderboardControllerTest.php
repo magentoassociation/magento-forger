@@ -80,8 +80,9 @@ class ScoreLeaderboardControllerTest extends TestCase
             ->assertSee('42.5')
             // Activity column is one written-out total of scored actions, not an
             // abbreviated breakdown; its accessible name spells the per-action counts.
-            ->assertSee('2 actions')
-            ->assertSee('2 actions: PRs opened 2')
+            ->assertSee('<span aria-hidden="true">2 actions</span>', false)
+            ->assertSee('<span class="visually-hidden">2 actions: PRs opened 2</span>', false)
+            ->assertDontSee('class="lbr-activity" aria-label', false)
             // Breakdown shows proper English, not the raw action key.
             ->assertSee('Opened a PR')
             ->assertDontSee('pr_opened');

@@ -46,7 +46,8 @@
 
     // Bars/tiles link to GitHub's own filtered issue/PR search by design — no internal per-month
     // list page is maintained (confirmed decision, not drift).
-    $ghUrl = fn ($start, $end) => 'https://github.com/magento/magento2/'.$linkPath
+    $repo = config('github.repo');
+    $ghUrl = fn ($start, $end) => 'https://github.com/'.$repo.'/'.$linkPath
         .'?q=is%3A'.$qType.'%20state%3Aopen%20updated%3A'.$start.'..'.$end;
 
     // Index each year's months by integer month number for slot lookup.

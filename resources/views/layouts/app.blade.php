@@ -20,7 +20,7 @@
 <div class="chrome-hairline"></div>
 <nav class="navbar navbar-expand-lg site-nav" data-bs-theme="dark">
     <div class="container">
-        <a class="navbar-brand site-brand" href="/">
+        <a class="navbar-brand site-brand" href="{{ route('home') }}">
             <img class="brand-mark" src="{{ asset('assets/logo_magento_soul_white.svg') }}" alt="" width="30" height="30">
             <span class="brand-word"><span class="w1">Magento Open Source </span><span class="w2">Forger</span></span>
         </a>
@@ -60,7 +60,7 @@
                             <a class="dropdown-item acct-item" role="menuitem" tabindex="-1" href="{{ route('leaderboard.detail', ['board' => 'contributor', 'login' => $acctLogin]) }}">My contributions</a>
                         @endif
                         @if ($acctUser->is_admin)
-                            <a class="dropdown-item acct-item" role="menuitem" tabindex="-1" href="/admin">Admin</a>
+                            <a class="dropdown-item acct-item" role="menuitem" tabindex="-1" href="{{ route('filament.admin.pages.dashboard') }}">Admin</a>
                         @endif
                         <form action="{{ route('logout') }}" method="POST" role="none">
                             @csrf

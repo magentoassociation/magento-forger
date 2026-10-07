@@ -75,4 +75,70 @@ class ClaimRecordReaderTest extends TestCase
         // Earliest self-assignment kept.
         $this->assertTrue($pr10[0]->claimedAt->equalTo(Carbon::parse('2026-03-01T00:00:00Z')));
     }
+
+    public function testTitleLookupToleratesMissingPullRequestsIndex(): void
+    {
+        $timeline = OpenSearchService::getIndexWithPrefix(OpenSearchService::OPENSEARCH_GITHUB_PR_TIMELINE_INDEX);
+        $pullRequests = OpenSearchService::getIndexWithPrefix(OpenSearchService::OPENSEARCH_GITHUB_PULL_REQUESTS_INDEX);
+        $titleParams = null;
+
+        $client = Mockery::mock(Client::class);
+        $client->shouldReceive('search')
+            ->andReturnUsing(function (array $params) use ($timeline, $pullRequests, &$titleParams): array {
+                if ($params['index'] === $pullRequests) {
+                    $titleParams = $params;
+
+                    // What OpenSearch returns for a missing index under ignore_unavailable.
+                    return $this->hits([]);
+                }
+
+                $type = $params['body']['query']['bool']['filter'][0]['term']['type.keyword'] ?? null;
+                if ($params['index'] === $timeline && $type === 'ReviewRequestedEvent') {
+                    return $this->hits([[
+                        'pr_number' => 10,
+                        'actor' => 'jane',
+                        'requested_reviewer' => 'jane',
+                        'created_at' => '2026-03-01T00:00:00Z',
+                    ]]);
+                }
+
+                return $this->hits([]);
+            });
+
+        $records = (new ClaimRecordReader($client))
+            ->read(Carbon::parse('2026-01-01T00:00:00Z'), Carbon::parse('2026-06-01T00:00:00Z'));
+
+        $this->assertTrue($titleParams['ignore_unavailable'] ?? false);
+        $this->assertCount(1, $records);
+        $this->assertNull($records[0]->title);
+    }
+
+    public function testEverySearchToleratesMissingIndexes(): void
+    {
+        $searches = [];
+
+        $client = Mockery::mock(Client::class);
+        $client->shouldReceive('search')
+            ->andReturnUsing(function (array $params) use (&$searches): array {
+                $searches[] = $params;
+                $type = $params['body']['query']['bool']['filter'][0]['term']['type.keyword'] ?? null;
+
+                // One claim so the pending-review, reviews, and title lookups all run.
+                return $this->hits($type === 'ReviewRequestedEvent' ? [[
+                    'pr_number' => 10,
+                    'actor' => 'jane',
+                    'requested_reviewer' => 'jane',
+                    'created_at' => '2026-03-01T00:00:00Z',
+                ]] : []);
+            });
+
+        (new ClaimRecordReader($client))
+            ->read(Carbon::parse('2026-01-01T00:00:00Z'), Carbon::parse('2026-06-01T00:00:00Z'));
+
+        // Claims, pending-review labels, reviews, titles.
+        $this->assertCount(4, $searches);
+        foreach ($searches as $params) {
+            $this->assertTrue($params['ignore_unavailable'] ?? false, $params['index']);
+        }
+    }
 }

@@ -23,7 +23,7 @@ class ByMonthTimelineTest extends TestCase
         $this->currentYear = (int) date('Y');
     }
 
-    public function test_timeline_orders_oldest_year_first_regardless_of_input_order(): void
+    public function testTimelineOrdersOldestYearFirstRegardlessOfInputOrder(): void
     {
         $html = $this->render();
 
@@ -35,7 +35,7 @@ class ByMonthTimelineTest extends TestCase
         $this->assertLessThan($new, $old, 'Oldest year must render to the left of the current year.');
     }
 
-    public function test_bar_height_is_a_ratio_against_the_all_years_max(): void
+    public function testBarHeightIsARatioAgainstTheAllYearsMax(): void
     {
         $html = $this->render();
 
@@ -46,14 +46,14 @@ class ByMonthTimelineTest extends TestCase
         $this->assertStringContainsString('--bh: 0.6455', $html);
     }
 
-    public function test_zero_month_renders_a_stub_not_a_link(): void
+    public function testZeroMonthRendersAStubNotALink(): void
     {
         $html = $this->render();
 
         $this->assertStringContainsString('bm-bar--zero', $html);
     }
 
-    public function test_picker_shows_the_current_year_only(): void
+    public function testPickerShowsTheCurrentYearOnly(): void
     {
         $html = $this->render();
 
@@ -64,7 +64,17 @@ class ByMonthTimelineTest extends TestCase
         $this->assertStringNotContainsString('>50<', $picker);
     }
 
-    public function test_range_row_is_present_for_the_scroll_controls(): void
+    public function testMonthLinksUseTheConfiguredRepo(): void
+    {
+        config(['github.repo' => 'acme/widgets']);
+
+        $html = $this->render();
+
+        $this->assertStringContainsString('href="https://github.com/acme/widgets/issues?q=is%3Aissue', $html);
+        $this->assertStringNotContainsString('github.com/magento/magento2', $html);
+    }
+
+    public function testRangeRowIsPresentForTheScrollControls(): void
     {
         $html = $this->render();
 
@@ -94,7 +104,7 @@ class ByMonthTimelineTest extends TestCase
     }
 
     /**
-     * @param array<string, int> $counts month_number => total
+     * @param  array<string, int>  $counts  month_number => total
      * @return array{year: int, total: int, months: array<string, array{month_number: string, total: int, start: string, end: string}>}
      */
     private function year(int $year, int $total, array $counts): array

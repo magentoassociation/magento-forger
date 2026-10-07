@@ -10,6 +10,7 @@ namespace Tests\Unit\Services\Leaderboard;
 
 use App\DataTransferObjects\Leaderboard\Action;
 use App\DataTransferObjects\Leaderboard\Board;
+use App\DataTransferObjects\Leaderboard\ScoredEvent;
 use App\Services\Leaderboard\ScoredEventReader;
 use Carbon\Carbon;
 use OpenSearch\Client;
@@ -39,10 +40,44 @@ class ScoredEventReaderTest extends TestCase
         $this->assertSame([], $events);
     }
 
+    public function testPrLookupsTolerateMissingPullRequestsIndex(): void
+    {
+        // One review and one PR label row force pullRequestsInfo() and prTitles() to run.
+        $searches = [];
+        $client = $this->createMock(Client::class);
+        $client->method('search')->willReturnCallback(function (array $params) use (&$searches): array {
+            $searches[] = $params;
+            $row = match (true) {
+                str_contains($params['index'], 'github-pr-reviews') => [
+                    'author' => 'jane', 'state' => 'COMMENTED', 'submitted_at' => '2026-01-05T00:00:00Z', 'pr_number' => 7,
+                ],
+                str_contains($params['index'], 'github-pr-timeline') => [
+                    'actor' => 'jane', 'label_name' => 'Priority: P2', 'pr_number' => 8, 'created_at' => '2026-01-05T00:00:00Z',
+                ],
+                default => null,
+            };
+
+            return ['hits' => ['hits' => $row === null ? [] : [['_source' => $row]]]];
+        });
+
+        $events = (new ScoredEventReader($client))
+            ->read(Carbon::parse('2026-01-01T00:00:00Z'), Carbon::parse('2026-01-15T00:00:00Z'));
+
+        $lookups = array_filter($searches, fn (array $p): bool => isset($p['body']['_source']));
+        $this->assertCount(2, $lookups); // pullRequestsInfo + prTitles
+        foreach ($searches as $params) {
+            $this->assertTrue($params['ignore_unavailable'] ?? false, $params['index']);
+        }
+        // No PR docs → titles fall back to "PR #n".
+        $titles = array_map(fn ($e): ?string => $e->title, $events);
+        $this->assertContains('PR #7', $titles);
+        $this->assertContains('PR #8', $titles);
+    }
+
     /**
      * @param  list<array<string, mixed>>  $rows
      * @param  list<string>  $excluded
-     * @return list<\App\DataTransferObjects\Leaderboard\ScoredEvent>
+     * @return list<ScoredEvent>
      */
     private function buildLabelEvents(array $rows, array $excluded = [], string $repo = ''): array
     {

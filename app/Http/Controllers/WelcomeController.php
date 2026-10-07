@@ -35,7 +35,7 @@ class WelcomeController extends Controller
         return view('welcome', [
             // 'monthlyStats' => $monthlyStats,
             // 'dataMissing' => $dataMissing,
-            'paths' => $this->buildPaths($labelCounts, $counts),
+            'paths' => $this->buildPaths($labelCounts),
             'areas' => $this->buildAreas($labelCounts),
             'links' => config('homepage.links'),
             'topFive' => $topFive,
@@ -169,12 +169,11 @@ class WelcomeController extends Controller
      * Resolve the §3 "Choose how you want to help" path cards with live counts and links.
      *
      * @param  array<string, int>  $labelCounts
-     * @param  HomepageCountsService  $counts  Live GitHub search counts for `unclaimed_only` paths.
      * @return list<array{icon: string, title: string, blurb: string, cta: string, count: ?int, url: string}>
      */
-    private function buildPaths(array $labelCounts, HomepageCountsService $counts): array
+    private function buildPaths(array $labelCounts): array
     {
-        return array_map(static function (array $path) use ($labelCounts, $counts): array {
+        return array_map(static function (array $path) use ($labelCounts): array {
             $unclaimed = (bool) ($path['unclaimed_only'] ?? false);
 
             return [
@@ -182,11 +181,9 @@ class WelcomeController extends Controller
                 'title' => $path['title'],
                 'blurb' => $path['blurb'],
                 'cta' => $path['cta'],
-                // The index has no assignee/linked-PR data, so the unclaimed count comes
-                // from GitHub search with the exact query the link uses.
-                'count' => $unclaimed
-                    ? $counts->searchCount(GitHubLinkHelper::issueSearchQuery($path['label'], unclaimed: true))
-                    : $labelCounts[$path['label']] ?? null,
+                // The index has no assignee/linked-PR data, so an unclaimed path can't be
+                // counted locally; it renders without a pill rather than show a wrong number.
+                'count' => $unclaimed ? null : $labelCounts[$path['label']] ?? null,
                 'url' => GitHubLinkHelper::issueLabelUrl($path['label'], $unclaimed),
             ];
         }, config('homepage.paths'));

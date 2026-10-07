@@ -25,11 +25,7 @@
                         <ul class="list-group list-group-flush">
                             @php $maxVisible = 8; @endphp
                             @foreach($labelGroup as $index => $labelData)
-                                @php
-                                    // Wrap the label in quotes, then URL-encode it
-                                    $quotedLabel = urlencode('"' . $labelData['label'] . '"');
-                                    $githubUrl = "https://github.com/magento/magento2/issues?q=is%3Aissue+is%3Aopen+label%3A{$quotedLabel}";
-                                @endphp
+                                @php $githubUrl = \App\Helpers\GitHubLinkHelper::issueLabelUrl($labelData['label']); @endphp
                                 <li class="list-group-item d-flex justify-content-between align-items-center {{ $index >= $maxVisible ? 'collapse-item d-none' : '' }}" data-group="{{ $loop->parent->index }}">
                                     <a href="{{ $githubUrl }}" target="magentoForgerGitHub" class="text-decoration-none">
                                         {{ $labelData['label'] }}

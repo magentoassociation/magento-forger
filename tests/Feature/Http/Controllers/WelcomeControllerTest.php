@@ -9,7 +9,6 @@ declare(strict_types=1);
 namespace Tests\Feature\Http\Controllers;
 
 use App\Helpers\GitHubLinkHelper;
-use App\Services\GitHub\GitHubIssueService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Mockery;
@@ -59,9 +58,6 @@ class WelcomeControllerTest extends TestCase
     {
         config(['homepage.paths.0.unclaimed_only' => false]);
         $this->bindClient($this->prAggregations(), [['key' => 'Issue: Ready for Work', 'doc_count' => 20]]);
-        $issues = Mockery::mock(GitHubIssueService::class);
-        $issues->shouldNotReceive('searchIssueCount');
-        $this->app->instance(GitHubIssueService::class, $issues);
 
         $response = $this->get(route('home'));
 
@@ -71,19 +67,13 @@ class WelcomeControllerTest extends TestCase
         $response->assertSee('20 open');
     }
 
-    public function testReadyToCodeLinkAndCountExcludeClaimedIssuesWhenUnclaimedOnlyIsOn(): void
+    public function testReadyToCodeLinksToUnclaimedIssuesWithoutCountWhenUnclaimedOnlyIsOn(): void
     {
         config(['homepage.paths.0.unclaimed_only' => true]);
         $this->bindClient($this->prAggregations(), [
             ['key' => 'Issue: Ready for Work', 'doc_count' => 20],
             ['key' => 'Area: Framework', 'doc_count' => 221],
         ]);
-        $issues = Mockery::mock(GitHubIssueService::class);
-        $issues->shouldReceive('searchIssueCount')
-            ->once()
-            ->with('repo:'.config('github.repo').' is:issue is:open label:"Issue: Ready for Work" no:assignee -linked:pr')
-            ->andReturn(3);
-        $this->app->instance(GitHubIssueService::class, $issues);
 
         $response = $this->get(route('home'));
 
@@ -91,26 +81,12 @@ class WelcomeControllerTest extends TestCase
         $readyUrl = e(GitHubLinkHelper::issueLabelUrl('Issue: Ready for Work', unclaimed: true));
         $this->assertStringContainsString('no%3Aassignee+-linked%3Apr', $readyUrl);
         $response->assertSee($readyUrl, false);
-        $response->assertSee('3 open');
+        // The all-labeled count would overstate the unclaimed pool, so no pill renders.
         $response->assertDontSee('20 open');
         // Area tiles are unaffected by the flag.
+        $response->assertSee('221 open');
         $response->assertSee(e(GitHubLinkHelper::issueLabelUrl('Area: Framework')), false);
         $response->assertDontSee(e(GitHubLinkHelper::issueLabelUrl('Area: Framework', unclaimed: true)), false);
-    }
-
-    public function testUnclaimedCountFailureDropsPillButKeepsLink(): void
-    {
-        config(['homepage.paths.0.unclaimed_only' => true]);
-        $this->bindClient($this->prAggregations(), [['key' => 'Issue: Ready for Work', 'doc_count' => 20]]);
-        $issues = Mockery::mock(GitHubIssueService::class);
-        $issues->shouldReceive('searchIssueCount')->andThrow(new RuntimeException('github down'));
-        $this->app->instance(GitHubIssueService::class, $issues);
-
-        $response = $this->get(route('home'));
-
-        $response->assertOk();
-        $response->assertSee(e(GitHubLinkHelper::issueLabelUrl('Issue: Ready for Work', unclaimed: true)), false);
-        $response->assertDontSee('20 open');
     }
 
     public function testHomepageSurvivesLabelCountFailureAndDropsPills(): void
@@ -124,6 +100,60 @@ class WelcomeControllerTest extends TestCase
         $response->assertOk();
         $response->assertSee('Ready to code');   // card still rendered
         $response->assertDontSee('20 open');     // no pill when counts are unavailable
+    }
+
+    public function testHeroCtaOpensGitHubInNamedWindow(): void
+    {
+        $this->bindClient($this->prAggregations(), []);
+
+        $response = $this->get(route('home'));
+
+        $response->assertOk();
+        $this->assertMatchesRegularExpression(
+            '#href="https://github\.com/[^"]+"\s+target="magentoForgerGitHub" rel="noopener"\s+class="hp-cta-primary"#',
+            $response->getContent(),
+        );
+    }
+
+    public function testHeroCtaFallbackToLeaderboardStaysInCurrentTab(): void
+    {
+        config(['homepage.paths' => []]);
+        $this->bindClient($this->prAggregations(), []);
+
+        $response = $this->get(route('home'));
+
+        $response->assertOk();
+        $this->assertMatchesRegularExpression(
+            '#href="'.preg_quote(route('leaderboard.show', ['board' => 'contributor']), '#').'"\s+class="hp-cta-primary"#',
+            $response->getContent(),
+        );
+    }
+
+    public function testClaimAnIssueLinkOpensGitHubInNamedWindow(): void
+    {
+        $this->bindClient($this->prAggregations(), []);
+
+        $response = $this->get(route('home'));
+
+        $response->assertOk();
+        $this->assertMatchesRegularExpression(
+            '#href="https://github\.com/[^"]+"\s+target="magentoForgerGitHub" rel="noopener"\s*>Claim an issue</a>#',
+            $response->getContent(),
+        );
+    }
+
+    public function testClaimAnIssueFallbackToLeaderboardStaysInCurrentTab(): void
+    {
+        config(['homepage.paths' => []]);
+        $this->bindClient($this->prAggregations(), []);
+
+        $response = $this->get(route('home'));
+
+        $response->assertOk();
+        $this->assertMatchesRegularExpression(
+            '#href="'.preg_quote(route('leaderboard.show', ['board' => 'contributor']), '#').'"\s*>Claim an issue</a>#',
+            $response->getContent(),
+        );
     }
 
     public function testHeroHasSingleCtaForGuests(): void

@@ -124,6 +124,8 @@ class ClaimRecordReader
                 'index' => OpenSearchService::getIndexWithPrefix(
                     OpenSearchService::OPENSEARCH_GITHUB_PULL_REQUESTS_INDEX,
                 ),
+                // Titles are cosmetic: a missing index yields no hits so callers fall back to the PR number.
+                'ignore_unavailable' => true,
                 'body' => [
                     'size' => count($chunk),
                     '_source' => ['id', 'title'],
@@ -256,6 +258,8 @@ class ClaimRecordReader
         $response = $this->client->search([
             'index' => OpenSearchService::getIndexWithPrefix($index),
             'scroll' => '1m',
+            // A missing index yields no hits, so a fresh environment reads as "no claims" instead of throwing.
+            'ignore_unavailable' => true,
             'size' => 1000,
             '_source' => $source,
             'body' => ['query' => $query],

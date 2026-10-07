@@ -24,26 +24,12 @@ class GitHubLinkHelper
     public static function issueLabelUrl(string $label, bool $unclaimed = false): string
     {
         $repo = config('github.repo');
-
-        return sprintf('https://github.com/%s/issues?q=%s', $repo, urlencode(self::issueSearchQuery($label, $unclaimed)));
-    }
-
-    /**
-     * The GitHub search query behind issueLabelUrl(). Shared so a live count fetched from
-     * GitHub search (which needs a `repo:` qualifier) matches the link exactly.
-     *
-     * @param  string  $label  Exact GitHub label name.
-     * @param  bool  $unclaimed  Exclude issues already assigned or with a linked PR.
-     * @return string Raw (unencoded) search query.
-     */
-    public static function issueSearchQuery(string $label, bool $unclaimed = false): string
-    {
         $query = sprintf('is:issue is:open label:"%s"', $label);
         if ($unclaimed) {
             $query .= ' no:assignee -linked:pr';
         }
 
-        return $query;
+        return sprintf('https://github.com/%s/issues?q=%s', $repo, urlencode($query));
     }
 
     /**

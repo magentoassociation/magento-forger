@@ -292,6 +292,8 @@ class ScoredEventReader
                 'index' => OpenSearchService::getIndexWithPrefix(
                     OpenSearchService::OPENSEARCH_GITHUB_PULL_REQUESTS_INDEX,
                 ),
+                // Missing index → no hits → label rows fall back to "PR #n".
+                'ignore_unavailable' => true,
                 'body' => [
                     'size' => count($chunk),
                     '_source' => ['id', 'title'],
@@ -455,6 +457,8 @@ class ScoredEventReader
                 'index' => OpenSearchService::getIndexWithPrefix(
                     OpenSearchService::OPENSEARCH_GITHUB_PULL_REQUESTS_INDEX,
                 ),
+                // Missing index → no hits → reviews still score, with "PR #n" titles.
+                'ignore_unavailable' => true,
                 'body' => [
                     'size' => count($chunk),
                     '_source' => ['id', 'author', 'state', 'labels', 'title', 'url'],

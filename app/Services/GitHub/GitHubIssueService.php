@@ -9,7 +9,6 @@ declare(strict_types=1);
 namespace App\Services\GitHub;
 
 use App\DataTransferObjects\GitHub\IssueCounts;
-use App\Exceptions\GitHubGraphQLException;
 
 class GitHubIssueService
 {
@@ -23,22 +22,6 @@ class GitHubIssueService
         ]);
 
         return IssueCounts::fromGraphQL($data);
-    }
-
-    /**
-     * Number of issues GitHub's own search returns for a query string — the same count a
-     * browser sees when following an issue-search link built from that query.
-     *
-     * @param  string  $query  GitHub search syntax, including a `repo:` qualifier.
-     *
-     * @throws GitHubGraphQLException
-     * @throws \JsonException
-     */
-    public function searchIssueCount(string $query): int
-    {
-        $data = $this->executeQuery('github_issue_search_count.graphql', ['query' => $query]);
-
-        return (int) ($data['search']['issueCount'] ?? 0);
     }
 
     public function fetchIssues(string $owner, string $repo, ?string $cursor = null): array

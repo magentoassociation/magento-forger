@@ -1,5 +1,0 @@
-query($query: String!) {
-  search(type: ISSUE, query: $query, first: 0) {
-    issueCount
-  }
-}

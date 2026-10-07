@@ -35,8 +35,15 @@ class SiteHeaderTest extends TestCase
             ->assertSee('aria-haspopup="menu"', false)
             ->assertSee('role="menu" aria-labelledby="acct-chip"', false)
             ->assertSee('class="dropdown-item acct-item" role="menuitem" tabindex="-1" href="'.route('leaderboard.detail', ['board' => 'contributor', 'login' => 'someviewer']).'">My contributions', false)
-            ->assertSee('class="dropdown-item acct-item" role="menuitem" tabindex="-1" href="/admin">Admin', false)
+            ->assertSee('class="dropdown-item acct-item" role="menuitem" tabindex="-1" href="'.route('filament.admin.pages.dashboard').'">Admin', false)
             ->assertSee('role="menuitem" tabindex="-1">Logout', false);
+    }
+
+    public function testBrandLinksToNamedHomeRoute(): void
+    {
+        $this->get(route('leaderboard.scoring'))
+            ->assertOk()
+            ->assertSee('class="navbar-brand site-brand" href="'.route('home').'"', false);
     }
 
     public function testGuestHasNoAccountMenu(): void

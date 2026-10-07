@@ -124,9 +124,11 @@
                     @endif
                 </span>
 
-                <span class="lbr-activity" @if ($actCount > 0) aria-label="{{ $actAria }}" @endif>
+                {{-- aria-label is ignored on a generic span, so the spoken breakdown is real hidden text. --}}
+                <span class="lbr-activity">
                     @if ($actCount > 0)
-                        {{ number_format($actCount) }} {{ $actWord }}
+                        <span aria-hidden="true">{{ number_format($actCount) }} {{ $actWord }}</span>
+                        <span class="visually-hidden">{{ $actAria }}</span>
                     @endif
                 </span>
 
