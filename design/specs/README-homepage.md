@@ -280,7 +280,7 @@ both fail (current behaviour, unchanged).
      Martian Mono 400, 9px, uppercase, `.06em`, `#6b7178`.
 2. **Totals** — `display: flex; gap: 22px; margin-top: 10px`. Two items, opened then closed,
    each `display: flex; align-items: baseline; gap: 7px`:
-   - Swatch 8×8, `border-radius: 2px`, vertically centred — `#ee6524` opened, `#15171b` closed.
+   - Swatch 8×8, `border-radius: 2px`, vertically centred — `#ee6524` opened, `#9aa3ae` closed.
    - Number — sum of every month in the series, thousands separator. Libre Franklin 700, 22px,
      `-.03em`.
    - Word "opened" / "closed" — 12.5px, `#5d636c`.
@@ -298,7 +298,7 @@ and read as one texture; quarterly pairs are about 4px.
 
 | Option | Value |
 |---|---|
-| Datasets | opened `#ee6524`, closed `#15171b`, quarterly sums |
+| Datasets | opened `#ee6524`, closed `#9aa3ae` (was `#15171b` — orange on black read as Halloween), quarterly sums |
 | `borderRadius` | `1` (was 3) — top corners only |
 | `categoryPercentage` / `barPercentage` | `0.92` / `0.9` — 1px between a pair, 2px between quarters |
 | `plugins.legend.display` | `false` |
@@ -311,7 +311,7 @@ and read as one texture; quarterly pairs are about 4px.
 **Hover** — the hovered quarter's pair drops to 60% opacity (Chart.js `hoverBackgroundColor`
 at alpha .6). No cursor change.
 
-**Accessibility** — keep `role="img"` and the canvas `aria-label`, extended with the totals:
+**Accessibility** — closed bars `#9aa3ae` are 2.5:1 on white; acceptable because every value is also in the tooltip and the totals are text. Keep `role="img"` and the canvas `aria-label`, extended with the totals:
 "Pull requests opened and closed per quarter, Dec 2014 to Sep 2026: 23,410 opened, 21,980 closed".
 The totals row is real text, so it is read before the canvas.
 
@@ -336,7 +336,7 @@ All values are existing tokens from `README-header.md` and `README.md`. New to t
 
 | Chart gridline | `#eef0f2` | Momentum y gridlines |
 
-Reused: `#6b7178`, `#15171b`, `#f26322`, `#ff7433`, `#c9ced4`, `#9aa3ae`, `#8a919b`, `#ffffff`, `#e6e7ea`, `#faf9f7`, `#3c4148`, `#5d636c`, `#fdf1ea`, `#a8420f`, `#ee6524`.
+Reused: `#6b7178`, `#9aa3ae` (closed bars), `#15171b`, `#f26322`, `#ff7433`, `#c9ced4`, `#9aa3ae`, `#8a919b`, `#ffffff`, `#e6e7ea`, `#faf9f7`, `#3c4148`, `#5d636c`, `#fdf1ea`, `#a8420f`, `#ee6524`.
 
 ## Type
 
