@@ -1,7 +1,7 @@
 # Out of sync — spec vs code
 
 Where the live site differs from the design specs in `design/specs/`. Last checked **2026-10-08**,
-after the monthly no-decay scoring modal (19c) was added to the spec and prototype. Only current
+after the homepage Momentum charts (28a) were added to the spec and prototype. Only current
 differences are listed; anything fixed is deleted, not kept as history.
 
 ## How to read this
@@ -21,7 +21,11 @@ are not listed.
 
 ## To do
 
-None at the moment.
+- **Homepage Momentum charts** (`welcome.blade.php`, `charts/github-stats.blade.php`,
+  `charts/_bar-chart.blade.php`, `.chart-card` in `_chrome-styles.blade.php`) — live draws monthly
+  bars in a 320px plot with rotated `yyyy-MM` ticks and a bottom legend. Spec (`README-homepage.md`,
+  "Momentum"): quarterly bars, 150px plot, totals row as the legend, even-year axis.
+  Pages: `/`.
 
 ## Unsure
 

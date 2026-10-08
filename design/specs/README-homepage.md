@@ -17,7 +17,7 @@ written in HTML — a prototype of the
 intended look and behaviour, not production code to copy. Reproduce the spec below in the
 Laravel/Blade + Bootstrap codebase using its existing template conventions.
 
-In the prototype, **`#15a` is the approved design.**
+In the prototype, **`#15a` is the approved design**; the Momentum charts are drawn in `#28a`.
 
 ## Fidelity
 **High-fidelity** for colour, type and spacing — the values below are exact. Layout proportions
@@ -44,7 +44,8 @@ Top to bottom:
 3. Start contributing — "Ready to code" row.
 4. Pick your area — 2-column list.
 5. First time contributing? — three-step rail.
-6. Footer — 12a, unchanged.
+6. Momentum — PR and issue charts (28a).
+7. Footer — 12a, unchanged.
 
 **Removed from the current page:** the three benefit cards, and the closing "Ready to ship your
 first fix?" block with its duplicate CTA pair. The hero CTA is the only CTA; "Ready to code"
@@ -259,6 +260,67 @@ same content as today's box; the box was ~230px tall with more than half of it e
 
 ---
 
+## Momentum
+
+Drawn in `#28a`, placed in `#15a` / `#24d`. `padding: 0 36px 34px`, directly after the
+first-timer block. Each chart is hidden when its aggregation fails; the section is hidden when
+both fail (current behaviour, unchanged).
+
+- `<h2>` "Momentum" and sub "Contributors open and close pull requests and issues every month.
+  Join them." — same styles as the other section heads. Copy unchanged.
+- Cards: `display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px` — one equal
+  column per rendered card, as today.
+
+**Card** — `.chart-card`, `padding: 18px 20px 14px` (bottom was 18px), `border: 1px solid
+#e6e7ea`, `border-radius: 10px`.
+
+1. **Head row** — `display: flex; align-items: baseline; gap: 12px`.
+   - Title "Pull requests" / "Issues" — Libre Franklin 700, 15px, `-.018em` (unchanged).
+   - Range, pushed right — the first and last month in the data, e.g. "Dec 2014 – Sep 2026".
+     Martian Mono 400, 9px, uppercase, `.06em`, `#6b7178`.
+2. **Totals** — `display: flex; gap: 22px; margin-top: 10px`. Two items, opened then closed,
+   each `display: flex; align-items: baseline; gap: 7px`:
+   - Swatch 8×8, `border-radius: 2px`, vertically centred — `#ee6524` opened, `#15171b` closed.
+   - Number — sum of every month in the series, thousands separator. Libre Franklin 700, 22px,
+     `-.03em`.
+   - Word "opened" / "closed" — 12.5px, `#5d636c`.
+
+   **These replace the Chart.js legend** (`legend.display: false`). The swatches are the key.
+3. **Plot** — `height: 150px; margin-top: 20px` (was 320px).
+4. **Year axis** — 22px row under the plot.
+
+**Data.** The controller's monthly buckets are unchanged; the view sums them into calendar
+quarters before charting (Jan–Mar, Apr–Jun, Jul–Sep, Oct–Dec). A partial first or last quarter
+is charted as-is. Paired monthly bars for 140+ months are under 2px each in a half-width card
+and read as one texture; quarterly pairs are about 4px.
+
+**Chart.js options** (`forgerBarChart` for these two charts):
+
+| Option | Value |
+|---|---|
+| Datasets | opened `#ee6524`, closed `#15171b`, quarterly sums |
+| `borderRadius` | `1` (was 3) — top corners only |
+| `categoryPercentage` / `barPercentage` | `0.92` / `0.9` — 1px between a pair, 2px between quarters |
+| `plugins.legend.display` | `false` |
+| y ticks | 3 steps from a nice step (1, 2, 2.5, 5 × 10ⁿ); `0` not labelled. Martian Mono 9.5px, `#6b7178`, drawn inside the plot at the top-left of each gridline (`mirror: true`, white backdrop) so they take no gutter |
+| y grid | `#eef0f2`; no border |
+| x baseline | `border.color: '#c9ced4'`; no grid |
+| x ticks | One label per even year, at its Q1 bar: "2016", "2018" … Libre Franklin 700, 12px, `#15171b`, `maxRotation: 0`, `autoSkip: false`, left-aligned with a 1×5px `#c9ced4` tick above |
+| Tooltip | title "Q2 2018"; body "412 PRs opened, 388 closed" |
+
+**Hover** — the hovered quarter's pair drops to 60% opacity (Chart.js `hoverBackgroundColor`
+at alpha .6). No cursor change.
+
+**Accessibility** — keep `role="img"` and the canvas `aria-label`, extended with the totals:
+"Pull requests opened and closed per quarter, Dec 2014 to Sep 2026: 23,410 opened, 21,980 closed".
+The totals row is real text, so it is read before the canvas.
+
+**Responsive** — below `lg` the cards stack, Pull requests first
+(`grid-template-columns: minmax(0, 1fr)`), section padding `0 20px 34px`. Plot height and
+quarter grouping stay the same.
+
+---
+
 ## Colours
 
 All values are existing tokens from `README-header.md` and `README.md`. New to this page:
@@ -272,7 +334,9 @@ All values are existing tokens from `README-header.md` and `README.md`. New to t
 | Empty-row ink | `#f9a279` | "Your row is empty" |
 | Dashed avatar | `#4a5057` | empty avatar outline |
 
-Reused: `#15171b`, `#f26322`, `#ff7433`, `#c9ced4`, `#9aa3ae`, `#8a919b`, `#ffffff`, `#e6e7ea`, `#faf9f7`, `#3c4148`, `#5d636c`, `#fdf1ea`, `#a8420f`, `#ee6524`.
+| Chart gridline | `#eef0f2` | Momentum y gridlines |
+
+Reused: `#6b7178`, `#15171b`, `#f26322`, `#ff7433`, `#c9ced4`, `#9aa3ae`, `#8a919b`, `#ffffff`, `#e6e7ea`, `#faf9f7`, `#3c4148`, `#5d636c`, `#fdf1ea`, `#a8420f`, `#ee6524`.
 
 ## Type
 
@@ -330,6 +394,7 @@ Below the Bootstrap `lg` breakpoint:
 - The area grid collapses to one column; the 1px-gap rule technique still applies.
 - The first-timer block stacks: heading block, then the three steps in a column with
   `border-left` swapped for `border-top: 1px solid #e6e7ea` and `padding: 14px 0 0`.
+- The Momentum cards stack, Pull requests first.
 - The leaderboard card drops to the **top three** plus the visitor's row below `lg`. At five
   rows the hero pushes the CTAs and everything under them off a phone screen; three is enough to
   read as a ranking. The visitor's row is never dropped at any width — it is the pitch. Long
