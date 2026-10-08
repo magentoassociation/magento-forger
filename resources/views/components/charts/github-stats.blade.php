@@ -1,49 +1,26 @@
-<script>
-    const labels = {!! json_encode(array_keys($monthlyStats), JSON_THROW_ON_ERROR) !!};
+@include('components.charts._bar-chart')
 
-    const prOpenedData = {!! json_encode(array_column($monthlyStats, 'pr_opened'), JSON_THROW_ON_ERROR) !!};
-    const prClosedData = {!! json_encode(array_column($monthlyStats, 'pr_closed'), JSON_THROW_ON_ERROR) !!};
+@push('scripts')
+    <script>
+        // Null when that aggregation failed; its canvas is not rendered either.
+        const prStats = {!! json_encode($prStats, JSON_THROW_ON_ERROR) !!};
+        const issueStats = {!! json_encode($issueStats, JSON_THROW_ON_ERROR) !!};
 
-    document.addEventListener('DOMContentLoaded', () => {
-        const el = document.getElementById('prChart');
-        if (!el) {
-            return;
-        }
-
-        new Chart(el.getContext('2d'), {
-            type: 'bar',
-            data: {
-                labels: labels,
-                datasets: [
-                    {
-                        label: 'PRs Opened',
-                        data: prOpenedData,
-                        backgroundColor: 'rgba(54, 162, 235, 0.6)',
-                    },
-                    {
-                        label: 'PRs Closed',
-                        data: prClosedData,
-                        backgroundColor: 'rgba(255, 99, 132, 0.6)',
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: { stepSize: 1 }
-                    }
-                },
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            padding: 20,
-                        }
-                    }
-                }
+        const openedClosed = (id, stats, noun) => {
+            if (!stats) {
+                return;
             }
+
+            const months = Object.keys(stats);
+            forgerBarChart(id, months, [
+                { label: `${noun} Opened`, data: months.map(m => stats[m].opened), color: '#ee6524' },
+                { label: `${noun} Closed`, data: months.map(m => stats[m].closed), color: '#15171b' },
+            ]);
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            openedClosed('prChart', prStats, 'PRs');
+            openedClosed('issueChart', issueStats, 'Issues');
         });
-    });
-</script>
+    </script>
+@endpush

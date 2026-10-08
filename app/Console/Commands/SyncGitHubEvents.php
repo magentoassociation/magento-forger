@@ -123,6 +123,7 @@ class SyncGitHubEvents extends Command implements Isolatable
                 }
             },
             cutoff: $cutoff,
+            createdSince: $this->historyStart(),
             cursor: $cursor,
             onPage: $this->makeOnPageCallback($totalPages),
             onNode: $this->makeOnNodeCallback(),

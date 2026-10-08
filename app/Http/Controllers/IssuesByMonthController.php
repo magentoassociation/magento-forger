@@ -9,13 +9,14 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\DataTransferObjects\Misc\InfoText;
+use App\Queries\Dashboard\AgeOverTimeQuery;
 use App\Queries\Dashboard\OpenItemsByMonthQuery;
 use App\Services\Search\OpenSearchService;
 use Illuminate\View\View;
 
 class IssuesByMonthController extends Controller
 {
-    public function index(OpenItemsByMonthQuery $query): View
+    public function index(OpenItemsByMonthQuery $query, AgeOverTimeQuery $ageQuery): View
     {
         $dataMissing = false;
 
@@ -32,6 +33,7 @@ class IssuesByMonthController extends Controller
         return view('issuesByMonth/index', [
             'infoText' => $this->getInfoText(),
             'issues' => $issues,
+            'ageStats' => $this->ageOverTime($ageQuery, OpenSearchService::OPENSEARCH_GITHUB_ISSUES_INDEX),
             'dataMissing' => $dataMissing,
         ]);
     }

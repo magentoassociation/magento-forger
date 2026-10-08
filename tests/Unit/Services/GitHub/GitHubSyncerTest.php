@@ -218,6 +218,70 @@ class GitHubSyncerTest extends TestCase
         $this->assertSame('resume-cursor', $firstCursor);
     }
 
+    public function testCreatedSinceDropsOlderNodesBeforeIndexingAndOnNode(): void
+    {
+        $old = ['number' => 1, 'createdAt' => '2013-05-01T00:00:00Z', 'updatedAt' => '2024-01-02'];
+        $boundary = ['number' => 2, 'createdAt' => '2014-12-01T00:00:00Z', 'updatedAt' => '2024-01-01'];
+        $new = ['number' => 3, 'createdAt' => '2016-01-01T00:00:00Z', 'updatedAt' => '2023-12-31'];
+        $indexed = null;
+        $seen = [];
+
+        $this->syncer->sync(
+            fetchPage: fn ($cursor) => $this->makePage([$old, $boundary, $new], false),
+            index: function ($n) use (&$indexed) {
+                $indexed = $n;
+            },
+            onNode: function (array $node) use (&$seen) {
+                $seen[] = $node['number'];
+            },
+            createdSince: Carbon::parse('2014-12-01'),
+        );
+
+        $this->assertSame([$boundary, $new], $indexed);
+        $this->assertSame([2, 3], $seen);
+    }
+
+    public function testCreatedSinceKeepsPagingWhenWholePageIsOlder(): void
+    {
+        // Pages are ordered by updatedAt, so an all-old page says nothing about the next one.
+        $pages = [
+            $this->makePage([['number' => 1, 'createdAt' => '2012-01-01', 'updatedAt' => '2024-02-01']], true, 'c1'),
+            $this->makePage([['number' => 2, 'createdAt' => '2020-01-01', 'updatedAt' => '2024-01-01']], false),
+        ];
+        $pageIndex = 0;
+        $indexed = [];
+
+        $result = $this->syncer->sync(
+            fetchPage: function ($cursor) use (&$pages, &$pageIndex) {
+                return $pages[$pageIndex++];
+            },
+            index: function ($n) use (&$indexed) {
+                $indexed[] = array_column($n, 'number');
+            },
+            createdSince: Carbon::parse('2014-12-01'),
+        );
+
+        $this->assertSame([[], [2]], $indexed);
+        $this->assertSame(2, $result['pages']);
+    }
+
+    public function testCutoffUsesLastFetchedNodeEvenWhenCreatedSinceDropsIt(): void
+    {
+        $result = $this->syncer->sync(
+            fetchPage: fn ($cursor) => $this->makePage(
+                [['number' => 1, 'createdAt' => '2012-01-01', 'updatedAt' => '2024-01-01']],
+                true,
+                'c1',
+            ),
+            index: fn ($n) => null,
+            cutoff: Carbon::parse('2024-06-01'),
+            createdSince: Carbon::parse('2014-12-01'),
+        );
+
+        $this->assertTrue($result['cutoffReached']);
+        $this->assertSame(1, $result['pages']);
+    }
+
     public function testEmptyPageDoesNotTriggerCutoff(): void
     {
         $cutoff = Carbon::parse('2024-06-01');

@@ -17,4 +17,6 @@
             <x-by-month :rows="$prs" :info="$infoText" noun="PRs" link-path="pulls" q-type="pr" />
         @endif
     </div>
+
+    <x-charts.age-over-time :stats="$ageStats" noun="PRs" />
 @endsection

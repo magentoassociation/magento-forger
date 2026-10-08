@@ -23,9 +23,9 @@ class WelcomeController extends Controller
 {
     public function index(OpenSearchService $search, HomepageCountsService $counts): View
     {
-        // Momentum chart disabled — the PR aggregation is skipped. Restore this and the
-        // 'monthlyStats'/'dataMissing' view data alongside the Momentum section in welcome.blade.php.
-        // $monthlyStats = $this->prsOverTime($search, $dataMissing);
+        $dataMissing = false;
+        $prStats = $this->openedClosedPerMonth($search->searchPRs(...), 'prs', $dataMissing);
+        $issueStats = $this->openedClosedPerMonth($search->searchIssues(...), 'issues', $dataMissing);
 
         $labelCounts = $counts->labelCounts();
 
@@ -33,8 +33,9 @@ class WelcomeController extends Controller
         $viewerEntry = $this->viewerEntry();
 
         return view('welcome', [
-            // 'monthlyStats' => $monthlyStats,
-            // 'dataMissing' => $dataMissing,
+            'prStats' => $prStats,
+            'issueStats' => $issueStats,
+            'dataMissing' => $dataMissing,
             'paths' => $this->buildPaths($labelCounts),
             'areas' => $this->buildAreas($labelCounts),
             'links' => config('homepage.links'),
@@ -98,17 +99,22 @@ class WelcomeController extends Controller
     }
 
     /**
-     * Monthly opened/closed PR counts feeding the single "Momentum" chart.
+     * Monthly opened/closed counts feeding one of the "Momentum" charts.
      *
-     * @param  bool|null  $dataMissing  Set to true when the PR index is absent (dev only).
-     * @return array<string, array{pr_opened: int, pr_closed: int}>
+     * Returns null on any search failure other than a missing index, so the homepage
+     * hides that chart instead of failing.
+     *
+     * @param  callable(QueryBuilder): array<string, mixed>  $run  Runs the query against the PR or issue index.
+     * @param  string  $prefix  Aggregation name prefix ('prs' or 'issues').
+     * @param  bool  $dataMissing  Set to true when the index is absent (dev only); never reset.
+     * @return array<string, array{opened: int, closed: int}>|null
      */
-    private function prsOverTime(OpenSearchService $search, ?bool &$dataMissing): array
+    private function openedClosedPerMonth(callable $run, string $prefix, bool &$dataMissing): ?array
     {
         $builder = new QueryBuilder;
         $builder
             ->addAggregation(new Aggregation(
-                'prs_opened_per_month',
+                "{$prefix}_opened_per_month",
                 [
                     'date_histogram' => [
                         'field' => 'created_at',
@@ -119,7 +125,7 @@ class WelcomeController extends Controller
                 ]
             ))
             ->addAggregation(new Aggregation(
-                'prs_closed_per_month',
+                "{$prefix}_closed_per_month",
                 [
                     'date_histogram' => [
                         'field' => 'closed_at',
@@ -131,20 +137,20 @@ class WelcomeController extends Controller
             ))
             ->setSize(0);
 
-        $dataMissing = false;
-
         try {
-            $response = $search->searchPRs($builder);
+            $response = $run($builder);
         } catch (\Exception $e) {
             if (! $this->isMissingIndex($e)) {
-                abort(500, 'Error fetching PR data: '.$e->getMessage());
+                report($e);
+
+                return null;
             }
             $response = [];
             $dataMissing = true;
         }
 
-        $opened = $response['aggregations']['prs_opened_per_month']['buckets'] ?? [];
-        $closed = $response['aggregations']['prs_closed_per_month']['buckets'] ?? [];
+        $opened = $response['aggregations']["{$prefix}_opened_per_month"]['buckets'] ?? [];
+        $closed = $response['aggregations']["{$prefix}_closed_per_month"]['buckets'] ?? [];
 
         $months = collect(array_merge(
             array_column($opened, 'key_as_string'),
@@ -153,13 +159,13 @@ class WelcomeController extends Controller
 
         $stats = [];
         foreach ($months as $month) {
-            $stats[$month] = ['pr_opened' => 0, 'pr_closed' => 0];
+            $stats[$month] = ['opened' => 0, 'closed' => 0];
         }
         foreach ($opened as $bucket) {
-            $stats[$bucket['key_as_string']]['pr_opened'] = $bucket['doc_count'];
+            $stats[$bucket['key_as_string']]['opened'] = $bucket['doc_count'];
         }
         foreach ($closed as $bucket) {
-            $stats[$bucket['key_as_string']]['pr_closed'] = $bucket['doc_count'];
+            $stats[$bucket['key_as_string']]['closed'] = $bucket['doc_count'];
         }
 
         return $stats;

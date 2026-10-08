@@ -68,6 +68,7 @@ class SyncGitHubPRs extends Command implements Isolatable
                 $openSearch->indexPullRequests($expanded);
             },
             cutoff: $cutoff,
+            createdSince: $this->historyStart(),
             cursor: $cursor,
             onPage: $this->makeOnPageCallback($totalPages),
             onNode: $this->makeOnNodeCallback(),

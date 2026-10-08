@@ -413,6 +413,13 @@
 
     /* ---- Month picker ---- */
     .bm-picker { margin-top: 36px; }
+    .bm-age { margin-top: 36px; }
+    .bm-age-sub {
+        margin: 4px 0 12px;
+        font-family: 'Libre Franklin', system-ui, sans-serif;
+        font-size: 13.5px;
+        color: #5d636c;
+    }
     .bm-picker-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 12px; }
     .bm-picker-title {
         margin: 0;
@@ -1138,6 +1145,33 @@
         white-space: nowrap;
     }
 
+    /* Momentum chart */
+    .hp-momentum { padding-bottom: 34px; }
+    .hp-charts {
+        /* One equal column per rendered card (one or two). */
+        display: grid;
+        grid-auto-flow: column;
+        grid-auto-columns: minmax(0, 1fr);
+        gap: 16px;
+    }
+
+    /* Chart card — shared by the homepage Momentum charts and the by-month age charts */
+    .chart-card {
+        min-width: 0;
+        padding: 18px 20px;
+        border: 1px solid #e6e7ea;
+        border-radius: 10px;
+    }
+    .chart-card-title {
+        margin: 0 0 12px;
+        font-family: 'Libre Franklin', system-ui, sans-serif;
+        font-weight: 700;
+        font-size: 15px;
+        letter-spacing: -.018em;
+        color: #15171b;
+    }
+    .chart-card-canvas { position: relative; height: 320px; }
+
     /* First time contributing */
     .hp-first {
         margin-top: 30px;
@@ -1201,6 +1235,7 @@
         .hp-hero-right { width: 100%; align-self: stretch; }
         .hp-section { padding-left: 20px; padding-right: 20px; }
         .hp-grid { grid-template-columns: minmax(0, 1fr); }
+        .hp-charts { grid-auto-flow: row; }
         /* Below lg the card drops to the top three (+ the visitor's row). Head is child 1,
            so ranked rows sit at child 2–6; hide the 4th and 5th — but never the viewer's own
            highlighted row when they rank 4 or 5 (spec: the visitor's row is never dropped). */

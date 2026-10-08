@@ -183,4 +183,39 @@
             </ol>
         </div>
     </section>
+
+    {{-- Momentum (social proof) — each chart hidden when its aggregation fails --}}
+    @if ($prStats !== null || $issueStats !== null)
+        <section class="container hp-section hp-momentum">
+            <h2 class="hp-h2">Momentum</h2>
+            <p class="hp-sub">Contributors open and close pull requests and issues every month. Join them.</p>
+            @if ($dataMissing)
+                <x-data-missing>
+                    The OpenSearch indices are empty or missing. Run
+                    <code>ddev artisan sync:github:prs</code> and
+                    <code>ddev artisan sync:github:issues</code> to populate them.
+                </x-data-missing>
+            @endif
+            <div class="hp-charts">
+                @if ($prStats !== null)
+                    <div class="chart-card">
+                        <h3 class="chart-card-title">Pull requests</h3>
+                        <div class="chart-card-canvas">
+                            <canvas id="prChart" aria-label="Pull requests opened and closed per month" role="img"></canvas>
+                        </div>
+                    </div>
+                @endif
+                @if ($issueStats !== null)
+                    <div class="chart-card">
+                        <h3 class="chart-card-title">Issues</h3>
+                        <div class="chart-card-canvas">
+                            <canvas id="issueChart" aria-label="Issues opened and closed per month" role="img"></canvas>
+                        </div>
+                    </div>
+                @endif
+            </div>
+        </section>
+
+        @include('components.charts.github-stats', ['prStats' => $prStats, 'issueStats' => $issueStats])
+    @endif
 @endsection
