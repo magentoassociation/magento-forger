@@ -1,7 +1,7 @@
 # Out of sync — spec vs code
 
 Where the live site differs from the design specs in `design/specs/`. Last checked **2026-10-08**,
-after the homepage Momentum charts (28a) were added to the spec and prototype. Only current
+after the homepage Momentum charts (28a) were built to the spec. Only current
 differences are listed; anything fixed is deleted, not kept as history.
 
 ## How to read this
@@ -21,11 +21,7 @@ are not listed.
 
 ## To do
 
-- **Homepage Momentum charts** (`welcome.blade.php`, `charts/github-stats.blade.php`,
-  `charts/_bar-chart.blade.php`, `.chart-card` in `_chrome-styles.blade.php`) — live draws monthly
-  bars in a 320px plot with rotated `yyyy-MM` ticks and a bottom legend. Spec (`README-homepage.md`,
-  "Momentum"): quarterly bars, 150px plot, totals row as the legend, even-year axis.
-  Pages: `/`.
+None at the moment.
 
 ## Unsure
 
@@ -33,7 +29,13 @@ None at the moment.
 
 ## Kept on purpose
 
-None at the moment.
+- **Momentum chart height** (`.chart-card-canvas--momentum` in `_chrome-styles.blade.php`,
+  `layout.padding.top` in `charts/github-stats.blade.php`) — the canvas is 186px: the spec's 150px
+  plot and 22px year axis, plus 14px of top headroom. Without it Chart.js clips the top y label,
+  which the spec draws above its gridline. Pages: `/`.
+- **Momentum year labels** (`charts/github-stats.blade.php`) — each label starts at the centre of
+  its Q1 bar pair, about 2px right of the 1×5px tick at the pair's left edge, instead of
+  left-aligned with the tick. Chart.js anchors category labels at the bar centre. Pages: `/`.
 
 ## Not covered
 
