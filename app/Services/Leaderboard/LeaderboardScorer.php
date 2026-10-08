@@ -1,0 +1,294 @@
+<?php
+
+/*
+ * @copyright Copyright (c) 2026 The Magento Association
+ * @license https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
+ */
+declare(strict_types=1);
+
+namespace App\Services\Leaderboard;
+
+use App\DataTransferObjects\Leaderboard\ScoredEvent;
+use Carbon\CarbonInterface;
+
+/**
+ * Pure scoring logic: applies weight x impact x recency decay to scored events
+ * and derives per-contributor engagement signals. No I/O — fully unit-testable.
+ */
+class LeaderboardScorer
+{
+    /**
+     * @param  array<string, array<string, int|float>>  $weights  board => action => base weight
+     */
+    public function __construct(
+        private readonly array $weights,
+        private readonly float $impactMin,
+        private readonly float $impactMax,
+        private readonly int $windowDays,
+        private readonly int $halfLifeDays,
+    ) {
+        if ($halfLifeDays <= 0) {
+            throw new \InvalidArgumentException("halfLifeDays must be positive, got {$halfLifeDays}.");
+        }
+    }
+
+    public static function fromConfig(): self
+    {
+        return new self(
+            weights: (array) config('leaderboard.weights', []),
+            impactMin: (float) config('leaderboard.impact.min', 1.0),
+            impactMax: (float) config('leaderboard.impact.max', 5.0),
+            windowDays: (int) config('leaderboard.recency.window_days', 365),
+            halfLifeDays: (int) config('leaderboard.recency.half_life_days', 182),
+        );
+    }
+
+    /**
+     * Impact weight from a contribution's labels, clamped to [min, max]. The
+     * highest matching "Priority: Px" label sets the multiplier (1.0 when the
+     * item carries none, so unprioritised work still earns its base); an issue's
+     * confirmed label adds a flat bonus on top, but only when $allowConfirmed
+     * (the issue-authoring event). Replaces the old lines-of-code heuristic so
+     * impact tracks triaged priority, not diff size, and can't be self-inflated.
+     *
+     * @param  list<string>  $labels
+     * @param  array<string, float|int>  $priority  label => multiplier
+     */
+    public static function impactFromLabels(
+        array $labels,
+        array $priority,
+        string $confirmedLabel,
+        float $confirmedBonus,
+        bool $allowConfirmed,
+        float $min = 1.0,
+        float $max = 5.5,
+    ): float {
+        $multiplier = 1.0;
+        foreach ($labels as $label) {
+            if (isset($priority[$label])) {
+                $multiplier = max($multiplier, (float) $priority[$label]);
+            }
+        }
+
+        if ($allowConfirmed && $confirmedLabel !== '' && in_array($confirmedLabel, $labels, true)) {
+            $multiplier += $confirmedBonus;
+        }
+
+        return max($min, min($max, $multiplier));
+    }
+
+    public function recencyFactor(CarbonInterface $date, CarbonInterface $now): float
+    {
+        $ageDays = abs($date->diffInDays($now));
+
+        if ($ageDays > $this->windowDays) {
+            return 0.0;
+        }
+
+        return 2 ** (-$ageDays / $this->halfLifeDays);
+    }
+
+    public function points(ScoredEvent $event, CarbonInterface $now): float
+    {
+        $base = (float) ($this->weights[$event->board->value][$event->action->value] ?? 0);
+
+        if ($base === 0.0) {
+            return 0.0;
+        }
+
+        $impact = max($this->impactMin, min($this->impactMax, $event->impact));
+
+        return $base * $impact * $this->recencyFactor($event->date, $now);
+    }
+
+    /**
+     * Points without recency decay: base weight x clamped impact. Used by the
+     * monthly boards, where the calendar month is the window, so a contribution
+     * is worth the same at the start and end of its month.
+     */
+    public function pointsFlat(ScoredEvent $event): float
+    {
+        $base = (float) ($this->weights[$event->board->value][$event->action->value] ?? 0);
+
+        if ($base === 0.0) {
+            return 0.0;
+        }
+
+        $impact = max($this->impactMin, min($this->impactMax, $event->impact));
+
+        return $base * $impact;
+    }
+
+    /**
+     * Bucket events into per-calendar-month, per-login scores with a per-action
+     * breakdown. Months are keyed by the event's UTC `Y-m`; events outside
+     * $allowedMonths are ignored. No recency decay and no engagement signals —
+     * the month is the window. Mirrors summarize()'s breakdown shape so the
+     * monthly board can reuse the same view partials.
+     *
+     * @param  list<ScoredEvent>  $events
+     * @param  list<string>  $allowedMonths  e.g. ['2026-07', '2026-06', ...]
+     * @return array<string, array<string, array{
+     *     contributor_score: float,
+     *     maintainer_score: float,
+     *     breakdown: array<string, array<string, array{count: int, points: float}>>
+     * }>> keyed by 'Y-m' then login
+     */
+    public function summarizeByMonth(array $events, array $allowedMonths): array
+    {
+        $allowed = array_flip($allowedMonths);
+        $months = [];
+
+        foreach ($events as $event) {
+            $month = $event->date->copy()->utc()->format('Y-m');
+
+            if (! isset($allowed[$month])) {
+                continue;
+            }
+
+            $login = $event->login;
+
+            if (! isset($months[$month][$login])) {
+                $months[$month][$login] = [
+                    'contributor_score' => 0.0,
+                    'maintainer_score' => 0.0,
+                    'breakdown' => [],
+                ];
+            }
+
+            $board = $event->board->value;
+            $action = $event->action->value;
+            $points = $this->pointsFlat($event);
+            $months[$month][$login][$board.'_score'] += $points;
+
+            $bucket = $months[$month][$login]['breakdown'][$board][$action] ?? ['count' => 0, 'points' => 0.0];
+            $bucket['count']++;
+            $bucket['points'] = round($bucket['points'] + $points, 4);
+            $months[$month][$login]['breakdown'][$board][$action] = $bucket;
+        }
+
+        foreach ($months as &$logins) {
+            foreach ($logins as &$data) {
+                $data['contributor_score'] = round($data['contributor_score'], 4);
+                $data['maintainer_score'] = round($data['maintainer_score'], 4);
+            }
+            unset($data);
+        }
+        unset($logins);
+
+        return $months;
+    }
+
+    /**
+     * Aggregate events per contributor into scores, a per-action breakdown, and
+     * engagement signals.
+     *
+     * @param  list<ScoredEvent>  $events
+     * @return array<string, array<string, mixed>> keyed by login
+     */
+    public function summarize(array $events, CarbonInterface $now): array
+    {
+        $users = [];
+
+        foreach ($events as $event) {
+            $login = $event->login;
+
+            if (! isset($users[$login])) {
+                $users[$login] = [
+                    'contributor_score' => 0.0,
+                    'maintainer_score' => 0.0,
+                    'breakdown' => [],
+                    'dates' => [],
+                    'contributor_dates' => [],
+                ];
+            }
+
+            $board = $event->board->value;
+            $action = $event->action->value;
+            $points = $this->points($event, $now);
+            $users[$login][$board.'_score'] += $points;
+
+            $bucket = $users[$login]['breakdown'][$board][$action] ?? ['count' => 0, 'points' => 0.0];
+            $bucket['count']++;
+            $bucket['points'] = round($bucket['points'] + $points, 4);
+            $users[$login]['breakdown'][$board][$action] = $bucket;
+
+            $users[$login]['dates'][] = $event->date;
+
+            if ($board === 'contributor') {
+                $users[$login]['contributor_dates'][] = $event->date;
+            }
+        }
+
+        foreach ($users as &$data) {
+            $engagement = $this->engagement($data['dates'], $now);
+
+            $lastContributor = null;
+            foreach ($data['contributor_dates'] as $date) {
+                if ($lastContributor === null || $date->greaterThan($lastContributor)) {
+                    $lastContributor = $date;
+                }
+            }
+
+            unset($data['dates'], $data['contributor_dates']);
+            $data['contributor_score'] = round($data['contributor_score'], 4);
+            $data['maintainer_score'] = round($data['maintainer_score'], 4);
+            $data['last_contributor_at'] = $lastContributor;
+            $data = array_merge($data, $engagement);
+        }
+        unset($data);
+
+        return $users;
+    }
+
+    /**
+     * @param  list<CarbonInterface>  $dates
+     * @return array{
+     *     first_contribution_at: CarbonInterface,
+     *     last_contribution_at: CarbonInterface,
+     *     current_gap_days: int,
+     *     current_streak_weeks: int,
+     *     longest_streak_weeks: int
+     * }
+     */
+    private function engagement(array $dates, CarbonInterface $now): array
+    {
+        usort($dates, fn (CarbonInterface $a, CarbonInterface $b) => $a->getTimestamp() <=> $b->getTimestamp());
+        $first = $dates[0];
+        $last = $dates[array_key_last($dates)];
+
+        $weeks = [];
+        foreach ($dates as $date) {
+            $weeks[intdiv($date->getTimestamp(), 604800)] = true;
+        }
+        $weekIndexes = array_keys($weeks);
+        sort($weekIndexes);
+
+        $longest = 1;
+        $run = 1;
+        for ($i = 1, $count = count($weekIndexes); $i < $count; $i++) {
+            $run = $weekIndexes[$i] === $weekIndexes[$i - 1] + 1 ? $run + 1 : 1;
+            $longest = max($longest, $run);
+        }
+
+        // "Current" must be anchored to now, not to the last active week — an
+        // inactive contributor has a current streak of 0. A one-week grace keeps
+        // an active contributor from dropping to 0 before they commit this week.
+        $activeWeeks = array_flip($weekIndexes);
+        $nowWeek = intdiv($now->getTimestamp(), 604800);
+        $anchor = isset($activeWeeks[$nowWeek]) ? $nowWeek : $nowWeek - 1;
+
+        $current = 0;
+        for ($week = $anchor; isset($activeWeeks[$week]); $week--) {
+            $current++;
+        }
+
+        return [
+            'first_contribution_at' => $first,
+            'last_contribution_at' => $last,
+            'current_gap_days' => (int) abs($last->diffInDays($now)),
+            'current_streak_weeks' => $current,
+            'longest_streak_weeks' => $longest,
+        ];
+    }
+}

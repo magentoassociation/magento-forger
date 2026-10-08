@@ -1,129 +1,141 @@
 <?php
+
+/*
+ * @copyright Copyright (c) 2026 The Magento Association
+ * @license https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
+ */
 declare(strict_types=1);
 
 namespace App\Console\Commands;
 
-use App\Services\GitHub\GitHubService;
+use App\Console\Commands\Concerns\SyncsWithGitHub;
+use App\Exceptions\InvalidSyncCutoffException;
+use App\Services\GitHub\GitHubInteractionService;
+use App\Services\GitHub\GitHubIssueService;
+use App\Services\GitHub\GitHubSyncer;
 use App\Services\Search\OpenSearchService;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
+use Illuminate\Contracts\Console\Isolatable;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
 /**
  * Sync all GitHub interactions (comments, reactions, etc.)
- * from issues and PRs into the "interactions" OpenSearch index.
+ * from issues into the "interactions" OpenSearch index.
  */
-class SyncGitHubInteractions extends Command
+class SyncGitHubInteractions extends Command implements Isolatable
 {
+    use SyncsWithGitHub;
+
     protected $signature = 'sync:github:interactions
-                            {--since= : Only import issues/PRs updated since this relative time (e.g. "2 weeks", "5 days")}';
+                            {--cursor= : Optional endCursor to resume pagination}
+                            {--since= : Only import issues updated since this date (e.g. "2 weeks", "5 days")}
+                            {--max-pages= : Maximum number of pages to process (default: all)}';
 
     protected $description = 'Sync all GitHub interactions into OpenSearch';
 
-    public function handle(GitHubService $github, OpenSearchService $openSearch): int
-    {
-        $repo = config('github.repo', 'magento/magento2');
-
-        if (!str_contains($repo, '/')) {
-            $this->error('Missing or invalid repository. Set it in config/github.php');
+    public function handle(
+        GitHubInteractionService $github,
+        GitHubIssueService $gitHubIssueService,
+        GitHubSyncer $syncer,
+        OpenSearchService $openSearch
+    ): int {
+        if (($parts = $this->resolveRepository()) === null) {
             return 1;
         }
 
-        [$owner, $name] = explode('/', $repo);
-        $sinceOption = $this->option('since');
-        $cutoff = null;
+        [$owner, $name] = $parts;
+        $cursor = $this->option('cursor');
+        $maxPagesOption = $this->option('max-pages');
+        $maxPages = null;
 
-        if ($sinceOption) {
-            try {
-                $cutoff = Carbon::parse($sinceOption);
-                $this->info("Only syncing interactions updated since: " . $cutoff->toDateTimeString());
-            } catch (\Exception $e) {
-                $this->error("Invalid date format for --since: $sinceOption");
+        if ($maxPagesOption !== null) {
+            if (! is_numeric($maxPagesOption) || (int) $maxPagesOption <= 0) {
+                $this->error('--max-pages must be a positive integer.');
+
                 return 1;
             }
-        } else {
-            $this->info("No date cutoff applied. All interactions will be synced.");
+
+            $maxPages = (int) $maxPagesOption;
         }
 
-        $this->info("Starting sync of interactions for $repo...");
+        try {
+            $cutoff = $this->parseCutoff('Filtering interactions updated since');
+        } catch (InvalidSyncCutoffException $e) {
+            $this->error($e->getMessage());
 
-        $page = 1;
-        $cursor = null;
-        $hasNextPage = true;
-        $totalIssues = null;
-        $bar = null;
+            return 1;
+        }
 
-        while ($hasNextPage) {
+        $totalPages = null;
+
+        if ($cutoff === null) {
             try {
-                // Fetch issues WITH interactions in a single query (eliminates N+1 problem)
-                $response = $github->fetchIssuesWithInteractions($owner, $name, $cursor);
-                $nodes = $response['nodes'] ?? [];
-                $cursor = $response['pageInfo']['endCursor'] ?? null;
-                $hasNextPage = $response['pageInfo']['hasNextPage'] ?? false;
+                $totalCounts = $gitHubIssueService->fetchIssueCount($owner, $name);
+                $this->info("Syncing interactions for {$owner}/{$name}. ({$totalCounts->summary()})");
+                $totalPages = (int) ceil($totalCounts->total / 25);
+                if ($maxPages !== null) {
+                    $totalPages = min($totalPages, $maxPages);
+                }
+            } catch (Throwable $e) {
+                $this->warn('Could not retrieve issue count');
+                Log::warning('GitHub issue count failed', ['exception' => $e]);
+            }
+        }
 
-                // Initialize progress bar on first page
-                if ($bar === null) {
-                    $totalIssues = $response['totalCount'] ?? count($nodes);
-                    $this->info("Fetching interactions for approximately $totalIssues issues...");
-                    $bar = $this->output->createProgressBar($totalIssues);
-                    $bar->start();
+        $this->reportCursorResume($cursor);
+
+        $pagesProcessed = 0;
+        $errorOccurred = false;
+
+        $result = $syncer->sync(
+            fetchPage: function (?string $c) use ($gitHubIssueService, $owner, $name, $maxPages, &$pagesProcessed) {
+                $pagesProcessed++;
+                $response = $gitHubIssueService->fetchIssuesWithInteractions($owner, $name, $c);
+                if ($maxPages !== null && $pagesProcessed >= $maxPages) {
+                    $response['pageInfo']['hasNextPage'] = false;
                 }
 
+                return $response;
+            },
+            index: function (array $nodes) use ($github, $openSearch, $owner, $name) {
                 $interactions = [];
-                $reachedCutoff = false;
-
                 foreach ($nodes as $issue) {
-                    $updatedAt = Carbon::parse($issue['updatedAt']);
-
-                    if ($cutoff && $updatedAt->lt($cutoff)) {
-                        // Issues are sorted by updatedAt DESC, so all remaining will be older
-                        $reachedCutoff = true;
-                        break;
-                    }
-
                     $issueId = $issue['number'];
-
-                    // Extract interactions from inline data (no API call needed)
-                    $issueInteractions = $github->extractInteractionsFromIssue($issue);
-
-                    foreach ($issueInteractions as $interaction) {
-                        $interactions[] = [
+                    foreach ($github->fetchAllInteractionsFromIssue($issue, $owner, $name) as $interaction) {
+                        $interactionDocument = [
                             'github_account_name' => $interaction['author'] ?? 'unknown',
                             'interaction_name' => $interaction['type'],
                             'issues-id' => $issueId,
                             'interaction_date' => Carbon::parse($interaction['date'])->toIso8601String(),
                         ];
+                        if (! empty($interaction['label'])) {
+                            $interactionDocument['label_name'] = $interaction['label'];
+                        }
+                        $interactions[] = $interactionDocument;
                     }
-
-                    $bar->advance();
                 }
-
-                if ($reachedCutoff) {
-                    $this->info("\nReached cutoff date, stopping sync.");
-                    break;
-                }
-
-                if (!empty($interactions)) {
+                if (! empty($interactions)) {
                     $openSearch->indexBulk(
-                        OpenSearchService::getIndexWithPrefix('interactions'),
+                        OpenSearchService::OPENSEARCH_GITHUB_INTERACTIONS_INDEX,
                         $interactions
                     );
                 }
+            },
+            cutoff: $cutoff,
+            cursor: $cursor,
+            onPage: $this->makeOnPageCallback($totalPages),
+            onNode: $this->makeOnNodeCallback(),
+            onError: $this->makeOnErrorCallback(
+                $errorOccurred,
+                fn ($e, $page) => Log::warning('GitHub interaction sync failed', ['exception' => $e]),
+            ),
+        );
 
-                $page++;
-            } catch (Throwable $e) {
-                $this->warn("\nError syncing page $page: " . $e->getMessage());
-                Log::warning('GitHub interaction sync error', ['exception' => $e]);
-                break;
-            }
-        }
+        $this->reportCutoffReached($result, $cutoff, 'issue');
+        $this->reportDone($errorOccurred, 'Done syncing interactions.');
 
-        if ($bar) {
-            $bar->finish();
-        }
-        $this->info("\nDone syncing interactions.");
-
-        return 0;
+        return $errorOccurred ? 1 : 0;
     }
 }

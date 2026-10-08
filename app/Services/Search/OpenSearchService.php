@@ -1,16 +1,32 @@
 <?php
 
+/*
+ * @copyright Copyright (c) 2026 The Magento Association
+ * @license https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
+ */
+declare(strict_types=1);
+
 namespace App\Services\Search;
 
-use OpenSearch\Client;
 use Illuminate\Support\Facades\Log;
+use OpenSearch\Client;
 
 class OpenSearchService
 {
     public const OPENSEARCH_GITHUB_PULL_REQUESTS_INDEX = 'github-pull-requests';
+
     public const OPENSEARCH_GITHUB_ISSUES_INDEX = 'github-issues';
 
+    public const OPENSEARCH_GITHUB_PR_REVIEWS_INDEX = 'github-pr-reviews';
+
+    public const OPENSEARCH_GITHUB_PR_TIMELINE_INDEX = 'github-pr-timeline';
+
+    public const OPENSEARCH_GITHUB_INTERACTIONS_INDEX = 'github-interactions';
+
+    public const OPENSEARCH_GITHUB_EVENTS_INDEX = 'github-events';
+
     protected Client $client;
+
     protected string $indexPrefix;
 
     public function __construct()
@@ -30,6 +46,7 @@ class OpenSearchService
     public function searchPRs(QueryBuilder $builder): array
     {
         $prIndex = self::getIndexWithPrefix(self::OPENSEARCH_GITHUB_PULL_REQUESTS_INDEX);
+
         return $this->searchIndex($prIndex, $builder);
     }
 
@@ -67,6 +84,102 @@ class OpenSearchService
         }
 
         $this->client->bulk(['body' => $body]);
+        $this->flagIssuesClosedByMergedPRs($pullRequests);
+        $this->indexPullRequestReviews($pullRequests);
+        $this->indexPullRequestTimeline($pullRequests);
+    }
+
+    protected function indexPullRequestTimeline(array $pullRequests): void
+    {
+        $indexName = self::getIndexWithPrefix(self::OPENSEARCH_GITHUB_PR_TIMELINE_INDEX);
+        $body = [];
+
+        foreach ($pullRequests as $pr) {
+            foreach ($this->toPullRequestTimelineDocuments($pr) as $document) {
+                $body[] = ['index' => ['_index' => $indexName, '_id' => $document['id']]];
+                $body[] = $document['body'];
+            }
+        }
+
+        if (! empty($body)) {
+            $this->client->bulk(['body' => $body]);
+        }
+    }
+
+    /**
+     * Map a pull request's timeline nodes into upsertable documents keyed by GitHub node ID.
+     *
+     * @param  array<string, mixed>  $pr
+     * @return list<array{id: string, body: array<string, mixed>}>
+     */
+    protected function toPullRequestTimelineDocuments(array $pr): array
+    {
+        $documents = [];
+
+        foreach ($pr['timelineItems']['nodes'] ?? [] as $event) {
+            if (empty($event['id'])) {
+                continue;
+            }
+
+            $documents[] = [
+                'id' => $event['id'],
+                'body' => [
+                    'pr_number' => $pr['number'] ?? null,
+                    'type' => $event['__typename'] ?? null,
+                    'actor' => $event['actor']['login'] ?? null,
+                    'created_at' => $event['createdAt'] ?? null,
+                    'label_name' => $event['label']['name'] ?? null,
+                    'requested_reviewer' => $event['requestedReviewer']['login'] ?? null,
+                ],
+            ];
+        }
+
+        return $documents;
+    }
+
+    protected function indexPullRequestReviews(array $pullRequests): void
+    {
+        $indexName = self::getIndexWithPrefix(self::OPENSEARCH_GITHUB_PR_REVIEWS_INDEX);
+        $body = [];
+
+        foreach ($pullRequests as $pr) {
+            foreach ($pr['reviews']['nodes'] ?? [] as $review) {
+                if (empty($review['id'])) {
+                    continue;
+                }
+                $body[] = ['index' => ['_index' => $indexName, '_id' => $review['id']]];
+                $body[] = [
+                    'pr_number' => $pr['number'],
+                    'author' => $review['author']['login'] ?? null,
+                    'state' => $review['state'],
+                    'submitted_at' => $review['submittedAt'],
+                ];
+            }
+        }
+
+        if (! empty($body)) {
+            $this->client->bulk(['body' => $body]);
+        }
+    }
+
+    protected function flagIssuesClosedByMergedPRs(array $pullRequests): void
+    {
+        $issueIndex = self::getIndexWithPrefix(self::OPENSEARCH_GITHUB_ISSUES_INDEX);
+        $body = [];
+
+        foreach ($pullRequests as $pr) {
+            if ($pr['state'] !== 'MERGED') {
+                continue;
+            }
+            foreach ($pr['closingIssuesReferences']['nodes'] ?? [] as $issue) {
+                $body[] = ['update' => ['_index' => $issueIndex, '_id' => $issue['number']]];
+                $body[] = ['doc' => ['closed_by_merged_pr' => true], 'doc_as_upsert' => true];
+            }
+        }
+
+        if (! empty($body)) {
+            $this->client->bulk(['body' => $body]);
+        }
     }
 
     protected function toPullRequestDocument(array $pr): array
@@ -85,6 +198,10 @@ class OpenSearchService
             'merged_at' => $pr['mergedAt'] ?? null,
             'closed_at' => $pr['closedAt'] ?? null,
             'author' => $pr['author']['login'] ?? null,
+            'author_company' => $pr['author']['company'] ?? null,
+            'additions' => $pr['additions'] ?? null,
+            'deletions' => $pr['deletions'] ?? null,
+            'changed_files' => $pr['changedFiles'] ?? null,
             'comments_count' => $pr['comments']['totalCount'] ?? 0,
             'reviews_count' => $pr['reviews']['totalCount'] ?? 0,
         ];
@@ -100,13 +217,8 @@ class OpenSearchService
 
         $body = [];
         foreach ($issues as $issue) {
-            $body[] = [
-                'index' => [
-                    '_index' => $indexName,
-                    '_id' => $issue['number'],
-                ],
-            ];
-            $body[] = $this->toIssueDocument($issue);
+            $body[] = ['update' => ['_index' => $indexName, '_id' => $issue['number']]];
+            $body[] = ['doc' => $this->toIssueDocument($issue), 'doc_as_upsert' => true];
         }
 
         $this->client->bulk(['body' => $body]);
@@ -114,7 +226,7 @@ class OpenSearchService
 
     protected function toIssueDocument(array $issue): array
     {
-        return [
+        $doc = [
             'id' => $issue['number'],
             'graphql_id' => $issue['id'],
             'title' => $issue['title'],
@@ -126,15 +238,19 @@ class OpenSearchService
             'updated_at' => $issue['updatedAt'],
             'closed_at' => $issue['closedAt'] ?? null,
             'author' => $issue['author']['login'] ?? null,
+            'author_company' => $issue['author']['company'] ?? null,
             'comments_count' => $issue['comments']['totalCount'] ?? 0,
         ];
+
+        if ($issue['state'] === 'OPEN') {
+            $doc['closed_by_merged_pr'] = false;
+        }
+
+        return $doc;
     }
 
     /**
      * Bulk index any documents with a SHA1 hash of the document as its ID.
-     *
-     * @param string $index
-     * @param array $documents
      */
     public function indexBulk(string $index, array $documents): void
     {
@@ -187,7 +303,7 @@ class OpenSearchService
                 'body' => $document,
             ]);
         } catch (\Throwable $e) {
-            \Log::error("OpenSearch indexing failed", [
+            \Log::error('OpenSearch indexing failed', [
                 'index' => $index,
                 'document' => $document,
                 'exception' => $e,
@@ -207,6 +323,6 @@ class OpenSearchService
             return $index;
         }
 
-        return $prefix . $index;
+        return $prefix.$index;
     }
 }

@@ -1,146 +1,140 @@
 <?php
+
+/*
+ * @copyright Copyright (c) 2026 The Magento Association
+ * @license https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
+ */
 declare(strict_types=1);
 
 namespace App\Console\Commands;
 
-use App\Services\GitHub\GitHubService;
+use App\Console\Commands\Concerns\SyncsWithGitHub;
+use App\Exceptions\InvalidSyncCutoffException;
+use App\Services\GitHub\GitHubInteractionService;
+use App\Services\GitHub\GitHubIssueService;
+use App\Services\GitHub\GitHubSyncer;
 use App\Services\Search\OpenSearchService;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
+use Illuminate\Contracts\Console\Isolatable;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
-class SyncGitHubEvents extends Command
+class SyncGitHubEvents extends Command implements Isolatable
 {
+    use SyncsWithGitHub;
+
     protected $signature = 'sync:github:events
-                            {--since= : Only import issues updated since this relative time (e.g. "2 weeks", "5 days")}
+                            {--cursor= : Optional endCursor to resume pagination}
+                            {--since= : Only import issues updated since this date (e.g. "2 weeks", "5 days")}
                             {--max-pages= : Maximum number of pages to process (default: all)}';
 
-    protected $description = 'Sync GitHub issue/PR events into OpenSearch';
+    protected $description = 'Sync GitHub issue events into OpenSearch';
 
-    public function handle(GitHubService $github, OpenSearchService $openSearch): int
-    {
-        $repo = config('github.repo', 'magento/magento2');
-
-        if (!str_contains($repo, '/')) {
-            $this->error('Invalid repository. Expected format: owner/repo');
+    public function handle(
+        GitHubInteractionService $github,
+        GitHubIssueService $gitHubIssueService,
+        GitHubSyncer $syncer,
+        OpenSearchService $openSearch
+    ): int {
+        if (($parts = $this->resolveRepository()) === null) {
             return 1;
         }
 
-        [$owner, $name] = explode('/', $repo);
-        $sinceOption = $this->option('since');
-        $maxPages = $this->option('max-pages') ? (int) $this->option('max-pages') : null;
-        $cutoff = null;
+        [$owner, $name] = $parts;
+        $cursor = $this->option('cursor');
+        $maxPagesOption = $this->option('max-pages');
+        $maxPages = null;
 
-        if ($sinceOption) {
-            try {
-                $cutoff = Carbon::parse($sinceOption);
-                $this->info("Only syncing events for issues updated since: " . $cutoff->toDateTimeString());
-            } catch (\Exception $e) {
-                $this->error("Invalid date format for --since: $sinceOption");
+        if ($maxPagesOption !== null) {
+            if (! is_numeric($maxPagesOption) || (int) $maxPagesOption <= 0) {
+                $this->error('--max-pages must be a positive integer.');
+
                 return 1;
+            }
+
+            $maxPages = (int) $maxPagesOption;
+        }
+
+        try {
+            $cutoff = $this->parseCutoff('Filtering events for issues updated since');
+        } catch (InvalidSyncCutoffException $e) {
+            $this->error($e->getMessage());
+
+            return 1;
+        }
+
+        $totalPages = null;
+
+        if ($cutoff === null) {
+            try {
+                $totalCounts = $gitHubIssueService->fetchIssueCount($owner, $name);
+                $this->info("Syncing events for {$owner}/{$name}. ({$totalCounts->summary()})");
+                $totalPages = (int) ceil($totalCounts->total / 25);
+                if ($maxPages !== null) {
+                    $totalPages = min($totalPages, $maxPages);
+                }
+            } catch (Throwable $e) {
+                $this->warn('Could not retrieve issue count');
+                Log::warning('GitHub issue count failed', ['exception' => $e]);
             }
         }
 
-        $this->info("Starting sync of events for $repo...");
+        $this->reportCursorResume($cursor);
 
-        $cursor = null;
-        $hasNextPage = true;
-        $page = 1;
-        $totalIssues = null;
-        $bar = null;
+        $pagesProcessed = 0;
+        $errorOccurred = false;
 
-        while ($hasNextPage) {
-            if ($maxPages !== null && $page > $maxPages) {
-                $this->info("Reached maximum pages limit ($maxPages).");
-                break;
-            }
-
-            try {
-                // Fetch issues WITH events in a single query (eliminates N+1 problem)
-                $response = $github->fetchIssuesWithEvents($owner, $name, $cursor);
-                $nodes = $response['nodes'] ?? [];
-                $cursor = $response['pageInfo']['endCursor'] ?? null;
-                $hasNextPage = $response['pageInfo']['hasNextPage'] ?? false;
-
-                // Initialize progress bar on first page
-                if ($bar === null) {
-                    $totalIssues = $response['totalCount'] ?? count($nodes);
-                    $this->info("Fetching events for approximately $totalIssues issues...");
-                    $bar = $this->output->createProgressBar($totalIssues);
-                    $bar->start();
+        $result = $syncer->sync(
+            fetchPage: function (?string $c) use ($gitHubIssueService, $owner, $name, $maxPages, &$pagesProcessed) {
+                $pagesProcessed++;
+                $response = $gitHubIssueService->fetchIssuesWithEvents($owner, $name, $c);
+                if ($maxPages !== null && $pagesProcessed >= $maxPages) {
+                    $response['pageInfo']['hasNextPage'] = false;
                 }
 
+                return $response;
+            },
+            index: function (array $nodes) use ($github, $openSearch, $cutoff, $owner, $name) {
                 $documents = [];
-                $reachedCutoff = false;
-
                 foreach ($nodes as $issue) {
                     $issueNumber = $issue['number'];
-
-                    // Extract events from inline data (no API call needed)
-                    $events = $github->extractEventsFromIssue($issue);
-
-                    // Check if we should stop based on most recent event in this issue
-                    if ($cutoff && !empty($events)) {
-                        // Get the most recent event date for this issue
-                        $mostRecentEvent = collect($events)->sortByDesc('created_at')->first();
-                        if ($mostRecentEvent) {
-                            $mostRecentDate = Carbon::parse($mostRecentEvent['created_at']);
-                            if ($mostRecentDate->lt($cutoff)) {
-                                // This issue's events are all older than cutoff
-                                // Since issues are sorted by updatedAt DESC, we can stop
-                                $reachedCutoff = true;
-                                break;
-                            }
+                    foreach ($github->fetchAllEventsFromIssue($issue, $owner, $name) as $event) {
+                        if ($cutoff && Carbon::parse($event['created_at'])->lt($cutoff)) {
+                            continue;
                         }
-                    }
-
-                    foreach ($events as $event) {
-                        // Filter individual events by date
-                        if ($cutoff) {
-                            $eventDate = Carbon::parse($event['created_at']);
-                            if ($eventDate->lt($cutoff)) {
-                                continue;
-                            }
-                        }
-
-                        $documents[] = [
+                        $document = [
                             'github_account_name' => $event['actor'],
                             'interaction_name' => $event['type'],
                             'issues-id' => $issueNumber,
                             'interaction_date' => Carbon::parse($event['created_at'])->toIso8601String(),
                         ];
+                        if (! empty($event['label'])) {
+                            $document['label_name'] = $event['label'];
+                        }
+                        $documents[] = $document;
                     }
-
-                    $bar->advance();
                 }
-
-                if ($reachedCutoff) {
-                    $this->info("\nReached cutoff date, stopping sync.");
-                    break;
-                }
-
-                // Bulk index for better performance
-                if (!empty($documents)) {
+                if (! empty($documents)) {
                     $openSearch->indexBulk(
-                        OpenSearchService::getIndexWithPrefix('interactions'),
+                        OpenSearchService::OPENSEARCH_GITHUB_EVENTS_INDEX,
                         $documents
                     );
                 }
+            },
+            cutoff: $cutoff,
+            cursor: $cursor,
+            onPage: $this->makeOnPageCallback($totalPages),
+            onNode: $this->makeOnNodeCallback(),
+            onError: $this->makeOnErrorCallback(
+                $errorOccurred,
+                fn ($e, $page) => Log::error("Failed to process events page $page", ['exception' => $e]),
+            ),
+        );
 
-                $page++;
-            } catch (Throwable $e) {
-                $this->warn("\nError syncing page $page: " . $e->getMessage());
-                Log::error("Failed to process events page $page", ['exception' => $e]);
-                break;
-            }
-        }
+        $this->reportCutoffReached($result, $cutoff, 'issue');
+        $this->reportDone($errorOccurred, 'Done syncing GitHub events.');
 
-        if ($bar) {
-            $bar->finish();
-        }
-        $this->info("\nDone syncing GitHub events.");
-
-        return 0;
+        return $errorOccurred ? 1 : 0;
     }
 }

@@ -1,19 +1,33 @@
 <?php
+
+/*
+ * @copyright Copyright (c) 2026 The Magento Association
+ * @license https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
+ */
 declare(strict_types=1);
 
 namespace App\Models;
 
+use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 use Illuminate\Database\Eloquent\Builder;
-use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Carbon;
 
 /**
+ * @property int $id
+ * @property string $name
+ * @property string $email
+ * @property string|null $password
+ * @property string $github_id
+ * @property string|null $github_username
+ * @property bool $is_admin
+ * @property Carbon $created_at
+ * @property Carbon $updated_at
+ *
  * @mixin Builder
  */
 class User extends Authenticatable implements FilamentUser
@@ -49,7 +63,6 @@ class User extends Authenticatable implements FilamentUser
      */
     protected $hidden = [
         'password',
-        'remember_token',
     ];
 
     /**
@@ -60,29 +73,31 @@ class User extends Authenticatable implements FilamentUser
     protected function casts(): array
     {
         return [
-            'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
     }
 
-    public function affiliations(): HasMany
-    {
-        return $this->hasMany(CompanyAffiliation::class);
-    }
-
-    public function companies(): BelongsToMany
-    {
-        return $this->belongsToMany(Company::class, 'company_owners')->withTimestamps();
-    }
-
-    // Alias for clarity when accessing owned companies
-    public function ownedCompanies(): BelongsToMany
-    {
-        return $this->companies();
-    }
-
     public function canAccessPanel(Panel $panel): bool
     {
-        return (bool)$this->getAttribute('is_admin');
+        return (bool) $this->getAttribute('is_admin');
+    }
+
+    /**
+     * Whether this user may see the full maintainer board — every maintainer,
+     * including idle ones with a zero score. The public sees only scoring
+     * maintainers; admins, maintainers, and community council members see all.
+     */
+    public function canViewFullMaintainerBoard(): bool
+    {
+        if ($this->is_admin) {
+            return true;
+        }
+
+        return $this->github_username !== null
+            && RoleEligibility::query()
+                ->whereIn('role', ['maintainer', 'community-council'])
+                ->where('active', true)
+                ->where('login', $this->github_username)
+                ->exists();
     }
 }

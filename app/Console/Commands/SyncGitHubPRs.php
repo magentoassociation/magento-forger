@@ -1,104 +1,85 @@
 <?php
+
+/*
+ * @copyright Copyright (c) 2026 The Magento Association
+ * @license https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
+ */
 declare(strict_types=1);
 
 namespace App\Console\Commands;
 
-use App\Services\GitHub\GitHubService;
+use App\Console\Commands\Concerns\SyncsWithGitHub;
+use App\Exceptions\InvalidSyncCutoffException;
+use App\Services\GitHub\GitHubPullRequestService;
+use App\Services\GitHub\GitHubSyncer;
 use App\Services\Search\OpenSearchService;
-use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Contracts\Console\Isolatable;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
-/**
- * Sync GitHub Pull Requests using GraphQL
- *
- * @package App\Console\Commands
- */
 class SyncGitHubPRs extends Command implements Isolatable
 {
+    use SyncsWithGitHub;
+
     protected $signature = 'sync:github:prs
                             {--cursor= : Optional endCursor to resume pagination}
                             {--since= : Optional date to filter PRs since this date (e.g 2 days, 1 week, 1 month)}';
 
     protected $description = 'Sync GitHub Pull Requests using GraphQL';
 
-    public function handle(GitHubService $github, OpenSearchService $openSearch): int
+    public function handle(GitHubPullRequestService $github, OpenSearchService $openSearch, GitHubSyncer $syncer): int
     {
-        $repo = config('github.repo');
-        $cursor = $this->option('cursor');
-        $since = $this->option('since');
-        $cutoff = null;
-
-        if (!$repo || !str_contains($repo, '/')) {
-            $this->error('Missing or invalid repository. Set it in config/github.php');
+        if (($parts = $this->resolveRepository()) === null) {
             return 1;
         }
 
-        if ($since) {
-            $cutoff = Carbon::parse($since);
-            if (!$cutoff->isValid()) {
-                $this->error("Invalid date format for --since option: $since");
-                return 1;
-            }
-            $this->info("Filtering PRs updated since: " . $cutoff->toDateTimeString());
-        } else {
-            $this->info('No date filter applied');
-        }
-
-        [$owner, $name] = explode('/', $repo);
-
-        $totalCount = null;
+        [$owner, $name] = $parts;
+        $cursor = $this->option('cursor');
         try {
-            $totalCounts = $github->fetchPullRequestCount($owner, $name);
-            $summary = $totalCounts->summary();
-            $totalCount = $totalCounts->total;
-            $this->info("Syncing PRs for $repo. ($summary)");
-        } catch (Throwable $e) {
-            $this->warn("Could not retrieve pull request count");
-            Log::warning('GitHub PR count failed', ['exception' => $e]);
-        }
-        $totalPages = $totalCount ? ceil($totalCount / 100) : null;
+            $cutoff = $this->parseCutoff('Filtering PRs updated since');
+        } catch (InvalidSyncCutoffException $e) {
+            $this->error($e->getMessage());
 
-        if ($cursor) {
-            $this->info("Resuming from cursor: $cursor");
+            return 1;
         }
-        $page = 1;
-        do {
-            $hasNextPage = false;
+
+        $totalPages = null;
+
+        if ($cutoff === null) {
             try {
-                $response = $github->fetchPullRequests($owner, $name, $cursor);
-                $nodes = $response['nodes'] ?? [];
-
-                foreach ($nodes as $pr) {
-                    $this->line("#{$pr['number']}: {$pr['title']} ({$pr['state']})");
-                }
-
-                $openSearch->indexPullRequests($nodes);
-
-                $cursor = $response['pageInfo']['endCursor'] ?? null;
-                $hasNextPage = $response['pageInfo']['hasNextPage'] ?? false;
-
-                $last = $nodes[array_key_last($nodes)] ?? null;
-                if ($last && $cutoff) {
-                    $lastUpdatedAt = Carbon::parse($last['updatedAt']);
-                    if ($lastUpdatedAt->lessThan($cutoff)) {
-                        $this->info("Last PR is older than given cutoff ({$cutoff->toDateTimeString()}), stopping sync.");
-                        break;
-                    }
-                }
-
-                $this->info("Page $page" . ($totalPages ? " of $totalPages" : '') . " done. Cursor: $cursor");
-                $page++;
+                $totalCounts = $github->fetchPullRequestCount($owner, $name);
+                $this->info("Syncing PRs for {$owner}/{$name}. ({$totalCounts->summary()})");
+                $totalPages = (int) ceil($totalCounts->total / 10);
             } catch (Throwable $e) {
-                $this->warn("Could not retrieve pull requests");
-                Log::warning('GitHub PR sync failed', ['exception' => $e]);
+                $this->warn('Could not retrieve pull request count');
+                Log::warning('GitHub PR count failed', ['exception' => $e]);
             }
+        }
 
-        } while ($hasNextPage);
+        $this->reportCursorResume($cursor);
 
-        $this->info('Done syncing PRs.');
-        return 0;
+        $errorOccurred = false;
+
+        $result = $syncer->sync(
+            fetchPage: fn ($c) => $github->fetchPullRequests($owner, $name, $c),
+            index: function (array $nodes) use ($github, $openSearch, $owner, $name) {
+                $expanded = array_map(fn ($pr) => $github->expandTimelineItems($pr, $owner, $name), $nodes);
+                $openSearch->indexPullRequests($expanded);
+            },
+            cutoff: $cutoff,
+            cursor: $cursor,
+            onPage: $this->makeOnPageCallback($totalPages),
+            onNode: $this->makeOnNodeCallback(),
+            onError: $this->makeOnErrorCallback(
+                $errorOccurred,
+                fn ($e, $page) => Log::warning('GitHub PR sync failed', ['exception' => $e]),
+            ),
+        );
+
+        $this->reportCutoffReached($result, $cutoff, 'PR');
+        $this->reportDone($errorOccurred, 'Done syncing PRs.');
+
+        return $errorOccurred ? 1 : 0;
     }
 }

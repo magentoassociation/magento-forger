@@ -4,7 +4,8 @@ A Laravel application for analyzing GitHub issues and pull requests for the Mage
 
 ## Features
 
-- **Monthly GitHub Stats**: Interactive charts showing pull requests and issues over time
+- **Contributor Leaderboards**: Ranked contributors by PRs merged, PRs opened, issues opened, and issues closed
+- **Maintainer Leaderboards**: Ranked maintainers by PR reviews approved and rejected
 - **Issues by Month**: Detailed monthly breakdown of GitHub issues with direct links to GitHub
 - **PRs by Month**: Detailed monthly breakdown of GitHub pull requests with direct links to GitHub
 - **Label Analysis**: Comprehensive view of all GitHub labels with issue counts
@@ -144,16 +145,17 @@ ddev artisan sync:github:issues
 # Sync GitHub pull requests (this may take a while for the initial sync)
 ddev artisan sync:github:prs
 
-# Sync GitHub events (this may take a long time for the initial sync)
+# Sync issue events (opened, closed, labeled, assigned, etc.)
 ddev artisan sync:github:events
 
-# Sync GitHub interactions (this will take a long time for the initial sync)
+# Sync all interactions (comments, reviews, reactions)
 ddev artisan sync:github:interactions
 
+# Sync maintainer and community-council team rosters into role_eligibilities
+ddev artisan sync:github:teams
 ```
 
-**Note**: The initial sync can take a few minutes or hours depending on the repository size. You can monitor progress in the 
-terminal. For subsequent syncs, you can use the `--since` option:
+**Note**: The initial sync can take a few minutes or hours depending on the repository size. You can monitor progress in the terminal. For subsequent syncs, use the `--since` option:
 
 ```bash
 # Sync only recent data (much faster)
@@ -161,11 +163,9 @@ ddev artisan sync:github:issues --since "1 week ago"
 ddev artisan sync:github:prs --since "1 week ago"
 ddev artisan sync:github:events --since "1 week ago"
 ddev artisan sync:github:interactions --since "1 week ago"
-```
 
-Process the interactions:
-```bash
-ddev artisan process:github:interactions
+# Team rosters are small; re-run in full (no --since support)
+ddev artisan sync:github:teams
 ```
 
 ### 6. Start the Development Server
@@ -184,14 +184,17 @@ Your application should now be available at the URL provided by `ddev describe` 
 
 ### Available Pages
 
-- **Home** (`/`): Interactive charts showing monthly GitHub statistics
+- **Home** (`/`): Overview dashboard
+- **Contributor Leaderboard** (`/leaderboard`): Top contributors ranked by PRs merged, PRs opened, issues opened, or issues closed
+- **Maintainer Leaderboard** (`/maintainer/leaderboard`): Top reviewers ranked by approvals or change requests
 - **Issues by Month** (`/issuesByMonth`): Detailed breakdown of issues by month and year
 - **PRs by Month** (`/prsByMonth`): Detailed breakdown of pull requests by month and year
 - **All Labels** (`/labels/allLabels`): Comprehensive view of all GitHub labels with counts
+- **PRs Without Component Label** (`/labels/prsMissingComponent`): Pull requests missing a component label
 
 ### Keeping Data Updated
 
-The application includes scheduled commands that automatically sync data every 2 hours:
+The application includes scheduled commands that automatically sync data. A full sync runs weekly; incremental syncs run every 15 minutes (paused between 23:40 and 00:20):
 
 ```bash
 # View scheduled commands
@@ -222,7 +225,54 @@ If you want to create a submenu, prefix your route name with the name of the mai
 
 ## Development
 
+### IDE Setup: GraphQL Plugin (PhpStorm)
+
+The `.graphql` query files in `resources/graphql/github/` require a local copy of GitHub's schema for "unresolved reference" errors to clear.
+
+**1. Install the JetBrains GraphQL plugin**
+
+Settings → Plugins → search "GraphQL" → install the JetBrains one → restart.
+
+**2. Create `graphql.config.yml`**
+
+This file is gitignored — each developer creates it locally. Copy from the example and paste in your GitHub token:
+
+```bash
+cp graphql.config.yml.example graphql.config.yml
+```
+
+Open `graphql.config.yml` and replace `YOUR_GITHUB_TOKEN` with your personal access token (the same one in your `.env` as `GITHUB_TOKEN`).
+
+**3. Download GitHub's GraphQL schema**
+
+```bash
+curl -H "Authorization: bearer $(grep GITHUB_TOKEN .env | cut -d= -f2)" \
+  -H "Content-Type: application/json" \
+  -X POST \
+  -d '{"query":"{ __schema { types { name kind fields { name type { name kind ofType { name kind } } } } } }"}' \
+  https://api.github.com/graphql \
+  -o resources/graphql/github/schema.json
+```
+
+Or if you have Node available (produces cleaner SDL output):
+
+```bash
+npx --yes get-graphql-schema https://api.github.com/graphql \
+  -h "Authorization=bearer $(grep GITHUB_TOKEN .env | cut -d= -f2)" \
+  > resources/graphql/github/schema.graphql
+```
+
+Update `graphql.config.yml` at the project root to match whichever file you generated (`schema.json` or `schema.graphql`).
+
+**3. Reload the schema**
+
+File → Invalidate Caches → Invalidate and Restart. After restart, PhpStorm resolves all field references against the schema.
+
+> `schema.json` / `schema.graphql` are in `.gitignore` — do not commit them.
+
 ### Running Tests
+
+Locally:
 
 ```bash
 # Run the test suite
@@ -230,6 +280,19 @@ ddev artisan test
 
 # Run tests with coverage
 ddev composer test
+```
+
+In CI (`.github/workflows/tests.yml`), the PHPUnit suite runs two ways, neither of them automatically on push or PR open:
+
+- **On demand, any branch**: Actions tab → "Tests" → "Run workflow" → pick your branch. No secrets required, works on forks. This is the only way to exercise a workflow-file change before it's merged to `main` — GitHub always resolves the `issue_comment` trigger below against `main`'s copy of the file, not your branch's.
+- **PR comment**: comment `@forger run all tests` on an open PR. Requires OWNER/MEMBER/COLLABORATOR association (`author_association` check in the workflow). Reports a commit status (`tests`) back onto the PR's head SHA.
+
+```bash
+# Trigger manually via gh CLI
+gh workflow run tests.yml --ref <branch>
+
+# Trigger via PR comment
+gh pr comment <PR#> --body "@forger run all tests"
 ```
 
 ### Code Style
@@ -363,4 +426,4 @@ This application uses:
 
 ## License
 
-This project is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+This project is open-sourced software licensed under the [Open Software License (OSL 3.0)](https://opensource.org/licenses/OSL-3.0).

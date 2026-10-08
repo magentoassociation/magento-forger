@@ -1,4 +1,9 @@
 <?php
+/*
+ * @copyright Copyright (c) 2026 The Magento Association
+ * @license https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
+ */
+declare(strict_types=1);
 
 namespace App\Services\Search;
 
@@ -10,9 +15,13 @@ use App\DataTransferObjects\Search\QueryConfig;
 class QueryBuilder
 {
     protected array $filters = [];
+
     protected array $aggregations = [];
+
     protected array $sourceFields = [];
+
     protected int $size = 0;
+
     protected array $sort = [];
 
     protected array $keywordFields = [
@@ -24,24 +33,28 @@ class QueryBuilder
     public function addFilter(Filter $filter): self
     {
         $this->filters[] = $filter;
+
         return $this;
     }
 
     public function addAggregation(Aggregation $agg): self
     {
         $this->aggregations[$agg->name] = $agg->definition;
+
         return $this;
     }
 
     public function setSize(int $size): self
     {
         $this->size = $size;
+
         return $this;
     }
 
     public function selectFields(array $fields): self
     {
         $this->sourceFields = $fields;
+
         return $this;
     }
 
@@ -51,13 +64,14 @@ class QueryBuilder
      * @param array|string $sort
      * @return $this
      */
-    public function addSort(array|string $sort): self
+    public function addSort(array | string $sort): self
     {
         if (is_array($sort)) {
             $this->sort = array_merge($this->sort, $sort);
         } else {
             $this->sort[] = $sort;
         }
+
         return $this;
     }
 

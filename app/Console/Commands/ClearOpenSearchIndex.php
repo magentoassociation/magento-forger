@@ -1,4 +1,8 @@
 <?php
+/*
+ * @copyright Copyright (c) 2026 The Magento Association
+ * @license https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
+ */
 declare(strict_types=1);
 
 namespace App\Console\Commands;
@@ -50,6 +54,7 @@ class ClearOpenSearchIndex extends Command
             $indices = $this->client->cat()->indices(['format' => 'json']);
         } catch (\Exception $e) {
             $this->error("Error fetching indices: " . $e->getMessage());
+
             return 1;
         }
 
@@ -61,6 +66,7 @@ class ClearOpenSearchIndex extends Command
 
         if ($availableIndices->isEmpty()) {
             $this->warn('No suitable indices found.');
+
             return 0;
         }
 
@@ -73,6 +79,7 @@ class ClearOpenSearchIndex extends Command
         // Confirm deletion
         if (!$this->confirm("Really delete all documents from '{$selected}'?")) {
             $this->info('Operation canceled.');
+
             return 0;
         }
 
@@ -92,6 +99,7 @@ class ClearOpenSearchIndex extends Command
             $this->info("Successfully deleted {$response['deleted']} documents from '{$selected}'.");
         } catch (\Exception $e) {
             $this->error("Delete failed: " . $e->getMessage());
+
             return 1;
         }
 

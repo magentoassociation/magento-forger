@@ -1,49 +1,48 @@
-<footer class="bg-primary shadow py-4 mb-6">
-    <div class="container mx-auto px-4">
-        <div class="row">
-            <div class="d-flex flex-column flex-lg-row gap-4">
-                <div class="card flex-fill mb-3 mb-lg-0">
-                    <div class="card-body">
-                        <h5 class="card-title">
-                            <a href="https://magento-opensource.com" target="_blank">
-                                <img src="{{ asset('assets/logo_magento_opensource_color.svg') }}" height="40" class="card-img-top" alt="Magento Open Source">
-                            </a>
-                        </h5>
-                        <p class="card-text">Magento Open Source is a powerful, flexible eCommerce platform trusted by businesses worldwide. It empowers merchants to customize and scale their online stores with full access to the source code and a vibrant community of developers and contributors.</p>
-                    </div>
-                    <div class="card-body">
-                        <a href="https://magento-opensource.com" class="card-link">Learn More</a>
-                        <a href="https://github.com/magento/magento2" class="card-link">GitHub</a>
-                    </div>
-                </div>
-                <div class="card flex-fill mb-3 mb-lg-0">
-                    <div class="card-body">
-                        <h5 class="card-title">
-                            <a href="https://meet-magento.com" target="_blank">
-                                <img src="{{ asset('assets/logo_meetmagento_color.svg') }}" height="40" class="card-img-top" alt="Meet Magento">
-                            </a>
-                        </h5>
-                        <p class="card-text">Meet Magento events are official gatherings of the global Magento Open Source community, hosted in cities around the world. These events connect merchants, developers, agencies, and tech partners for a day of learning, networking, and collaboration centered on the Magento ecosystem.</p>
-                    </div>
-                    <div class="card-body">
-                        <a href="https://meet-magento.com" class="card-link">Learn More</a>
-                    </div>
-                </div>
-                <div class="card flex-fill mb-3 mb-lg-0">
-                    <div class="card-body">
-                        <h5 class="card-title">
-                            <a href="https://magentoassociation.org" target="_blank">
-                                <img src="{{ asset('assets/logo_magento_association_color.svg') }}" height="40" class="card-img-top" alt="Magento Open Source">
-                            </a>
-                        </h5>
-                        <p class="card-text">The Magento Association unites and supports the global Magento Open Source community. We foster collaboration, drive innovation, and protect the future of the platform through events, education, and advocacy.</p>
-                    </div>
-                    <div class="card-body">
-                        <a href="https://magentoassociation.org" class="card-link">Learn More</a>
-                        <a href="https://hub.magentoassociation.org/" class="card-link">Become a member today</a>
-                    </div>
-                </div>
+<footer class="page-footer mt-auto site-footer-dark" role="contentinfo">
+    <div class="chrome-hairline"></div>
+
+    <div class="container sf-inner">
+        <div class="sf-body">
+            {{-- Slack call to action --}}
+            <div class="sf-cta">
+                <h2 class="sf-heading">Join the conversation on the Magento Association Slack</h2>
+                @if ($slackInviteUrl = config('homepage.slack_invite_url'))
+                    <a href="{{ $slackInviteUrl }}" target="_blank" rel="noopener" class="sf-slack">
+                        <i class="fab fa-slack" style="font-size: 15px;"></i> Join our Slack
+                    </a>
+                @endif
             </div>
+
+            {{-- Link columns --}}
+            <div class="sf-cols">
+                <nav class="sf-col" aria-label="Forger">
+                    <h3 class="sf-col-head">Forger</h3>
+                    <a href="{{ route('leaderboard.index') }}">Leaderboard</a>
+                    <a href="{{ route('issues.issuesByMonth') }}">Issues</a>
+                    <a href="{{ route('prs.PRsByMonth') }}">Pull Requests</a>
+                    <a href="{{ route('leaderboard.scoring') }}">How scoring works</a>
+                </nav>
+                <nav class="sf-col" aria-label="Community">
+                    <h3 class="sf-col-head">Community</h3>
+                    <a href="https://magentoassociation.org" target="_blank" rel="noopener">Magento Association</a>
+                    <a href="https://www.magento-opensource.com/" target="_blank" rel="noopener">Magento Open Source</a>
+                    <a href="https://mage-os.org/" target="_blank" rel="noopener">Mage-OS</a>
+                    <a href="https://meet-magento.com" target="_blank" rel="noopener">Meet Magento</a>
+                    <a href="https://github.com/magento/magento2" target="_blank" rel="noopener">Magento on GitHub</a>
+                </nav>
+            </div>
+        </div>
+    </div>
+
+    {{-- Legal strip: rule is full-bleed, text sits in the container --}}
+    <div class="sf-legal">
+        <div class="container">
+            <p>
+                Magento, Meet Magento and all related logos are either registered trademarks or
+                trademarks of Adobe Inc. in the United States and/or other countries. Use of such
+                trademarks is under license and does not imply any affiliation, endorsement, or
+                sponsorship by Adobe Inc.
+            </p>
         </div>
     </div>
 </footer>

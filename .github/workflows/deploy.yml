@@ -13,7 +13,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
@@ -22,9 +22,9 @@ jobs:
           extensions: mbstring, bcmath, xml, ctype, fileinfo, openssl, tokenizer, pdo, curl, zip, json
 
       - name: Install Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: 18
+          node-version: 22
 
       - name: Add global composer bin to PATH
         run: echo "$HOME/.composer/vendor/bin" >> $GITHUB_PATH
@@ -96,7 +96,7 @@ jobs:
           REDIS_FPC_PASSWORD: ${{ secrets.REDIS_FPC_PASSWORD }}
           OPENSEARCH_USERNAME: ${{ secrets.OPENSEARCH_USERNAME }}
           OPENSEARCH_PASSWORD: ${{ secrets.OPENSEARCH_PASSWORD }}
-          GITHUB_TOKEN: ${{ secrets.GH_APP_TOKEN }}
-          GITHUB_CLIENT_ID: ${{ secrets.GH_APP_CLIENT_ID }}
-          GITHUB_CLIENT_SECRET: ${{ secrets.GH_APP_CLIENT_SECRET }}
+          GITHUB_TOKEN: ${{ secrets.GH_SYNC_PAT_CLASSIC }}
+          GITHUB_CLIENT_ID: ${{ secrets.OAUTH_CLIENT_ID }}
+          GITHUB_CLIENT_SECRET: ${{ secrets.OAUTH_CLIENT_SECRET }}
           GITHUB_REDIRECT_URI: https://forger.magento-opensource.com/auth/github/callback

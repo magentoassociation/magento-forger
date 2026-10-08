@@ -1,40 +1,49 @@
 <?php
+
+/*
+ * @copyright Copyright (c) 2026 The Magento Association
+ * @license https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
+ */
+declare(strict_types=1);
+
 namespace App\Menus;
 
 use App\Helpers\RouteLabelHelper;
 use Illuminate\Support\Facades\Route;
-use Spatie\Menu\Laravel\Menu;
 use Spatie\Menu\Laravel\Html;
 use Spatie\Menu\Laravel\Link;
+use Spatie\Menu\Laravel\Menu;
 
 class MainMenu
 {
-    private const MENU_ROUTE_PATTERN = '/^(home|issues|prs|labels|employment|leaderboard)(-[\w]+)?$/';
+    // All nav links temporarily hidden — only the logo shows in the navbar.
+    // Restore the pattern below to bring the menu back.
+    private const MENU_ROUTE_PATTERN = '/^(home|leaderboard\.index|issues|prs|employment)(\.[\w]+)?$/';
 
     public static function build(): Menu
     {
         $currentRoute = Route::currentRouteName();
 
         $routes = collect(Route::getRoutes())
-            ->filter(fn($route) => self::hasNoRequiredParameters($route))
-            ->map(fn($route) => $route->getName())
-            ->filter(fn($name) => preg_match(self::MENU_ROUTE_PATTERN, $name));
+            ->filter(fn (\Illuminate\Routing\Route $route): bool => self::hasNoRequiredParameters($route))
+            ->filter(fn (\Illuminate\Routing\Route $route): bool => in_array('GET', $route->methods(), true))
+            ->map(fn ($route) => $route->getName())
+            ->filter(fn ($name) => preg_match(self::MENU_ROUTE_PATTERN, $name));
 
         $menu = Menu::new()
             ->addClass('navbar-nav me-auto mb-2 mb-lg-0')
             ->setActiveClassOnLink()
             ->setActiveFromRequest();
 
-        $grouped = $routes->groupBy(fn($name) => explode('-', $name)[0]);
+        $grouped = $routes->groupBy(fn (string $name): string => explode('.', $name)[0]);
 
         foreach ($grouped as $mainItem => $subRoutes) {
-            $mainRouteExists = $subRoutes->contains($mainItem);
-            $childRoutes = $subRoutes->filter(fn($name) => $name !== $mainItem);
+            $landingRoute = $subRoutes->first(fn (string $name): bool => $name === $mainItem || $name === "{$mainItem}.index");
+            $childRoutes = $subRoutes->filter(fn (string $name): bool => $name !== $landingRoute);
 
-            if ($mainRouteExists && $childRoutes->isEmpty()) {
-                // Single item, no submenu
+            if ($landingRoute && $childRoutes->isEmpty()) {
                 $menu->add(
-                    Link::toRoute($mainItem, self::formatLabel($mainItem))
+                    Link::toRoute($landingRoute, self::formatLabel($landingRoute))
                         ->addClass('nav-link')
                         ->addParentClass('nav-item')
                 );
@@ -45,8 +54,9 @@ class MainMenu
                     $label = self::formatLabel($child);
                     $isActive = ($child === $currentRoute) ? ' active' : '';
                     $submenuItems .= sprintf(
-                        '<li><a class="dropdown-item%s" href="%s">%s</a></li>',
+                        '<li><a class="dropdown-item%s"%s href="%s">%s</a></li>',
                         $isActive,
+                        $isActive ? ' aria-current="page"' : '',
                         route($child),
                         $label
                     );
@@ -59,13 +69,13 @@ class MainMenu
                     $dropdownHtml = sprintf(
                         '<li class="nav-item dropdown">
         <a class="nav-link dropdown-toggle%s" href="#" id="dropdown-%s" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-            %s
+            %s <span class="nav-caret" aria-hidden="true">▾</span>
         </a>
         <ul class="dropdown-menu" aria-labelledby="dropdown-%s">
             %s
         </ul>
     </li>',
-                        $isActive,             // %1$s
+                        $isActive,     // %1$s
                         $mainItem,             // %2$s
                         self::formatLabel($mainItem),    // %3$s
                         $mainItem,             // %4$s again for aria-labelledby
@@ -77,7 +87,12 @@ class MainMenu
             }
         }
 
-        return $menu;
+        // Items are activated by setActiveFromRequest's filter as they're added.
+        return $menu->each(function (Link $link): void {
+            if ($link->isActive()) {
+                $link->setAttribute('aria-current', 'page');
+            }
+        });
     }
 
     private static function formatLabel(string $routeName): string
@@ -88,12 +103,13 @@ class MainMenu
     /**
      * Check if a route has no required parameters and has a name.
      *
-     * @param \Illuminate\Routing\Route $route The route to check
+     * @param  \Illuminate\Routing\Route  $route  The route to check
      * @return bool True if the route has no required parameters and has a name
      */
-    private static function hasNoRequiredParameters($route): bool
+    private static function hasNoRequiredParameters(\Illuminate\Routing\Route $route): bool
     {
         $params = $route->parameterNames();
-        return empty($params) && !empty($route->getName());
+
+        return empty($params) && ! empty($route->getName());
     }
 }

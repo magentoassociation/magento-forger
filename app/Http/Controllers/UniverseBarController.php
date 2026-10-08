@@ -1,4 +1,8 @@
 <?php
+/*
+ * @copyright Copyright (c) 2026 The Magento Association
+ * @license https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
+ */
 declare(strict_types=1);
 
 namespace App\Http\Controllers;
@@ -36,8 +40,12 @@ class UniverseBarController extends Controller
     private function isOriginAllowed(?string $origin, array $allowedOrigins, Request $request): bool
     {
         // DDEV Fallback
-        if (str_contains($request->getHost(), 'ddev.site')) return true;
-        if (!$origin) return false;
+        if (str_contains($request->getHost(), 'ddev.site')) {
+            return true;
+        }
+        if (!$origin) {
+            return false;
+        }
 
         $host = parse_url($origin, PHP_URL_HOST);
 

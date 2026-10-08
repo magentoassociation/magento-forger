@@ -1,0 +1,16 @@
+query($owner: String!, $name: String!, $number: Int!, $cursor: String) {
+    repository(owner: $owner, name: $name) {
+        pullRequest(number: $number) {
+            timelineItems(first: 100, after: $cursor, itemTypes: [LABELED_EVENT, UNLABELED_EVENT, REVIEW_REQUESTED_EVENT, REVIEW_REQUEST_REMOVED_EVENT]) {
+                pageInfo { hasNextPage endCursor }
+                nodes {
+                    __typename
+                    ... on LabeledEvent { id actor { login } createdAt label { name } }
+                    ... on UnlabeledEvent { id actor { login } createdAt label { name } }
+                    ... on ReviewRequestedEvent { id actor { login } createdAt requestedReviewer { ... on User { login } } }
+                    ... on ReviewRequestRemovedEvent { id actor { login } createdAt requestedReviewer { ... on User { login } } }
+                }
+            }
+        }
+    }
+}

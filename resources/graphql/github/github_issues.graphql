@@ -20,6 +20,7 @@ query($owner: String!, $name: String!, $cursor: String) {
         closedAt
         author {
           login
+          ... on User { company }
         }
         comments {
           totalCount

@@ -1,0 +1,90 @@
+<?xml version="1.0"?>
+
+<ruleset name="Laravel Standards">
+    <arg name="basepath" value="."/>
+    <file>./app</file>
+    <file>./config</file>
+    <file>./database</file>
+    <file>./routes</file>
+    <file>./tests</file>
+
+    <exclude-pattern>*/.phpstorm.meta.php</exclude-pattern>
+    <exclude-pattern>*/_ide_helper.php</exclude-pattern>
+    <exclude-pattern>*/cache/*</exclude-pattern>
+    <exclude-pattern>*/*.js</exclude-pattern>
+    <exclude-pattern>*/*.css</exclude-pattern>
+    <exclude-pattern>*/*.xml</exclude-pattern>
+    <exclude-pattern>*/*.blade.php</exclude-pattern>
+    <exclude-pattern>*/autoload.php</exclude-pattern>
+    <exclude-pattern>*/storage/*</exclude-pattern>
+    <exclude-pattern>*/vendor/*</exclude-pattern>
+    <exclude-pattern>*/bootstrap/*</exclude-pattern>
+    <exclude-pattern>*/public/index.php</exclude-pattern>
+
+    <arg name="colors"/>
+    <arg value="p"/>
+    <ini name="memory_limit" value="128M"/>
+
+    <!-- Warnings (e.g. line length) are advisory: the exit code reflects errors
+         only, so a long line never fails a build while real errors still do. -->
+    <config name="ignore_warnings_on_exit" value="1"/>
+
+    <description>
+        Correctness and complexity checks only. All whitespace, brace, import,
+        operator, array, and docblock formatting is owned by Pint — including
+        those rules here would fight the formatter, so they are intentionally
+        omitted. Run Pint for style; run this for the things Pint cannot see.
+    </description>
+
+    <!-- Hard cap on line length (Pint does not enforce this). Warning, never a
+         hard error, so length never fails a build on its own. -->
+    <rule ref="Generic.Files.LineLength">
+        <properties>
+            <property name="lineLimit" value="120"/>
+            <property name="absoluteLineLimit" value="0"/>
+        </properties>
+    </rule>
+
+    <!-- Likely-bug static analysis. None of these touch formatting. -->
+    <rule ref="Generic.CodeAnalysis.EmptyStatement">
+        <exclude name="Generic.CodeAnalysis.EmptyStatement.DetectedCatch"/>
+    </rule>
+    <rule ref="Generic.CodeAnalysis.ForLoopShouldBeWhileLoop"/>
+    <rule ref="Generic.CodeAnalysis.ForLoopWithTestFunctionCall"/>
+    <rule ref="Generic.CodeAnalysis.JumbledIncrementer"/>
+    <rule ref="Generic.CodeAnalysis.UnconditionalIfStatement"/>
+    <rule ref="Generic.CodeAnalysis.UnnecessaryFinalModifier"/>
+    <rule ref="Generic.CodeAnalysis.UselessOverridingMethod"/>
+
+    <!-- Complexity ceilings. -->
+    <rule ref="Generic.Metrics.CyclomaticComplexity">
+        <properties>
+            <property name="complexity" value="20"/>
+            <property name="absoluteComplexity" value="50"/>
+        </properties>
+    </rule>
+    <rule ref="Generic.Metrics.NestingLevel">
+        <properties>
+            <property name="nestingLevel" value="5"/>
+            <property name="absoluteNestingLevel" value="5"/>
+        </properties>
+    </rule>
+
+    <!-- Unsafe / discouraged constructs. -->
+    <rule ref="Generic.PHP.DeprecatedFunctions"/>
+    <rule ref="Generic.PHP.ForbiddenFunctions"/>
+    <rule ref="Generic.PHP.NoSilencedErrors"/>
+    <rule ref="Generic.PHP.DisallowShortOpenTag"/>
+    <rule ref="Squiz.PHP.DisallowSizeFunctionsInLoops"/>
+    <rule ref="Squiz.PHP.Eval"/>
+    <rule ref="Squiz.PHP.GlobalKeyword"/>
+    <rule ref="Squiz.PHP.NonExecutableCode"/>
+
+    <!-- Scope correctness (not formatting). -->
+    <rule ref="Squiz.Scope.MemberVarScope"/>
+    <rule ref="Squiz.Scope.MethodScope"/>
+    <rule ref="Squiz.Scope.StaticThisUsage"/>
+
+    <!-- No closing PHP tag in pure-PHP files. -->
+    <rule ref="Zend.Files.ClosingTag"/>
+</ruleset>
