@@ -1195,7 +1195,7 @@
         align-self: center;
     }
     .chart-swatch--opened { background: #ee6524; }
-    .chart-swatch--closed { background: #15171b; }
+    .chart-swatch--closed { background: #9aa3ae; }
     .chart-total-num {
         font-family: 'Libre Franklin', system-ui, sans-serif;
         font-weight: 700;

@@ -46,9 +46,9 @@
 
             forgerBarChart(id, quarters.map(q => `${q.year}-Q${q.quarter}`), [
                 { label: 'Opened', data: quarters.map(q => q.opened), color: '#ee6524' },
-                { label: 'Closed', data: quarters.map(q => q.closed), color: '#15171b' },
+                { label: 'Closed', data: quarters.map(q => q.closed), color: '#9aa3ae' },
             ], (config) => {
-                const hover = ['rgba(238, 101, 36, .6)', 'rgba(21, 23, 27, .6)'];
+                const hover = ['rgba(238, 101, 36, .6)', 'rgba(154, 163, 174, .6)'];
                 config.data.datasets.forEach((dataset, i) => Object.assign(dataset, {
                     borderRadius: 1,
                     categoryPercentage: 0.92,
