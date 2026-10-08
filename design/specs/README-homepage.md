@@ -287,10 +287,13 @@ display: flex; flex-direction: column`. Body `padding: 18px 20px 14px`:
    `#ee6524` opened, `#9aa3ae` closed), number (sum of the 12 months, thousands separator,
    Libre Franklin 700 22px `-.03em`), word "opened" / "closed" (12.5px, `#5d636c`). **The
    totals are the legend** — no Chart.js legend.
-3. **Plot** — `height: 120px; margin-top: 20px`. Twelve monthly pairs, oldest left, ending with
-   the current month.
-4. **Month axis** — one label per month under its pair: three-letter month, Martian Mono 400,
-   8.5px, uppercase, `.04em`, `#6b7178`, centred, `margin-top: 6px`.
+3. **Plot** — canvas `height: 130px; margin-top: 20px`: a 120px plot plus 10px of top headroom so
+   the top y label, drawn above its gridline, isn't clipped. Twelve monthly pairs, oldest left,
+   ending with the current month.
+4. **Month axis** — an HTML row under the canvas, not Chart.js ticks (Chart.js can't
+   letter-space): `display: grid; grid-template-columns: repeat(12, minmax(0, 1fr));
+   padding-left: 34px` so each column sits under its pair, past the y gutter. Three-letter month,
+   Martian Mono 400, 8.5px, uppercase, `.04em`, `#6b7178`, centred, `margin-top: 6px`.
 
 **Footer** — the whole row is a link to that dataset's By Month page (PRs By Month / Issues By
 Month). `margin-top: auto; display: flex; align-items: baseline; gap: 6px; padding: 11px 20px;
@@ -298,9 +301,12 @@ border-top: 1px solid #e6e7ea; background: #faf9f7`; 12.5px, `#5d636c`, hover `#
 - "**15,094** opened since Dec 2014" — the all-time opened count in 700 `#15171b`; the month is
   the first month in the data.
 - "Full history →" pushed right — 600, `#ee6524`, `flex: none; white-space: nowrap`.
+- Focus: the usual 2px `#f26322` outline, but `outline-offset: -2px` — the card clips its
+  overflow, so an outside ring would be cut off.
 
-**Data.** The controller's monthly buckets are unchanged. The view takes the last 12 for the
-plot and totals, and sums every bucket for the footer count.
+**Data.** The controller's monthly buckets are unchanged. The view takes the twelve calendar
+months ending with the current one for the plot and totals — a month with no bucket counts as
+zero — and sums every bucket for the footer count.
 
 **Chart.js options** (`forgerBarChart` for these two charts):
 
@@ -308,12 +314,12 @@ plot and totals, and sums every bucket for the footer count.
 |---|---|
 | Datasets | opened `#ee6524`, closed `#9aa3ae`, last 12 monthly buckets |
 | `borderRadius` | `1` — top corners only |
-| `categoryPercentage` / `barPercentage` | `0.8` / `0.92` — 2px between a pair, 8px between months |
+| Bar gaps | Fixed in pixels: 2px inside a pair, 8px between months (5px below `lg`). Chart.js only takes percentages, so derive `categoryPercentage` / `barPercentage` from the chart-area width on first draw and on every resize |
 | `plugins.legend.display` | `false` |
-| y ticks | 3 steps from a nice step (1, 2, 2.5, 5 × 10ⁿ); `0` not labelled. Martian Mono 9.5px, `#6b7178`, drawn above each gridline at the left, with a 34px left gutter so they never sit on a bar |
+| y ticks | 3 steps from a nice step (1, 2, 2.5, 5 × 10ⁿ); `0` not labelled. Martian Mono 9.5px, `#6b7178`, drawn above each gridline in a fixed 34px left gutter (`afterFit` sets the scale width), so they never sit on a bar |
 | y grid | `#eef0f2`; no border |
 | x baseline | `border.color: '#c9ced4'`; no grid |
-| x ticks | as "Month axis" above; `maxRotation: 0`, `autoSkip: false` |
+| x ticks | hidden — the month labels are the HTML row above; the axis is only the baseline |
 | Tooltip | title "Mar 2026"; body "42 PRs opened, 38 closed" |
 
 **Hover** — the hovered month's pair drops to 60% opacity. No cursor change.
