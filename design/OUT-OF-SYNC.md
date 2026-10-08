@@ -1,7 +1,7 @@
 # Out of sync — spec vs code
 
 Where the live site differs from the design specs in `design/specs/`. Last checked **2026-10-08**,
-after the homepage Momentum charts (28a) were built to the spec. Only current
+after Momentum was reworked: last 12 months on the homepage, full history on the By Month pages. Only current
 differences are listed; anything fixed is deleted, not kept as history.
 
 ## How to read this
@@ -21,7 +21,14 @@ are not listed.
 
 ## To do
 
-None at the moment.
+- **Homepage Momentum** (`welcome.blade.php`, `charts/momentum-card.blade.php`,
+  `charts/github-stats.blade.php`) — live charts every quarter since Dec 2014 with all-time
+  totals. Spec (`README-homepage.md`, "Momentum"): last 12 months, monthly bars with month
+  labels, the hero CTA beside the heading, and a footer link to the By Month page. Pages: `/`.
+- **By Month all-time chart** (`IssuesByMonthController`, `PrsByMonthController`, their views) —
+  not built. Spec (`README-issues-prs-by-month.md`, "4. Opened and closed, all time"): the
+  quarterly chart that was on the homepage, plus the opened/closed aggregation it needs.
+  Pages: `/issuesByMonth`, `/prsByMonth`.
 
 ## Unsure
 
@@ -29,13 +36,13 @@ None at the moment.
 
 ## Kept on purpose
 
-- **Momentum chart height** (`.chart-card-canvas--momentum` in `_chrome-styles.blade.php`,
-  `layout.padding.top` in `charts/github-stats.blade.php`) — the canvas is 186px: the spec's 150px
-  plot and 22px year axis, plus 14px of top headroom. Without it Chart.js clips the top y label,
-  which the spec draws above its gridline. Pages: `/`.
-- **Momentum year labels** (`charts/github-stats.blade.php`) — each label starts at the centre of
-  its Q1 bar pair, about 2px right of the 1×5px tick at the pair's left edge, instead of
-  left-aligned with the tick. Chart.js anchors category labels at the bar centre. Pages: `/`.
+- **All-time chart height** (`.chart-card-canvas--momentum` in `_chrome-styles.blade.php`,
+  `layout.padding.top`) — the canvas is 186px: the spec's 150px plot and 22px year axis, plus
+  14px of top headroom so Chart.js doesn't clip the top y label. Carries over when the chart moves
+  to the By Month pages.
+- **All-time year labels** — each label starts at the centre of its Q1 bar pair, about 2px right
+  of the tick, instead of left-aligned with it. Chart.js anchors category labels at the bar
+  centre. Carries over with the chart.
 
 ## Not covered
 

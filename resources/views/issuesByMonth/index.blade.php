@@ -18,5 +18,5 @@
         @endif
     </div>
 
-    <x-charts.age-over-time :stats="$ageStats" noun="issues" />
+    <x-charts.all-time-card :stats="$allTimeStats" title="Issues" noun="issues" />
 @endsection

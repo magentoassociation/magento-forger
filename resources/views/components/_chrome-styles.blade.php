@@ -1145,8 +1145,12 @@
         white-space: nowrap;
     }
 
-    /* Momentum chart */
-    .hp-momentum { padding-bottom: 34px; }
+    /* Momentum (spec README-homepage.md "Momentum") */
+    .hp-momentum { padding-top: 4px; padding-bottom: 40px; }
+    .hp-momentum-head { display: flex; align-items: flex-end; gap: 20px; margin-bottom: 16px; }
+    .hp-momentum-heading { flex: 1; min-width: 0; }
+    .hp-momentum-heading .hp-sub { margin: 0; }
+    .hp-momentum-head .hp-cta-primary { flex: none; }
     .hp-charts {
         /* One equal column per rendered card (one or two). */
         display: grid;
@@ -1164,8 +1168,15 @@
     }
     .chart-card-canvas { position: relative; height: 320px; }
 
-    /* Momentum card (spec README-homepage.md "Momentum", prototype 28a) */
-    .hp-momentum .chart-card { padding: 18px 20px 14px; }
+    /* Momentum and all-time cards: head row, totals-as-legend */
+    .chart-card--momentum {
+        padding: 0;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+    .chart-card-body { padding: 18px 20px 14px; }
+    .chart-card--alltime { padding: 18px 20px 14px; }
     .chart-card-head { display: flex; align-items: baseline; gap: 12px; }
     .chart-card-title {
         margin: 0;
@@ -1208,8 +1219,64 @@
         font-size: 12.5px;
         color: #5d636c;
     }
+    /* 120px plot + 10px top headroom for the top y label (drawn above its gridline). */
+    .chart-card-canvas--momentum { height: 130px; margin-top: 20px; }
+    /* One label per month, inset by the chart's 34px y gutter so columns sit under their pairs. */
+    .chart-months {
+        display: grid;
+        grid-template-columns: repeat(12, minmax(0, 1fr));
+        margin-top: 6px;
+        padding-left: 34px;
+        font-family: 'Martian Mono', ui-monospace, monospace;
+        font-weight: 400;
+        font-size: 8.5px;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        color: #6b7178;
+        text-align: center;
+    }
+    .chart-card-foot {
+        margin-top: auto;
+        display: flex;
+        align-items: baseline;
+        gap: 6px;
+        padding: 11px 20px;
+        border-top: 1px solid #e6e7ea;
+        background: #faf9f7;
+        font-family: 'Libre Franklin', system-ui, sans-serif;
+        font-size: 12.5px;
+        color: #5d636c;
+        text-decoration: none;
+    }
+    .chart-card-foot:hover { color: #15171b; }
+    .chart-card-foot b { font-weight: 700; color: #15171b; }
+    .chart-card-foot-link {
+        margin-left: auto;
+        flex: none;
+        white-space: nowrap;
+        font-weight: 600;
+        color: #ee6524;
+    }
+    .chart-card-foot:focus-visible { outline: 2px solid #f26322; outline-offset: -2px; }
+
+    /* By Month "Opened and closed, all time" (spec README-issues-prs-by-month.md §4) */
+    .bm-alltime { margin-top: 36px; padding-bottom: 34px; }
+    .bm-alltime-title {
+        margin: 0 0 4px;
+        font-family: 'Libre Franklin', system-ui, sans-serif;
+        font-weight: 700;
+        font-size: 17px;
+        letter-spacing: -.02em;
+        color: #15171b;
+    }
+    .bm-alltime-sub {
+        margin: 0 0 14px;
+        font-family: 'Libre Franklin', system-ui, sans-serif;
+        font-size: 13.5px;
+        color: #5d636c;
+    }
     /* 150px plot + 22px year-axis row Chart.js draws beneath it + 14px top headroom for the top y label. */
-    .chart-card-canvas--momentum { height: 186px; margin-top: 20px; }
+    .chart-card-canvas--alltime { height: 186px; margin-top: 20px; }
 
     /* First time contributing */
     .hp-first {
@@ -1275,6 +1342,8 @@
         .hp-section { padding-left: 20px; padding-right: 20px; }
         .hp-grid { grid-template-columns: minmax(0, 1fr); }
         .hp-charts { grid-auto-flow: row; }
+        .hp-momentum { padding-bottom: 38px; }
+        .hp-momentum-head { flex-direction: column; align-items: stretch; gap: 16px; }
         /* Below lg the card drops to the top three (+ the visitor's row). Head is child 1,
            so ranked rows sit at child 2–6; hide the 4th and 5th — but never the viewer's own
            highlighted row when they rank 4 or 5 (spec: the visitor's row is never dropped). */

@@ -1,125 +1,108 @@
+{{-- Homepage Momentum charts: last 12 months, one pair per month. Data comes from each card's canvas. --}}
 @include('components.charts._bar-chart')
 
 @push('scripts')
     <script>
-        // Null when that aggregation failed; its card is not rendered either.
-        const prStats = {!! json_encode($prStats, JSON_THROW_ON_ERROR) !!};
-        const issueStats = {!! json_encode($issueStats, JSON_THROW_ON_ERROR) !!};
+        (function () {
+            const Y_GUTTER = 34; // keeps y labels off the bars; the HTML month row is inset to match
+            const PAIR_GAP = 2;
+            const narrow = window.matchMedia('(max-width: 991.98px)');
 
-        // Monthly pairs over 140+ months are under 2px each in a half-width card, so the
-        // charts sum calendar quarters. A partial first or last quarter is charted as-is.
-        const toQuarters = (stats) => {
-            const quarters = new Map();
-            for (const [month, counts] of Object.entries(stats)) {
-                const [year, m] = month.split('-').map(Number);
-                const quarter = Math.ceil(m / 3);
-                const key = `${year}-${quarter}`;
-                const sum = quarters.get(key) ?? { year, quarter, opened: 0, closed: 0 };
-                sum.opened += counts.opened;
-                sum.closed += counts.closed;
-                quarters.set(key, sum);
-            }
+            // Size bars in pixels: 2px inside a pair, 8px between months (5px below lg).
+            // A bar sits centred in its half-month slot, so the visible month gap is the
+            // category gutter plus one slot-minus-bar gap.
+            const applyGaps = (chart) => {
+                const width = chart.chartArea ? chart.chartArea.width : 0;
+                if (width <= 0) {
+                    return;
+                }
+                const month = width / chart.data.labels.length;
+                const inner = Math.max(month - (narrow.matches ? 5 : 8) + PAIR_GAP, PAIR_GAP * 2 + 2);
+                const slot = inner / 2;
+                chart.data.datasets.forEach(dataset => {
+                    dataset.categoryPercentage = Math.min(inner / month, 1);
+                    dataset.barPercentage = (slot - PAIR_GAP) / slot;
+                });
+            };
 
-            return [...quarters.values()];
-        };
+            const momentumChart = (canvas) => {
+                const months = JSON.parse(canvas.dataset.months);
+                const noun = canvas.dataset.noun;
+                const step = forgerNiceStep(Math.max(0, ...months.flatMap(m => [m.opened, m.closed])));
 
-        // Smallest 1, 2, 2.5 or 5 × 10ⁿ step that fits the max in three steps.
-        const niceStep = (max) => {
-            const raw = Math.max(max, 1) / 3;
-            const exp = Math.pow(10, Math.floor(Math.log10(raw)));
+                const chart = forgerBarChart(canvas.id, months.map(m => m.label), [
+                    { label: 'Opened', data: months.map(m => m.opened), color: '#ee6524' },
+                    { label: 'Closed', data: months.map(m => m.closed), color: '#9aa3ae' },
+                ], (config) => {
+                    const hover = ['rgba(238, 101, 36, .6)', 'rgba(154, 163, 174, .6)'];
+                    config.data.datasets.forEach((dataset, i) => Object.assign(dataset, {
+                        borderRadius: 1,
+                        categoryPercentage: 0.8,
+                        barPercentage: 0.92,
+                        hoverBackgroundColor: hover[i],
+                    }));
 
-            return [1, 2, 2.5, 5, 10].map(m => m * exp).find(step => step >= raw);
-        };
-
-        const fmt = (n) => n.toLocaleString('en-US');
-
-        const momentumChart = (id, stats, noun) => {
-            if (!stats) {
-                return;
-            }
-
-            const quarters = toQuarters(stats);
-            const step = niceStep(Math.max(0, ...quarters.flatMap(q => [q.opened, q.closed])));
-            // One label per even year, at its Q1 bar.
-            const yearTicks = new Set(quarters.flatMap((q, i) => (q.quarter === 1 && q.year % 2 === 0 ? [i] : [])));
-            const mono = { family: "'Martian Mono', ui-monospace, monospace", size: 9.5 };
-
-            forgerBarChart(id, quarters.map(q => `${q.year}-Q${q.quarter}`), [
-                { label: 'Opened', data: quarters.map(q => q.opened), color: '#ee6524' },
-                { label: 'Closed', data: quarters.map(q => q.closed), color: '#9aa3ae' },
-            ], (config) => {
-                const hover = ['rgba(238, 101, 36, .6)', 'rgba(154, 163, 174, .6)'];
-                config.data.datasets.forEach((dataset, i) => Object.assign(dataset, {
-                    borderRadius: 1,
-                    categoryPercentage: 0.92,
-                    barPercentage: 0.9,
-                    hoverBackgroundColor: hover[i],
-                }));
-
-                Object.assign(config.options, {
-                    // Headroom so the top y label, drawn above its gridline, isn't clipped.
-                    layout: { padding: { top: 14 } },
-                    interaction: { mode: 'index', intersect: false },
-                    scales: {
-                        x: {
-                            border: { color: '#c9ced4' },
-                            grid: {
-                                drawOnChartArea: false,
-                                tickLength: 5,
-                                tickColor: (ctx) => (yearTicks.has(ctx.index) ? '#c9ced4' : 'transparent'),
-                            },
-                            ticks: {
-                                autoSkip: false,
-                                maxRotation: 0,
-                                minRotation: 0,
-                                align: 'start',
-                                padding: 2,
-                                color: '#15171b',
-                                font: { family: "'Libre Franklin', system-ui, sans-serif", size: 12, weight: '700' },
-                                callback: (value, i) => (yearTicks.has(i) ? String(quarters[i].year) : ''),
-                            },
+                    Object.assign(config.options, {
+                        // Headroom so the top y label, drawn above its gridline, isn't clipped.
+                        layout: { padding: { top: 10 } },
+                        interaction: { mode: 'index', intersect: false },
+                        onResize: (resized) => {
+                            applyGaps(resized);
+                            resized.update('none');
                         },
-                        y: {
-                            min: 0,
-                            max: step * 3,
-                            border: { display: false },
-                            grid: { color: '#eef0f2', drawTicks: false },
-                            ticks: {
-                                stepSize: step,
-                                mirror: true,
-                                padding: 0,
-                                labelOffset: -7,
-                                showLabelBackdrop: true,
-                                backdropColor: '#ffffff',
-                                backdropPadding: 1,
-                                color: '#6b7178',
-                                font: mono,
-                                callback: (value) => (value === 0 ? '' : fmt(value)),
+                        scales: {
+                            // Month labels are HTML under the canvas; the axis is just the baseline.
+                            x: {
+                                border: { color: '#c9ced4' },
+                                grid: { display: false },
+                                ticks: { display: false },
                             },
-                        },
-                    },
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            displayColors: false,
-                            filter: (item) => item.datasetIndex === 0,
-                            callbacks: {
-                                title: (items) => `Q${quarters[items[0].dataIndex].quarter} ${quarters[items[0].dataIndex].year}`,
-                                label: (item) => {
-                                    const q = quarters[item.dataIndex];
-
-                                    return `${fmt(q.opened)} ${noun} opened, ${fmt(q.closed)} closed`;
+                            y: {
+                                min: 0,
+                                max: step * 3,
+                                afterFit: (scale) => {
+                                    scale.width = Y_GUTTER;
+                                },
+                                border: { display: false },
+                                grid: { color: '#eef0f2', drawTicks: false },
+                                ticks: {
+                                    stepSize: step,
+                                    crossAlign: 'far',
+                                    padding: 0,
+                                    labelOffset: -6,
+                                    color: '#6b7178',
+                                    font: { family: "'Martian Mono', ui-monospace, monospace", size: 9.5 },
+                                    callback: (value) => (value === 0 ? '' : forgerFmt(value)),
                                 },
                             },
                         },
-                    },
-                });
-            });
-        };
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                displayColors: false,
+                                filter: (item) => item.datasetIndex === 0,
+                                callbacks: {
+                                    title: (items) => months[items[0].dataIndex].label,
+                                    label: (item) => {
+                                        const m = months[item.dataIndex];
 
-        document.addEventListener('DOMContentLoaded', () => {
-            momentumChart('prChart', prStats, 'PRs');
-            momentumChart('issueChart', issueStats, 'issues');
-        });
+                                        return `${forgerFmt(m.opened)} ${noun} opened, ${forgerFmt(m.closed)} closed`;
+                                    },
+                                },
+                            },
+                        },
+                    });
+                });
+
+                if (chart) {
+                    applyGaps(chart);
+                    chart.update('none');
+                }
+            };
+
+            document.addEventListener('DOMContentLoaded', () => {
+                document.querySelectorAll('.chart-card--momentum canvas').forEach(momentumChart);
+            });
+        })();
     </script>
 @endpush

@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Tests\Feature\Http\Controllers;
 
 use App\Helpers\GitHubLinkHelper;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Mockery;
@@ -67,12 +68,13 @@ class WelcomeControllerTest extends TestCase
         $response->assertSee('<h2 class="hp-h2">Momentum</h2>', false);
         $response->assertSee('id="prChart"', false);
         $response->assertSee('id="issueChart"', false);
-        $response->assertSee('const prStats = {"2026-01":{"opened":5,"closed":3}}', false);
-        $response->assertSee('const issueStats = {"2026-01":{"opened":8,"closed":6}}', false);
+        // The section closes on the hero CTA, repeated once.
+        $this->assertSame(2, substr_count($response->getContent(), 'Find an issue to work on →'));
     }
 
-    public function testMomentumCardsShowTotalsRangeAndDescriptiveLabel(): void
+    public function testMomentumCardsChartTheLastTwelveMonthsAndLinkToFullHistory(): void
     {
+        $this->travelTo(Carbon::parse('2026-10-15'));
         $this->bindClient([
             'aggregations' => [
                 'prs_opened_per_month' => ['buckets' => [
@@ -88,12 +90,33 @@ class WelcomeControllerTest extends TestCase
         $response = $this->get(route('home'));
 
         $response->assertOk();
-        $response->assertSeeInOrder(['Pull requests', 'Dec 2014 – Sep 2026', '1,234', 'opened', '1,100', 'closed'], false);
+        // Nov 2025 – Oct 2026: the Dec 2014 bucket is outside the window, so only Sep 2026 counts.
+        $response->assertSeeInOrder(['Pull requests', 'Last 12 months', '34', 'opened', '1,100', 'closed'], false);
         $response->assertSee(
-            'aria-label="Pull requests opened and closed per quarter, Dec 2014 to Sep 2026: 1,234 opened, 1,100 closed"',
+            'aria-label="Pull requests opened and closed per month, last 12 months: 34 opened, 1,100 closed"',
             false,
         );
-        $response->assertSee('aria-label="Issues opened and closed per quarter, Jan 2026 to Jan 2026: 8 opened, 6 closed"', false);
+        $response->assertSee(e('"label":"Sep 2026","short":"Sep","opened":34,"closed":1100'), false);
+        $response->assertSeeInOrder(['<span>Nov</span>', '<span>Dec</span>', '<span>Sep</span>', '<span>Oct</span>'], false);
+        // Footer: all-time opened since the first month, linking to the By Month page.
+        $response->assertSee('href="'.route('prs.PRsByMonth').'" aria-label="Full history: Pull requests by month"', false);
+        $response->assertSee('<b>1,234</b> opened since Dec 2014', false);
+        $response->assertSee('href="'.route('issues.issuesByMonth').'" aria-label="Full history: Issues by month"', false);
+    }
+
+    public function testMomentumMonthsWithNoBucketCountAsZero(): void
+    {
+        $this->travelTo(Carbon::parse('2026-10-15'));
+        $this->bindClient(['aggregations' => []], [], ['aggregations' => []]);
+
+        $response = $this->get(route('home'));
+
+        $response->assertOk();
+        $response->assertSee('aria-label="Pull requests opened and closed per month, last 12 months: 0 opened, 0 closed"', false);
+        $response->assertSee(e('"label":"Oct 2026","short":"Oct","opened":0,"closed":0'), false);
+        // No history at all: no "since" line, but the link stays.
+        $response->assertDontSee('opened since', false);
+        $response->assertSee('aria-label="Full history: Pull requests by month"', false);
     }
 
     public function testHomepageHidesOnlyPrChartWhenPrSearchFails(): void
@@ -110,7 +133,6 @@ class WelcomeControllerTest extends TestCase
         $response->assertSee('<h2 class="hp-h2">Momentum</h2>', false);
         $response->assertDontSee('id="prChart"', false);
         $response->assertSee('id="issueChart"', false);
-        $response->assertSee('const prStats = null', false);
     }
 
     public function testHomepageHidesOnlyIssueChartWhenIssueSearchFails(): void
@@ -123,7 +145,6 @@ class WelcomeControllerTest extends TestCase
         $response->assertViewHas('issueStats', null);
         $response->assertSee('id="prChart"', false);
         $response->assertDontSee('id="issueChart"', false);
-        $response->assertSee('const issueStats = null', false);
     }
 
     public function testHomepageHidesMomentumSectionWhenBothSearchesFail(): void
@@ -140,7 +161,7 @@ class WelcomeControllerTest extends TestCase
         $response->assertSee('Ready to code');    // rest of the page still renders
         $response->assertDontSee('<h2 class="hp-h2">Momentum</h2>', false);
         $response->assertDontSee('<canvas', false);
-        $response->assertDontSee('const prStats', false);
+        $response->assertDontSee('class="chart-card chart-card--momentum"', false);
     }
 
     public function testReadyToCodeUsesAllLabeledIssuesWhileUnclaimedOnlyIsOff(): void

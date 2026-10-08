@@ -17,7 +17,7 @@ written in HTML — a prototype of the
 intended look and behaviour, not production code to copy. Reproduce the spec below in the
 Laravel/Blade + Bootstrap codebase using its existing template conventions.
 
-In the prototype, **`#15a` is the approved design**; the Momentum charts are drawn in `#28a`.
+In the prototype, **`#15a` is the approved design**, including the Momentum section.
 
 ## Fidelity
 **High-fidelity** for colour, type and spacing — the values below are exact. Layout proportions
@@ -44,12 +44,12 @@ Top to bottom:
 3. Start contributing — "Ready to code" row.
 4. Pick your area — 2-column list.
 5. First time contributing? — three-step rail.
-6. Momentum — PR and issue charts (28a).
+6. Momentum — last 12 months of PRs and issues, with the CTA repeated.
 7. Footer — 12a, unchanged.
 
 **Removed from the current page:** the three benefit cards, and the closing "Ready to ship your
-first fix?" block with its duplicate CTA pair. The hero CTA is the only CTA; "Ready to code"
-and the area list carry the rest of the intent.
+first fix?" block with its duplicate CTA pair. The hero CTA appears once more, beside the
+Momentum heading at the end of the page; there is no second button pair.
 
 All sections use the **same centred content container as the rest of the site**
 (`max-width` + `margin: 0 auto`). The hero's dark background is full-bleed; its contents sit in
@@ -262,62 +262,70 @@ same content as today's box; the box was ~230px tall with more than half of it e
 
 ## Momentum
 
-Drawn in `#28a`, placed in `#15a` / `#24d`. `padding: 0 36px 34px`, directly after the
-first-timer block. Each chart is hidden when its aggregation fails; the section is hidden when
-both fail (current behaviour, unchanged).
+The page's closing section, drawn in `#15a` (and `#24d` at 420px). `padding: 4px 36px 40px`,
+directly after the first-timer block. It leads with the **last 12 months**; the full history moves
+to the By Month pages (`README-issues-prs-by-month.md`, "Opened and closed, all time"). Each card
+is hidden when its aggregation fails; the section is hidden when both fail (current behaviour).
 
-- `<h2>` "Momentum" and sub "Contributors open and close pull requests and issues every month.
-  Join them." — same styles as the other section heads. Copy unchanged.
-- Cards: `display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px` — one equal
-  column per rendered card, as today.
+**Heading row** — `display: flex; align-items: flex-end; gap: 20px; margin-bottom: 16px`.
+- Left, `flex: 1`: `<h2>` "Momentum" and sub "Contributors open and close pull requests and
+  issues every month. Join them." (`margin: 0`) — same styles as the other section heads. Copy
+  unchanged.
+- Right, `flex: none`: the hero CTA repeated — "Find an issue to work on →", same styles and
+  destination as the hero button. This is the page's one CTA repeat; it closes the page on the
+  ask the hero opened with.
 
-**Card** — `.chart-card`, `padding: 18px 20px 14px` (bottom was 18px), `border: 1px solid
-#e6e7ea`, `border-radius: 10px`.
+**Cards** — `display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px`.
+Each card: `border: 1px solid #e6e7ea; border-radius: 10px; overflow: hidden;
+display: flex; flex-direction: column`. Body `padding: 18px 20px 14px`:
 
-1. **Head row** — `display: flex; align-items: baseline; gap: 12px`.
-   - Title "Pull requests" / "Issues" — Libre Franklin 700, 15px, `-.018em` (unchanged).
-   - Range, pushed right — the first and last month in the data, e.g. "Dec 2014 – Sep 2026".
-     Martian Mono 400, 9px, uppercase, `.06em`, `#6b7178`.
-2. **Totals** — `display: flex; gap: 22px; margin-top: 10px`. Two items, opened then closed,
-   each `display: flex; align-items: baseline; gap: 7px`:
-   - Swatch 8×8, `border-radius: 2px`, vertically centred — `#ee6524` opened, `#9aa3ae` closed.
-   - Number — sum of every month in the series, thousands separator. Libre Franklin 700, 22px,
-     `-.03em`.
-   - Word "opened" / "closed" — 12.5px, `#5d636c`.
+1. **Head row** — `display: flex; align-items: baseline; gap: 12px`. Title "Pull requests" /
+   "Issues" (Libre Franklin 700, 15px, `-.018em`); "Last 12 months" pushed right — Martian Mono
+   400, 9px, uppercase, `.06em`, `#6b7178`.
+2. **Totals** — `display: flex; gap: 22px; margin-top: 10px`. Opened then closed, each
+   `display: flex; align-items: baseline; gap: 7px`: 8×8 swatch (`border-radius: 2px`, centred;
+   `#ee6524` opened, `#9aa3ae` closed), number (sum of the 12 months, thousands separator,
+   Libre Franklin 700 22px `-.03em`), word "opened" / "closed" (12.5px, `#5d636c`). **The
+   totals are the legend** — no Chart.js legend.
+3. **Plot** — `height: 120px; margin-top: 20px`. Twelve monthly pairs, oldest left, ending with
+   the current month.
+4. **Month axis** — one label per month under its pair: three-letter month, Martian Mono 400,
+   8.5px, uppercase, `.04em`, `#6b7178`, centred, `margin-top: 6px`.
 
-   **These replace the Chart.js legend** (`legend.display: false`). The swatches are the key.
-3. **Plot** — `height: 150px; margin-top: 20px` (was 320px).
-4. **Year axis** — 22px row under the plot.
+**Footer** — the whole row is a link to that dataset's By Month page (PRs By Month / Issues By
+Month). `margin-top: auto; display: flex; align-items: baseline; gap: 6px; padding: 11px 20px;
+border-top: 1px solid #e6e7ea; background: #faf9f7`; 12.5px, `#5d636c`, hover `#15171b`.
+- "**15,094** opened since Dec 2014" — the all-time opened count in 700 `#15171b`; the month is
+  the first month in the data.
+- "Full history →" pushed right — 600, `#ee6524`, `flex: none; white-space: nowrap`.
 
-**Data.** The controller's monthly buckets are unchanged; the view sums them into calendar
-quarters before charting (Jan–Mar, Apr–Jun, Jul–Sep, Oct–Dec). A partial first or last quarter
-is charted as-is. Paired monthly bars for 140+ months are under 2px each in a half-width card
-and read as one texture; quarterly pairs are about 4px.
+**Data.** The controller's monthly buckets are unchanged. The view takes the last 12 for the
+plot and totals, and sums every bucket for the footer count.
 
 **Chart.js options** (`forgerBarChart` for these two charts):
 
 | Option | Value |
 |---|---|
-| Datasets | opened `#ee6524`, closed `#9aa3ae` (was `#15171b` — orange on black read as Halloween), quarterly sums |
-| `borderRadius` | `1` (was 3) — top corners only |
-| `categoryPercentage` / `barPercentage` | `0.92` / `0.9` — 1px between a pair, 2px between quarters |
+| Datasets | opened `#ee6524`, closed `#9aa3ae`, last 12 monthly buckets |
+| `borderRadius` | `1` — top corners only |
+| `categoryPercentage` / `barPercentage` | `0.8` / `0.92` — 2px between a pair, 8px between months |
 | `plugins.legend.display` | `false` |
-| y ticks | 3 steps from a nice step (1, 2, 2.5, 5 × 10ⁿ); `0` not labelled. Martian Mono 9.5px, `#6b7178`, drawn inside the plot at the top-left of each gridline (`mirror: true`, white backdrop) so they take no gutter |
+| y ticks | 3 steps from a nice step (1, 2, 2.5, 5 × 10ⁿ); `0` not labelled. Martian Mono 9.5px, `#6b7178`, drawn above each gridline at the left, with a 34px left gutter so they never sit on a bar |
 | y grid | `#eef0f2`; no border |
 | x baseline | `border.color: '#c9ced4'`; no grid |
-| x ticks | One label per even year, at its Q1 bar: "2016", "2018" … Libre Franklin 700, 12px, `#15171b`, `maxRotation: 0`, `autoSkip: false`, left-aligned with a 1×5px `#c9ced4` tick above |
-| Tooltip | title "Q2 2018"; body "412 PRs opened, 388 closed" |
+| x ticks | as "Month axis" above; `maxRotation: 0`, `autoSkip: false` |
+| Tooltip | title "Mar 2026"; body "42 PRs opened, 38 closed" |
 
-**Hover** — the hovered quarter's pair drops to 60% opacity (Chart.js `hoverBackgroundColor`
-at alpha .6). No cursor change.
+**Hover** — the hovered month's pair drops to 60% opacity. No cursor change.
 
-**Accessibility** — closed bars `#9aa3ae` are 2.5:1 on white; acceptable because every value is also in the tooltip and the totals are text. Keep `role="img"` and the canvas `aria-label`, extended with the totals:
-"Pull requests opened and closed per quarter, Dec 2014 to Sep 2026: 23,410 opened, 21,980 closed".
-The totals row is real text, so it is read before the canvas.
+**Accessibility** — closed bars `#9aa3ae` are 2.5:1 on white; acceptable because every value is
+in the tooltip and the totals are text. Keep `role="img"` and the canvas `aria-label`:
+"Pull requests opened and closed per month, last 12 months: 412 opened, 388 closed". The footer
+link's accessible name is "Full history: Pull requests by month".
 
-**Responsive** — below `lg` the cards stack, Pull requests first
-(`grid-template-columns: minmax(0, 1fr)`), section padding `0 20px 34px`. Plot height and
-quarter grouping stay the same.
+**Responsive** — below `lg`: section padding `4px 20px 38px`; the heading row becomes a column
+(`flex-direction: column; align-items: stretch; gap: 16px`) and the CTA goes full width,
+centred; the cards stack, Pull requests first; month gaps drop to 5px.
 
 ---
 
@@ -333,7 +341,6 @@ All values are existing tokens from `README-header.md` and `README.md`. New to t
 | Hero row hover | `#22262c` | leaderboard row hover fill |
 | Empty-row ink | `#f9a279` | "Your row is empty" |
 | Dashed avatar | `#4a5057` | empty avatar outline |
-
 | Chart gridline | `#eef0f2` | Momentum y gridlines |
 
 Reused: `#6b7178`, `#9aa3ae` (closed bars), `#15171b`, `#f26322`, `#ff7433`, `#c9ced4`, `#9aa3ae`, `#8a919b`, `#ffffff`, `#e6e7ea`, `#faf9f7`, `#3c4148`, `#5d636c`, `#fdf1ea`, `#a8420f`, `#ee6524`.
@@ -394,7 +401,7 @@ Below the Bootstrap `lg` breakpoint:
 - The area grid collapses to one column; the 1px-gap rule technique still applies.
 - The first-timer block stacks: heading block, then the three steps in a column with
   `border-left` swapped for `border-top: 1px solid #e6e7ea` and `padding: 14px 0 0`.
-- The Momentum cards stack, Pull requests first.
+- Momentum: the CTA drops under the heading at full width; the cards stack, Pull requests first.
 - The leaderboard card drops to the **top three** plus the visitor's row below `lg`. At five
   rows the hero pushes the CTAs and everything under them off a phone screen; three is enough to
   read as a ranking. The visitor's row is never dropped at any width — it is the pitch. Long

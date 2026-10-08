@@ -9,11 +9,12 @@
              * @param {string[]} labels  yyyy-MM month keys
              * @param {{label: string, data: (number|null)[], color: string}[]} datasets
              * @param {function(object): void} [customize]  Mutates the Chart.js config before drawing.
+             * @return {Chart|null}
              */
             window.forgerBarChart = function (id, labels, datasets, customize) {
                 const el = document.getElementById(id);
                 if (!el) {
-                    return;
+                    return null;
                 }
 
                 // Orange accent and ink, hairline grid, mono ticks.
@@ -67,8 +68,19 @@
                     customize(config);
                 }
 
-                new Chart(el.getContext('2d'), config);
+                return new Chart(el.getContext('2d'), config);
             };
+
+            /** Smallest 1, 2, 2.5 or 5 × 10ⁿ step that fits the max in three steps. */
+            window.forgerNiceStep = function (max) {
+                const raw = Math.max(max, 1) / 3;
+                const exp = Math.pow(10, Math.floor(Math.log10(raw)));
+
+                return [1, 2, 2.5, 5, 10].map(m => m * exp).find(step => step >= raw);
+            };
+
+            /** Thousands-separated count, e.g. 23,410. */
+            window.forgerFmt = (n) => n.toLocaleString('en-US');
         </script>
     @endpush
 @endonce

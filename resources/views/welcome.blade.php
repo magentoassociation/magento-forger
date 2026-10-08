@@ -187,8 +187,16 @@
     {{-- Momentum (social proof) — each chart hidden when its aggregation fails --}}
     @if ($prStats !== null || $issueStats !== null)
         <section class="container hp-section hp-momentum">
-            <h2 class="hp-h2">Momentum</h2>
-            <p class="hp-sub">Contributors open and close pull requests and issues every month. Join them.</p>
+            <div class="hp-momentum-head">
+                <div class="hp-momentum-heading">
+                    <h2 class="hp-h2">Momentum</h2>
+                    <p class="hp-sub">Contributors open and close pull requests and issues every month. Join them.</p>
+                </div>
+                {{-- The hero CTA, repeated once to close the page on the same ask. --}}
+                <a href="{{ $ready['url'] ?? route('leaderboard.show', ['board' => 'contributor']) }}"
+                   @if ($ready) target="magentoForgerGitHub" rel="noopener" @endif
+                   class="hp-cta-primary">Find an issue to work on →</a>
+            </div>
             @if ($dataMissing)
                 <x-data-missing>
                     The OpenSearch indices are empty or missing. Run
@@ -198,14 +206,16 @@
             @endif
             <div class="hp-charts">
                 @if ($prStats !== null)
-                    <x-charts.momentum-card id="prChart" title="Pull requests" :stats="$prStats" />
+                    <x-charts.momentum-card id="prChart" title="Pull requests" noun="PRs" :stats="$prStats"
+                                            :history-url="route('prs.PRsByMonth')" />
                 @endif
                 @if ($issueStats !== null)
-                    <x-charts.momentum-card id="issueChart" title="Issues" :stats="$issueStats" />
+                    <x-charts.momentum-card id="issueChart" title="Issues" noun="issues" :stats="$issueStats"
+                                            :history-url="route('issues.issuesByMonth')" />
                 @endif
             </div>
         </section>
 
-        @include('components.charts.github-stats', ['prStats' => $prStats, 'issueStats' => $issueStats])
+        @include('components.charts.github-stats')
     @endif
 @endsection
