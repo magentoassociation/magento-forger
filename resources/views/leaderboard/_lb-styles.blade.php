@@ -717,6 +717,8 @@
     /* Zero-score state (#17b/#17c). */
     .lb-d-score--zero { color: #6b7178; }
     .lb-d-empty {
+        /* The zero state hides .lb-d-controls, which normally supplies the gap under the intro. */
+        margin-top: 20px;
         border: 1px solid #e6e7ea;
         border-radius: 10px;
         overflow: hidden;
