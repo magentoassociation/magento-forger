@@ -13,9 +13,8 @@ mapping each spec to the prototype ids it describes.
 
 `specs/README.md` and `specs/README-leaderboard-pages.md` describe the same three boards at two
 stages. The second supersedes the first — see *Which spec governs the boards* in
-`specs/README.md`. The site currently implements the earlier generation; the later layer
-(control strip, search, jump-to-my-rank, pagination, activity column, focus rings, hover
-states) is unbuilt and is the larger half of this handoff.
+`specs/README.md`. Both stages are built. `OUT-OF-SYNC.md` lists any current differences between
+the live site and the specs; check it before changing code.
 
 ## Reading order
 
