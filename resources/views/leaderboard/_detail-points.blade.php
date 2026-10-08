@@ -1,0 +1,1 @@
+<span class="lb-d-row-pts">{{ number_format($row->points, 1) }}@if (! empty($row->formula))<span class="lb-tip" role="tooltip">{{ $row->formula }}<span class="lb-tip-arrow"></span></span>@endif</span>

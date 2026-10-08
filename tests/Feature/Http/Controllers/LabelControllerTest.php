@@ -69,6 +69,25 @@ class LabelControllerTest extends TestCase
         })($labels));
     }
 
+    public function testLabelLinksUseTheConfiguredRepo(): void
+    {
+        config(['github.repo' => 'acme/widgets']);
+        $client = Mockery::mock(Client::class);
+        $client->shouldReceive('search')->andReturn([
+            'aggregations' => ['by_label' => ['buckets' => [['key' => 'Area: Cart & Checkout', 'doc_count' => 2]]]],
+        ]);
+        $this->app->instance(Client::class, $client);
+
+        $response = $this->actingAs($this->createUser(true))->get(route('labels.listAllLabels'));
+
+        $response->assertOk();
+        $response->assertSee(
+            'href="https://github.com/acme/widgets/issues?q=is%3Aissue+is%3Aopen+label%3A%22Area%3A+Cart+%26+Checkout%22"',
+            false,
+        );
+        $response->assertDontSee('github.com/magento/magento2/issues', false);
+    }
+
     private function createUser(bool $isAdmin): User
     {
         return User::factory()->create(['is_admin' => $isAdmin]);

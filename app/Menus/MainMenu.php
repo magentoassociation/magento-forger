@@ -54,8 +54,9 @@ class MainMenu
                     $label = self::formatLabel($child);
                     $isActive = ($child === $currentRoute) ? ' active' : '';
                     $submenuItems .= sprintf(
-                        '<li><a class="dropdown-item%s" href="%s">%s</a></li>',
+                        '<li><a class="dropdown-item%s"%s href="%s">%s</a></li>',
                         $isActive,
+                        $isActive ? ' aria-current="page"' : '',
                         route($child),
                         $label
                     );
@@ -68,7 +69,7 @@ class MainMenu
                     $dropdownHtml = sprintf(
                         '<li class="nav-item dropdown">
         <a class="nav-link dropdown-toggle%s" href="#" id="dropdown-%s" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-            %s
+            %s <span class="nav-caret" aria-hidden="true">▾</span>
         </a>
         <ul class="dropdown-menu" aria-labelledby="dropdown-%s">
             %s
@@ -86,7 +87,12 @@ class MainMenu
             }
         }
 
-        return $menu;
+        // Items are activated by setActiveFromRequest's filter as they're added.
+        return $menu->each(function (Link $link): void {
+            if ($link->isActive()) {
+                $link->setAttribute('aria-current', 'page');
+            }
+        });
     }
 
     private static function formatLabel(string $routeName): string

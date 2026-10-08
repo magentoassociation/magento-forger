@@ -89,6 +89,7 @@ class ClaimRecordReader
 
         $pendingReviewTimes = $this->pendingReviewTimes($prNumbers, $label);
         $reviewTimes = $this->reviewTimes($prNumbers, $maintainers);
+        $titles = $this->prTitles($prNumbers);
 
         $records = [];
         foreach ($claims as $claim) {
@@ -101,10 +102,46 @@ class ClaimRecordReader
                     $reviewTimes[$claim['pr'].'|'.$claim['maintainer']] ?? [],
                     $claim['claimed_at'],
                 ),
+                title: $titles[$claim['pr']] ?? null,
             );
         }
 
         return $records;
+    }
+
+    /**
+     * PR titles keyed by PR number, from the pull-requests index.
+     *
+     * @param  list<int>  $prNumbers
+     * @return array<int, string>
+     */
+    private function prTitles(array $prNumbers): array
+    {
+        $titles = [];
+
+        foreach (array_chunk($prNumbers, 1000) as $chunk) {
+            $response = $this->client->search([
+                'index' => OpenSearchService::getIndexWithPrefix(
+                    OpenSearchService::OPENSEARCH_GITHUB_PULL_REQUESTS_INDEX,
+                ),
+                // Titles are cosmetic: a missing index yields no hits so callers fall back to the PR number.
+                'ignore_unavailable' => true,
+                'body' => [
+                    'size' => count($chunk),
+                    '_source' => ['id', 'title'],
+                    'query' => ['bool' => ['filter' => [['terms' => ['id' => $chunk]]]]],
+                ],
+            ]);
+
+            foreach ($response['hits']['hits'] ?? [] as $hit) {
+                $source = $hit['_source'] ?? [];
+                if (isset($source['id'], $source['title'])) {
+                    $titles[(int) $source['id']] = (string) $source['title'];
+                }
+            }
+        }
+
+        return $titles;
     }
 
     /**
@@ -221,6 +258,8 @@ class ClaimRecordReader
         $response = $this->client->search([
             'index' => OpenSearchService::getIndexWithPrefix($index),
             'scroll' => '1m',
+            // A missing index yields no hits, so a fresh environment reads as "no claims" instead of throwing.
+            'ignore_unavailable' => true,
             'size' => 1000,
             '_source' => $source,
             'body' => ['query' => $query],

@@ -10,15 +10,27 @@
 # (see routes/console.php and scripts/sync-week.sh).
 #
 # Unlike sync-week.sh this omits --since, so every sync pulls the full history.
-# That is heavy on the GitHub API. To scope it, set SINCE (e.g. SINCE="1 year")
-# and it is passed to the data syncs that accept it.
+# That is heavy on the GitHub API. To scope it, set a history window (e.g.
+# "1 year") and it is passed to the data syncs that accept it.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-# Optional history window. Empty (default) = full history.
+# Optional history window. Empty (default) = full history. Accept it either as a
+# flag or the SINCE env var; the flag wins when both are given.
+#   ./scripts/bootstrap-prod.sh --since="2 weeks"
+#   ./scripts/bootstrap-prod.sh --since "1 year"
 #   SINCE="1 year" ./scripts/bootstrap-prod.sh
 SINCE="${SINCE:-}"
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --since=*) SINCE="${1#*=}"; shift ;;
+        --since)   SINCE="${2:?--since needs a value, e.g. --since \"2 weeks\"}"; shift 2 ;;
+        --) shift; break ;;
+        *) echo "Unknown argument: $1" >&2; exit 2 ;;
+    esac
+done
+
 since_args=()
 if [ -n "$SINCE" ]; then
     since_args=(--since="$SINCE")

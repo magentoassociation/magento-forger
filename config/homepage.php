@@ -26,6 +26,9 @@ return [
             'blurb' => 'Confirmed, prioritized issues waiting for a developer.',
             'cta' => 'Browse Ready for Work',
             'label' => 'Issue: Ready for Work',
+            // When true, the link skips issues that are assigned or have a linked PR, and the
+            // count pill is hidden (the index can't count that filter). Off until that pool is bigger.
+            'unclaimed_only' => false,
         ],
         // [
         //     'icon' => '🔍',
