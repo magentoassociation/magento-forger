@@ -9,7 +9,10 @@
     <meta name="description" content="Magento 2 PR & Issue Statistics Viewer">
     <link rel="icon" href="{{ asset('favicon.ico') }}?v=2">
     @vite(['resources/sass/app.scss', 'resources/js/app.js']) {{-- Tailwind CSS --}}
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    {{-- Pinned: the Momentum chart styling (mirrored y labels, label backdrops) relies on Chart.js 4 behaviour. --}}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"
+            integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ"
+            crossorigin="anonymous"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     @include('components._fonts')

@@ -8,8 +8,9 @@
              * @param {string} id
              * @param {string[]} labels  yyyy-MM month keys
              * @param {{label: string, data: (number|null)[], color: string}[]} datasets
+             * @param {function(object): void} [customize]  Mutates the Chart.js config before drawing.
              */
-            window.forgerBarChart = function (id, labels, datasets) {
+            window.forgerBarChart = function (id, labels, datasets, customize) {
                 const el = document.getElementById(id);
                 if (!el) {
                     return;
@@ -18,7 +19,7 @@
                 // Orange accent and ink, hairline grid, mono ticks.
                 const mono = { family: "'Martian Mono', ui-monospace, monospace", size: 10.5 };
 
-                new Chart(el.getContext('2d'), {
+                const config = {
                     type: 'bar',
                     data: {
                         labels: labels,
@@ -60,7 +61,13 @@
                             }
                         }
                     }
-                });
+                };
+
+                if (customize) {
+                    customize(config);
+                }
+
+                new Chart(el.getContext('2d'), config);
             };
         </script>
     @endpush

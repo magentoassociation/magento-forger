@@ -71,6 +71,31 @@ class WelcomeControllerTest extends TestCase
         $response->assertSee('const issueStats = {"2026-01":{"opened":8,"closed":6}}', false);
     }
 
+    public function testMomentumCardsShowTotalsRangeAndDescriptiveLabel(): void
+    {
+        $this->bindClient([
+            'aggregations' => [
+                'prs_opened_per_month' => ['buckets' => [
+                    ['key_as_string' => '2014-12', 'doc_count' => 1200],
+                    ['key_as_string' => '2026-09', 'doc_count' => 34],
+                ]],
+                'prs_closed_per_month' => ['buckets' => [
+                    ['key_as_string' => '2026-09', 'doc_count' => 1100],
+                ]],
+            ],
+        ], []);
+
+        $response = $this->get(route('home'));
+
+        $response->assertOk();
+        $response->assertSeeInOrder(['Pull requests', 'Dec 2014 – Sep 2026', '1,234', 'opened', '1,100', 'closed'], false);
+        $response->assertSee(
+            'aria-label="Pull requests opened and closed per quarter, Dec 2014 to Sep 2026: 1,234 opened, 1,100 closed"',
+            false,
+        );
+        $response->assertSee('aria-label="Issues opened and closed per quarter, Jan 2026 to Jan 2026: 8 opened, 6 closed"', false);
+    }
+
     public function testHomepageHidesOnlyPrChartWhenPrSearchFails(): void
     {
         $this->bindClient(new RuntimeException('opensearch timeout'), [

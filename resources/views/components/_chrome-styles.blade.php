@@ -1162,15 +1162,54 @@
         border: 1px solid #e6e7ea;
         border-radius: 10px;
     }
+    .chart-card-canvas { position: relative; height: 320px; }
+
+    /* Momentum card (spec README-homepage.md "Momentum", prototype 28a) */
+    .hp-momentum .chart-card { padding: 18px 20px 14px; }
+    .chart-card-head { display: flex; align-items: baseline; gap: 12px; }
     .chart-card-title {
-        margin: 0 0 12px;
+        margin: 0;
         font-family: 'Libre Franklin', system-ui, sans-serif;
         font-weight: 700;
         font-size: 15px;
         letter-spacing: -.018em;
         color: #15171b;
     }
-    .chart-card-canvas { position: relative; height: 320px; }
+    .chart-card-range {
+        margin-left: auto;
+        font-family: 'Martian Mono', ui-monospace, monospace;
+        font-weight: 400;
+        font-size: 9px;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+        color: #6b7178;
+        white-space: nowrap;
+    }
+    .chart-totals { display: flex; gap: 22px; margin-top: 10px; }
+    .chart-total { display: flex; align-items: baseline; gap: 7px; }
+    .chart-swatch {
+        flex: none;
+        width: 8px;
+        height: 8px;
+        border-radius: 2px;
+        align-self: center;
+    }
+    .chart-swatch--opened { background: #ee6524; }
+    .chart-swatch--closed { background: #15171b; }
+    .chart-total-num {
+        font-family: 'Libre Franklin', system-ui, sans-serif;
+        font-weight: 700;
+        font-size: 22px;
+        letter-spacing: -.03em;
+        color: #15171b;
+    }
+    .chart-total-word {
+        font-family: 'Libre Franklin', system-ui, sans-serif;
+        font-size: 12.5px;
+        color: #5d636c;
+    }
+    /* 150px plot + 22px year-axis row Chart.js draws beneath it + 14px top headroom for the top y label. */
+    .chart-card-canvas--momentum { height: 186px; margin-top: 20px; }
 
     /* First time contributing */
     .hp-first {

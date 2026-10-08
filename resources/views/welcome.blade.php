@@ -198,20 +198,10 @@
             @endif
             <div class="hp-charts">
                 @if ($prStats !== null)
-                    <div class="chart-card">
-                        <h3 class="chart-card-title">Pull requests</h3>
-                        <div class="chart-card-canvas">
-                            <canvas id="prChart" aria-label="Pull requests opened and closed per month" role="img"></canvas>
-                        </div>
-                    </div>
+                    <x-charts.momentum-card id="prChart" title="Pull requests" :stats="$prStats" />
                 @endif
                 @if ($issueStats !== null)
-                    <div class="chart-card">
-                        <h3 class="chart-card-title">Issues</h3>
-                        <div class="chart-card-canvas">
-                            <canvas id="issueChart" aria-label="Issues opened and closed per month" role="img"></canvas>
-                        </div>
-                    </div>
+                    <x-charts.momentum-card id="issueChart" title="Issues" :stats="$issueStats" />
                 @endif
             </div>
         </section>
