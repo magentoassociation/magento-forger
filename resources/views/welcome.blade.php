@@ -207,11 +207,11 @@
             <div class="hp-charts">
                 @if ($prStats !== null)
                     <x-charts.momentum-card id="prChart" title="Pull requests" noun="PRs" :stats="$prStats"
-                                            :history-url="route('prs.PRsByMonth')" />
+                                            :history-url="route('prs.byMonth')" />
                 @endif
                 @if ($issueStats !== null)
                     <x-charts.momentum-card id="issueChart" title="Issues" noun="issues" :stats="$issueStats"
-                                            :history-url="route('issues.issuesByMonth')" />
+                                            :history-url="route('issues.byMonth')" />
                 @endif
             </div>
         </section>

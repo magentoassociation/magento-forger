@@ -16,11 +16,11 @@ Surface aggregate views of GitHub activity that aren't leaderboards — monthly 
 
 `HomepageCountsService` wraps `OpenLabelsByIssueQuery` with a 1-hour cache (`homepage_label_counts`). On OpenSearch failure, returns an empty map (tiles render without counts) rather than erroring.
 
-### Issues by Month (`/issuesByMonth`)
+### Issues by Month (`/issues/by-month`)
 
 `IssuesByMonthController` calls `OpenItemsByMonthQuery` against the `github-issues` index. Groups open issues by month of last update — gives contributors a way to tackle the backlog in chunks.
 
-### PRs by Month (`/prsByMonth`)
+### PRs by Month (`/prs/by-month`)
 
 Same as issues, `PrsByMonthController` calls `OpenItemsByMonthQuery` against the `github-pull-requests` index.
 

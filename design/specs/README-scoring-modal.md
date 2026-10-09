@@ -196,7 +196,17 @@ numbers spread across two sentences.
 ## Monthly boards (19c)
 
 The monthly boards apply priority but no recency decay. The monthly board and monthly detail
-pages open a no-decay variant of the same modal, shown in **19c** (contributor). Differences from
+pages open a no-decay variant of the same modal. **19c** is a mode of the shared component, not a
+third data set: it keeps the role of the page that opened it and only removes recency. The 19c
+frame shows the contributor case; the maintainer case is not drawn separately and is built from
+the rows below.
+
+| Monthly page | Title | Base-point rows | Example |
+|---|---|---|---|
+| Monthly maintainer board / detail | "How maintainer scores are tallied" | Maintainer rows (19a) | Maintainer, below |
+| Monthly contributor board / detail | "How contributor scores are tallied" | Contributor rows (19b) | Contributor, below |
+
+A monthly maintainer page never shows contributor rows or the contributor example. Differences from
 19a/19b:
 
 - Intro, second sentence: "Monthly totals have **no recency decay** — every action within the
@@ -223,8 +233,10 @@ pages open a no-decay variant of the same modal, shown in **19c** (contributor).
   `text-underline-offset: 2px`) with `background: none; border: 0; padding: 0; font: inherit;
   cursor: pointer`, so it sits inline inside the intro sentence without disturbing the line.
 - Which modal opens follows the page: the maintainer board and maintainer detail pages open 19a,
-  the contributor board and contributor detail pages open 19b. The monthly board and monthly
-  detail pages open the no-decay variant (19c); see **Monthly boards**.
+  the contributor board and contributor detail pages open 19b. Monthly pages open the
+  no-decay variant (19c) with their own role's data: monthly maintainer board and detail pages get
+  19a's rows and the maintainer no-decay example; monthly contributor board and detail pages get
+  19b's rows and the contributor no-decay example. See **Monthly boards**.
 - Dismiss: the ✕, the scrim, and `Esc`. There is no footer button.
 - Focus moves to the panel on open and returns to the triggering button on close. Focus is trapped
   inside the panel while it is open. `role="dialog"`, `aria-modal="true"`,

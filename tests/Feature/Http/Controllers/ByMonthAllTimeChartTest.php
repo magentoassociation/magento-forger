@@ -39,8 +39,8 @@ class ByMonthAllTimeChartTest extends TestCase
     public static function pages(): array
     {
         return [
-            'issues' => ['issues.issuesByMonth', 'github-issues', 'Issues', 'issues'],
-            'prs' => ['prs.PRsByMonth', 'github-pull-requests', 'Pull requests', 'PRs'],
+            'issues' => ['issues.byMonth', 'github-issues', 'Issues', 'issues'],
+            'prs' => ['prs.byMonth', 'github-pull-requests', 'Pull requests', 'PRs'],
         ];
     }
 
@@ -113,6 +113,15 @@ class ByMonthAllTimeChartTest extends TestCase
         $response->assertViewMissing('ageStats');
         $response->assertDontSee('Average age at close');
         $this->assertSame(0, $ageQueries);
+    }
+
+    public function testPagesLiveUnderKebabCasePathsAndOldPathsAreGone(): void
+    {
+        $this->assertSame(url('issues/by-month'), route('issues.byMonth'));
+        $this->assertSame(url('prs/by-month'), route('prs.byMonth'));
+
+        $this->get('/issuesByMonth')->assertNotFound();
+        $this->get('/prsByMonth')->assertNotFound();
     }
 
     /**
