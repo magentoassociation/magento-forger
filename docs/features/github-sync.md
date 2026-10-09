@@ -12,10 +12,15 @@ Two Artisan commands — `sync:github:issues` and `sync:github:prs` — share a 
 2. Pages through results via cursor pagination — issues 100 nodes/page, PRs 10 nodes/page (PRs carry heavier timeline sub-queries, so a smaller page keeps node cost down).
 3. Passes each page to `OpenSearchService::indexIssues()` / `indexPullRequests()` for bulk upsert.
 4. Stops early when the last node's `updatedAt` is older than the `--since` cutoff (incremental mode).
+5. Drops any node whose `createdAt` is before `github.history_start` (default 2014-12-01, when the repo began merging outside PRs). Applies to all four item syncs (issues, PRs, events, interactions), so an old issue's events and interactions are skipped with it. Pages are ordered by `updatedAt`, so this filters per node; it never ends the sync early.
 
-`GitHubSyncer` is callback-based: callers inject `fetchPage`, `index`, `onPage`, `onNode`, and `onError` closures. Errors per page are logged and skipped — the sync continues rather than aborting.
+`GitHubSyncer` is callback-based: callers inject `fetchPage`, `index`, `onPage`, `onNode`, and `onError` closures, plus an optional `createdSince` floor. Errors per page are logged and skipped — the sync continues rather than aborting.
 
 Both commands implement `Isolatable` so Laravel prevents concurrent runs of the same command.
+
+### Purging pre-floor history
+
+`sync:github:purge-history` is a one-off cleanup for data stored before the floor existed. It finds every issue/PR in the indexes with `created_at` before `github.history_start` and deletes those numbers from all six indexes: PRs and issues by `_id`, `github-pr-reviews` / `github-pr-timeline` by `pr_number`, `github-events` / `github-interactions` by `issues-id`. It asks for confirmation unless `--force` is passed. Each index is purged separately: a failed delete is reported, the remaining indexes are still purged, and the command exits with code 1. Run `leaderboard:compute` afterwards.
 
 ### Schedule
 
@@ -38,6 +43,7 @@ Each incremental pauses in a ±20-min window around *its own* full-sync time (is
 - `app/Console/Commands/SyncGitHubEvents.php` — Issue timeline events sync command
 - `app/Console/Commands/SyncGitHubTeams.php` — Maintainer/council roster sync command
 - `app/Console/Commands/SyncGitHubProfiles.php` — Display name + avatar sync command
+- `app/Console/Commands/PurgeGitHubHistory.php` — Deletes stored issues/PRs created before `github.history_start`, plus their related documents
 - `app/Services/GitHub/GitHubSyncer.php` — Pagination engine
 - `app/Services/GitHub/GitHubIssueService.php` — GraphQL fetcher for issues
 - `app/Services/GitHub/GitHubPullRequestService.php` — GraphQL fetcher for PRs
@@ -45,7 +51,7 @@ Each incremental pauses in a ±20-min window around *its own* full-sync time (is
 - `app/Services/GitHub/GitHubConnection.php` — GitHub API client + auth (every command above goes through this)
 - `resources/graphql/github/` — Raw GraphQL query files
 - `routes/console.php` — Schedule definitions
-- `config/github.php` — `repo` (owner/name), API token
+- `config/github.php` — `repo` (owner/name), API token, `history_start` floor
 
 ## Configuration
 
@@ -55,6 +61,8 @@ Every `sync:github:*` command authenticates through `GitHubConnection`, which re
 |-----|-------------|-----------------|
 | `github.repo` / `GITHUB_REPO` (env) | Target repository in `owner/name` format | — |
 | `GITHUB_TOKEN` (env) | Classic personal access token used by GraphQL + REST clients | `public_repo`, `read:org`. `read:org` also covers `sync:github:teams`' team-roster reads — a token missing it 404s on that command only (see `SyncGitHubTeams::describe()`), the rest are unaffected. |
+
+`github.history_start` / `GITHUB_HISTORY_START` (env, default `2014-12-01`) sets the creation-date floor described above. Set it empty to sync full history.
 
 **Not used by any `sync:github:*` command:** `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `GITHUB_REDIRECT_URI` — those are OAuth login credentials, unrelated to data sync. See `docs/features/authentication.md`.
 

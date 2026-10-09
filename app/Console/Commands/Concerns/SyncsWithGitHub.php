@@ -63,6 +63,16 @@ trait SyncsWithGitHub
         return $cutoff;
     }
 
+    /**
+     * Earliest createdAt kept by the sync (config github.history_start); null when unset.
+     */
+    protected function historyStart(): ?Carbon
+    {
+        $start = config('github.history_start');
+
+        return $start ? Carbon::parse($start) : null;
+    }
+
     protected function reportCursorResume(?string $cursor): void
     {
         if ($cursor) {

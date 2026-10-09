@@ -17,4 +17,6 @@
             <x-by-month :rows="$prs" :info="$infoText" noun="PRs" link-path="pulls" q-type="pr" />
         @endif
     </div>
+
+    <x-charts.all-time-card :stats="$allTimeStats" title="Pull requests" noun="PRs" />
 @endsection

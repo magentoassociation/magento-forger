@@ -65,6 +65,7 @@ class SyncGitHubIssues extends Command implements Isolatable
             fetchPage: fn ($c) => $github->fetchIssues($owner, $name, $c),
             index: fn ($nodes) => $openSearch->indexIssues($nodes),
             cutoff: $cutoff,
+            createdSince: $this->historyStart(),
             cursor: $cursor,
             onPage: $this->makeOnPageCallback($totalPages),
             onNode: $this->makeOnNodeCallback(),

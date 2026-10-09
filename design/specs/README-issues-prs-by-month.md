@@ -2,7 +2,7 @@
 
 ## Overview
 Replaces the grid of month tiles on both pages with a single bar timeline of the whole backlog,
-followed by a month picker for the current year. Approved direction: **14b — one timeline**.
+followed by a month picker for the current year and an all-time opened/closed chart. Approved direction: **14b — one timeline**.
 
 The two pages share one template. Only the dataset and the noun change ("issues" / "PRs"),
 including in the headings, the year totals and the hover text.
@@ -16,7 +16,7 @@ Laravel/Blade + Bootstrap codebase using its existing template conventions.
 In the prototype, **`#14b` is the approved design**. An Issues / PRs switch beside its label (and beside `#24e`) swaps the dataset; the switch is a prototype control, not page UI.
 
 Header, footer and page-width rules are in `README-header.md`; type and colour foundations in
-`README.md`. This page introduces no new colours.
+`README.md`. This page introduces no new colours; the chart reuses the homepage Momentum tokens.
 
 ## Fidelity
 **High-fidelity** for colour, type and spacing. The one thing to tune against real data is the
@@ -37,12 +37,13 @@ actually useful, for picking a month in the current year.
 
 ## Structure
 
-Four blocks, top to bottom, all inside the page content container:
+Five blocks, top to bottom, all inside the page content container:
 
 1. **Page title block** — unchanged, per `README-header.md`. H1 "Issues By Month" / "PRs By Month".
 2. **Intro copy** — full content width.
 3. **Timeline** — as many years as fit the width, one bar per month, scrollable back to the oldest year with anything open.
 4. **Month picker** — the current year as tiles.
+5. **Opened and closed, all time** — the full-history chart, moved from the homepage.
 
 ### 1. Intro copy
 
@@ -145,6 +146,51 @@ center; gap: 1px`. Hover: `border-color: #15171b`.
 figure both Martian Mono, colour `#6b7178`, figure at weight 400. Future months show an em dash.
 
 Nothing that leads to an empty list is clickable.
+
+### 4. Opened and closed, all time
+
+The full-history chart that used to sit on the homepage. Inside the page content container,
+after the month picker: `margin-top: 36px; padding-bottom: 34px`. Shows the page's own dataset only (PRs on PRs By Month, issues on Issues By Month).
+
+- Heading "Opened and closed, all time" — Libre Franklin 700, 17px, `-.02em`, `margin: 0 0 4px`.
+- Sub "All issues opened and closed since the first month, by quarter." (PRs page: "All PRs …")
+  — 13.5px, `#5d636c`, `margin: 0 0 14px`.
+
+**Card** — `padding: 18px 20px 14px; border: 1px solid #e6e7ea; border-radius: 10px`.
+
+1. **Head row** — `display: flex; align-items: baseline; gap: 12px`. Title "Issues" / "Pull
+   requests" — Libre Franklin 700, 15px, `-.018em`. Range pushed right — first and last month
+   in the data, e.g. "Dec 2014 – Sep 2026"; Martian Mono 400, 9px, uppercase, `.06em`, `#6b7178`.
+2. **Totals** — same as the homepage Momentum cards (`README-homepage.md`), summed over every
+   month. Swatches `#ee6524` opened, `#9aa3ae` closed. They replace the legend.
+3. **Plot and year axis** — one canvas, `height: 186px; margin-top: 20px`: 14px of top headroom
+   (so the top y label, drawn above its gridline, isn't clipped), the 150px plot, and the 22px year
+   axis Chart.js draws beneath it.
+
+**Data.** New for this page: the same monthly opened/closed aggregation the homepage uses
+(`created_at` / `closed_at` date histograms on the page's index), summed into calendar quarters
+in the view (Jan–Mar, Apr–Jun, Jul–Sep, Oct–Dec). A partial first or last quarter is charted
+as-is. If the aggregation fails or returns no months, hide this block; the timeline and picker are
+unaffected.
+
+**Chart.js options:**
+
+| Option | Value |
+|---|---|
+| Datasets | opened `#ee6524`, closed `#9aa3ae`, quarterly sums |
+| `borderRadius` | `1` — top corners only |
+| `categoryPercentage` / `barPercentage` | `0.92` / `0.9` — 1px between a pair, 2px between quarters |
+| `plugins.legend.display` | `false` |
+| y ticks | 3 steps from a nice step; `0` not labelled. Martian Mono 9.5px, `#6b7178`, inside the plot at the top-left of each gridline (`mirror: true`, white backdrop) |
+| y grid | `#eef0f2`; no border |
+| x baseline | `border.color: '#c9ced4'`; no grid |
+| x ticks | One label per even year, at its Q1 bar: "2016", "2018" … Libre Franklin 700, 12px, `#15171b`, `maxRotation: 0`, `autoSkip: false`, `align: 'start'`, with a 1×5px `#c9ced4` tick above. Chart.js anchors the label at the centre of the Q1 pair, so it starts about 2px right of the tick; accepted |
+| Tooltip | title "Q2 2018"; body "412 issues opened, 388 closed" |
+
+Hover: the quarter's pair drops to 60% opacity. Canvas `role="img"`, `aria-label` "Issues
+opened and closed per quarter, Dec 2014 to Sep 2026: 25,167 opened, 23,958 closed".
+
+At 420px (`#24e`) the card is unchanged; the container gutter narrows to 20px.
 
 ## Colour buckets
 

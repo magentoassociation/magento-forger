@@ -12,7 +12,6 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', [Controllers\WelcomeController::class, 'index'])->name('home');
 Route::get('/api/universe-bar', [Controllers\UniverseBarController::class, 'render']);
-Route::get('/api/charts/{method}', [Controllers\ChartController::class, 'dispatch']);
 
 // Leaderboard — public, and listed right after Home in the nav (menu order
 // follows registration order). The maintainer board hides idle (zero-score)

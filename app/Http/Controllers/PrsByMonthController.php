@@ -15,7 +15,7 @@ use Illuminate\View\View;
 
 class PrsByMonthController extends Controller
 {
-    public function index(OpenItemsByMonthQuery $query): View
+    public function index(OpenItemsByMonthQuery $query, OpenSearchService $search): View
     {
         $dataMissing = false;
 
@@ -32,6 +32,7 @@ class PrsByMonthController extends Controller
         return view('prsByMonth/index', [
             'infoText' => $this->getInfoText(),
             'prs' => $prs,
+            'allTimeStats' => $this->openedClosedPerMonth($search->searchPRs(...), 'prs', $dataMissing),
             'dataMissing' => $dataMissing,
         ]);
     }

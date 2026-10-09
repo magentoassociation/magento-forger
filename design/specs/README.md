@@ -26,7 +26,7 @@ contributor board, `#19b` the contributor scoring modal, and so on.
 | `README-homepage.md` | Hero, live top-five card, area grid, first-timer steps | `#15a` `#24d` |
 | `README-leaderboard-pages.md` | All three boards: control strip, search, jump, pagination, hover, narrow widths | `#21a` `#21b` `#21c` `#22a` `#22b` `#22d` `#22c` `#23a` `#23b` `#23c` `#24a` `#25b` |
 | `README-detail-page.md` | Contributor and maintainer detail, all four states, Grouped and List views | `#17a` `#17b` `#17c` `#17d` `#18a` `#18b` `#24b` |
-| `README-scoring-modal.md` | Both scoring modals, and the scoring button rule | `#19a` `#19b` `#24c` |
+| `README-scoring-modal.md` | Both scoring modals, the monthly no-decay variant, and the scoring button rule | `#19a` `#19b` `#19c` `#24c` |
 | `README-how-scores-work.md` | Standalone scoring page, both boards side by side | `#20a` |
 | `README-highlights.md` | New contributor spotlight, Comebacks, Rising, Recently active | `#8b` |
 | `README-issues-prs-by-month.md` | Both by-month timelines, colour thresholds, month picker | `#14b` `#24e` |

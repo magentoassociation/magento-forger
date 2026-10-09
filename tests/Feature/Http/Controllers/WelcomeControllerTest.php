@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Tests\Feature\Http\Controllers;
 
 use App\Helpers\GitHubLinkHelper;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Mockery;
@@ -52,6 +53,115 @@ class WelcomeControllerTest extends TestCase
         $response->assertSee('Framework');     // area tile (prefix stripped)
         $response->assertSee('221 open');      // area tile pill
         $response->assertSee('aria-current="page"', false); // current nav item
+    }
+
+    public function testHomepageRendersMomentumChartsWithMonthlyPrAndIssueCounts(): void
+    {
+        $this->bindClient($this->prAggregations(), []);
+
+        $response = $this->get(route('home'));
+
+        $response->assertOk();
+        $response->assertViewHas('prStats', ['2026-01' => ['opened' => 5, 'closed' => 3]]);
+        $response->assertViewHas('issueStats', ['2026-01' => ['opened' => 8, 'closed' => 6]]);
+        $response->assertViewHas('dataMissing', false);
+        $response->assertSee('<h2 class="hp-h2">Momentum</h2>', false);
+        $response->assertSee('id="prChart"', false);
+        $response->assertSee('id="issueChart"', false);
+        // The section closes on the hero CTA, repeated once.
+        $this->assertSame(2, substr_count($response->getContent(), 'Find an issue to work on →'));
+    }
+
+    public function testMomentumCardsChartTheLastTwelveMonthsAndLinkToFullHistory(): void
+    {
+        $this->travelTo(Carbon::parse('2026-10-15'));
+        $this->bindClient([
+            'aggregations' => [
+                'prs_opened_per_month' => ['buckets' => [
+                    ['key_as_string' => '2014-12', 'doc_count' => 1200],
+                    ['key_as_string' => '2026-09', 'doc_count' => 34],
+                ]],
+                'prs_closed_per_month' => ['buckets' => [
+                    ['key_as_string' => '2026-09', 'doc_count' => 1100],
+                ]],
+            ],
+        ], []);
+
+        $response = $this->get(route('home'));
+
+        $response->assertOk();
+        // Nov 2025 – Oct 2026: the Dec 2014 bucket is outside the window, so only Sep 2026 counts.
+        $response->assertSeeInOrder(['Pull requests', 'Last 12 months', '34', 'opened', '1,100', 'closed'], false);
+        $response->assertSee(
+            'aria-label="Pull requests opened and closed per month, last 12 months: 34 opened, 1,100 closed"',
+            false,
+        );
+        $response->assertSee(e('"label":"Sep 2026","short":"Sep","opened":34,"closed":1100'), false);
+        $response->assertSeeInOrder(['<span>Nov</span>', '<span>Dec</span>', '<span>Sep</span>', '<span>Oct</span>'], false);
+        // Footer: all-time opened since the first month, linking to the By Month page.
+        $response->assertSee('href="'.route('prs.PRsByMonth').'" aria-label="Full history: Pull requests by month"', false);
+        $response->assertSee('<b>1,234</b> opened since Dec 2014', false);
+        $response->assertSee('href="'.route('issues.issuesByMonth').'" aria-label="Full history: Issues by month"', false);
+    }
+
+    public function testMomentumMonthsWithNoBucketCountAsZero(): void
+    {
+        $this->travelTo(Carbon::parse('2026-10-15'));
+        $this->bindClient(['aggregations' => []], [], ['aggregations' => []]);
+
+        $response = $this->get(route('home'));
+
+        $response->assertOk();
+        $response->assertSee('aria-label="Pull requests opened and closed per month, last 12 months: 0 opened, 0 closed"', false);
+        $response->assertSee(e('"label":"Oct 2026","short":"Oct","opened":0,"closed":0'), false);
+        // No history at all: no "since" line, but the link stays.
+        $response->assertDontSee('opened since', false);
+        $response->assertSee('aria-label="Full history: Pull requests by month"', false);
+    }
+
+    public function testHomepageHidesOnlyPrChartWhenPrSearchFails(): void
+    {
+        $this->bindClient(new RuntimeException('opensearch timeout'), [
+            ['key' => 'Issue: Ready for Work', 'doc_count' => 20],
+        ]);
+
+        $response = $this->get(route('home'));
+
+        $response->assertOk();
+        $response->assertViewHas('prStats', null);
+        $response->assertSee('Ready to code');    // rest of the page still renders
+        $response->assertSee('<h2 class="hp-h2">Momentum</h2>', false);
+        $response->assertDontSee('id="prChart"', false);
+        $response->assertSee('id="issueChart"', false);
+    }
+
+    public function testHomepageHidesOnlyIssueChartWhenIssueSearchFails(): void
+    {
+        $this->bindClient($this->prAggregations(), [], new RuntimeException('opensearch timeout'));
+
+        $response = $this->get(route('home'));
+
+        $response->assertOk();
+        $response->assertViewHas('issueStats', null);
+        $response->assertSee('id="prChart"', false);
+        $response->assertDontSee('id="issueChart"', false);
+    }
+
+    public function testHomepageHidesMomentumSectionWhenBothSearchesFail(): void
+    {
+        $this->bindClient(
+            new RuntimeException('opensearch timeout'),
+            [['key' => 'Issue: Ready for Work', 'doc_count' => 20]],
+            new RuntimeException('opensearch timeout'),
+        );
+
+        $response = $this->get(route('home'));
+
+        $response->assertOk();
+        $response->assertSee('Ready to code');    // rest of the page still renders
+        $response->assertDontSee('<h2 class="hp-h2">Momentum</h2>', false);
+        $response->assertDontSee('<canvas', false);
+        $response->assertDontSee('class="chart-card chart-card--momentum"', false);
     }
 
     public function testReadyToCodeUsesAllLabeledIssuesWhileUnclaimedOnlyIsOff(): void
@@ -170,20 +280,36 @@ class WelcomeControllerTest extends TestCase
     }
 
     /**
-     * Bind a mocked OpenSearch client that answers the PR aggregation and the label
-     * aggregation independently, keyed by index.
+     * Bind a mocked OpenSearch client that answers the PR chart, issue chart and label
+     * aggregations independently, keyed by index and aggregation name.
      *
-     * @param  array<string, mixed>  $prResult  Response for the github-pull-requests index.
+     * @param  array<string, mixed>|\Throwable  $prResult  Response for the github-pull-requests index,
+     *                                                     or a throwable to simulate failure.
      * @param  list<array{key: string, doc_count: int}>|\Throwable  $labelBuckets  Buckets for the
      *                                                                             github-issues by_label
      *                                                                             aggregation, or a throwable
      *                                                                             to simulate failure.
+     * @param  array<string, mixed>|\Throwable|null  $issueResult  Response for the issue chart aggregation
+     *                                                             (defaults to issueAggregations()), or a
+     *                                                             throwable to simulate failure.
      */
-    private function bindClient(array $prResult, array|\Throwable $labelBuckets): void
-    {
+    private function bindClient(
+        array|\Throwable $prResult,
+        array|\Throwable $labelBuckets,
+        array|\Throwable|null $issueResult = null,
+    ): void {
+        $issueResult ??= $this->issueAggregations();
         $client = Mockery::mock(Client::class);
         $client->shouldReceive('search')->andReturnUsing(
-            static function (array $params) use ($prResult, $labelBuckets) {
+            static function (array $params) use ($prResult, $labelBuckets, $issueResult) {
+                if (isset($params['body']['aggs']['issues_opened_per_month'])) {
+                    if ($issueResult instanceof \Throwable) {
+                        throw $issueResult;
+                    }
+
+                    return $issueResult;
+                }
+
                 // str_contains, not === : getIndexWithPrefix() prepends a configurable prefix.
                 if (str_contains($params['index'], 'github-issues')) {
                     if ($labelBuckets instanceof \Throwable) {
@@ -191,6 +317,10 @@ class WelcomeControllerTest extends TestCase
                     }
 
                     return ['aggregations' => ['by_label' => ['buckets' => $labelBuckets]]];
+                }
+
+                if ($prResult instanceof \Throwable) {
+                    throw $prResult;
                 }
 
                 return $prResult;
@@ -209,6 +339,19 @@ class WelcomeControllerTest extends TestCase
             'aggregations' => [
                 'prs_opened_per_month' => ['buckets' => [['key_as_string' => '2026-01', 'doc_count' => 5]]],
                 'prs_closed_per_month' => ['buckets' => [['key_as_string' => '2026-01', 'doc_count' => 3]]],
+            ],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function issueAggregations(): array
+    {
+        return [
+            'aggregations' => [
+                'issues_opened_per_month' => ['buckets' => [['key_as_string' => '2026-01', 'doc_count' => 8]]],
+                'issues_closed_per_month' => ['buckets' => [['key_as_string' => '2026-01', 'doc_count' => 6]]],
             ],
         ];
     }

@@ -1,9 +1,8 @@
 # Out of sync — spec vs code
 
-Where the live site differs from the design specs in `design/specs/`. Last checked **2026-10-04**,
-against the third spec edit of the same day ("See how scoring works." intro sentence, zero-point
-maintainers shown to admins and maintainers). Only current differences are listed; anything fixed
-is deleted, not kept as history.
+Where the live site differs from the design specs in `design/specs/`. Last checked **2026-10-08**,
+after the Momentum rework was built and the specs were updated to match the code. Only current
+differences are listed; anything fixed is deleted, not kept as history.
 
 ## How to read this
 
@@ -38,6 +37,3 @@ None at the moment.
   one of the three redesigned boards. Pages: `/leaderboard/company`.
 - **Universe bar** (`universe-bar.blade.php`) — its own grey colour scheme. It's an embed for
   other sites (`/api/universe-bar`), outside the redesign. Pages: none on this site.
-- **Monthly scoring popup** — the monthly board has no score decay, so the code shows a
-  no-decay version of the scoring popup. The spec only describes the 12-month version.
-  Pages: Monthly board, monthly detail page.

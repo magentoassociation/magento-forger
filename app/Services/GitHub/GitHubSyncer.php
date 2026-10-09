@@ -24,8 +24,10 @@ class GitHubSyncer
      * @param  Carbon|null  $cutoff  Stop when the last node's updatedAt is older than this.
      * @param  string|null  $cursor  Resume from this cursor.
      * @param  callable(int $page, ?string $cursor): void|null  $onPage  Called after each page is indexed.
-     * @param  callable(array $node): void|null  $onNode  Called for each node before indexing.
+     * @param  callable(array $node): void|null  $onNode  Called for each kept node before indexing.
      * @param  callable(Throwable $e, int $page): void|null  $onError  Called on exception; loop continues.
+     * @param  Carbon|null  $createdSince  Drop nodes whose createdAt is older than this. Pages are
+     *                                     ordered by updatedAt, so this filters rather than stops.
      * @return array{pages: int, cutoffReached: bool}
      */
     public function sync(
@@ -36,6 +38,7 @@ class GitHubSyncer
         ?callable $onPage = null,
         ?callable $onNode = null,
         ?callable $onError = null,
+        ?Carbon $createdSince = null,
     ): array {
         $page = 1;
         $cutoffReached = false;
@@ -47,14 +50,18 @@ class GitHubSyncer
             try {
                 $response = $fetchPage($cursor);
                 $nodes = $response['nodes'] ?? [];
+                $kept = $createdSince === null ? $nodes : array_values(array_filter(
+                    $nodes,
+                    static fn (array $node): bool => Carbon::parse($node['createdAt'])->gte($createdSince),
+                ));
 
                 if ($onNode !== null) {
-                    foreach ($nodes as $node) {
+                    foreach ($kept as $node) {
                         $onNode($node);
                     }
                 }
 
-                $index($nodes);
+                $index($kept);
 
                 $cursor = $response['pageInfo']['endCursor'] ?? null;
                 $hasNextPage = $response['pageInfo']['hasNextPage'] ?? false;

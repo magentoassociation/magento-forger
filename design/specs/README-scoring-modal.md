@@ -3,7 +3,7 @@
 ## Overview
 Restructures the two scoring modals reached from the "How scoring works" link on the
 leaderboard and detail pages. Approved directions: **19a — maintainer scores** and
-**19b — contributor scores**. They are the same layout with different base-point rows and a
+**19b — contributor scores**, plus the monthly no-decay variant **19c**. They are the same layout with different base-point rows and a
 different example; build one component, pass it the two data sets.
 
 The copy is unchanged from the live modals. What changes is structure and chrome:
@@ -193,6 +193,24 @@ The equation row restates the paragraph's arithmetic. It is the one piece of the
 not in the current copy; it exists because the paragraph asks the reader to multiply three
 numbers spread across two sentences.
 
+## Monthly boards (19c)
+
+The monthly boards apply priority but no recency decay. The monthly board and monthly detail
+pages open a no-decay variant of the same modal, shown in **19c** (contributor). Differences from
+19a/19b:
+
+- Intro, second sentence: "Monthly totals have **no recency decay** — every action within the
+  month counts at full value." (bold `no recency decay`).
+- Formula strip: `BASE POINTS × PRIORITY = SCORE` — the Recency token and its `×` are removed.
+- Section 3 (Recency) and its decay bar are removed. The right column holds section 2 only.
+- Example drops the recency factor and the "twice as much" sentence:
+  - Contributor: "When a `Priority: P1` PR you opened merges, the author merge bonus alone earns
+    10 base × 3× priority = 30 pts, on top of the points for opening it. Monthly totals apply no
+    recency decay." Equation `10 × 3 = 30 points`.
+  - Maintainer: "When a `Priority: P1` PR you approved later merges, the merge bonus alone earns
+    6 base points, scaled 3× for P1. Monthly totals apply no recency decay." Equation
+    `6 × 3 = 18 points`.
+
 ## Behaviour
 
 - **It is a `<button>`, not a link.** Every in-page "See how scoring works" affordance (the last
@@ -205,7 +223,8 @@ numbers spread across two sentences.
   `text-underline-offset: 2px`) with `background: none; border: 0; padding: 0; font: inherit;
   cursor: pointer`, so it sits inline inside the intro sentence without disturbing the line.
 - Which modal opens follows the page: the maintainer board and maintainer detail pages open 19a,
-  the contributor board and contributor detail pages open 19b.
+  the contributor board and contributor detail pages open 19b. The monthly board and monthly
+  detail pages open the no-decay variant (19c); see **Monthly boards**.
 - Dismiss: the ✕, the scrim, and `Esc`. There is no footer button.
 - Focus moves to the panel on open and returns to the triggering button on close. Focus is trapped
   inside the panel while it is open. `role="dialog"`, `aria-modal="true"`,
