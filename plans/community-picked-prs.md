@@ -27,7 +27,7 @@ Durable decisions that apply across all phases:
 
 ## Phase 1: Consistent by-month URLs
 
-**User stories**: 31
+**User stories**: 30
 
 ### What to build
 
@@ -46,7 +46,7 @@ Move the Issues by month and PRs by month pages to `/issues/by-month` and `/prs/
 
 ## Phase 2: Tracer: unfiltered candidate list
 
-**User stories**: 1, 2, 3, 4, 5, 6, 14, 15, 16, 18, 19, 21, 22, 23, 24, 25, 26, 27
+**User stories**: 1, 2, 3, 4, 5, 6, 14, 15, 16, 18, 19, 21, 22, 23, 24, 25, 26
 
 ### What to build
 
@@ -101,7 +101,7 @@ Dropdown options are aggregated from the current candidate set only, so no optio
 
 ## Phase 4: Fresh votes via `SyncGitHubPrReactions`
 
-**User stories**: 20, 28, 29, 30
+**User stories**: 20, 27, 28, 29
 
 ### What to build
 

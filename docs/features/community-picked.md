@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Surface open PRs on the tracked repository that the community can vote to have merged. Replaces the hand-built GitHub search (`is:pr is:open sort:reactions-desc -label:"Release Line: 2.5" -label:"Project: Community Picked"`), ranking by 👍 only and excluding drafts.
+Surface open PRs on the tracked repository that the community can vote to have merged into Magento 2. After each voting period, the top-voted PRs are prioritized for merging. This page is where voters browse and vote; it doesn't run the voting period or the selection. Replaces the hand-built GitHub search (`is:pr is:open sort:reactions-desc -label:"Release Line: 2.5" -label:"Project: Community Picked"`), ranking by 👍 only and excluding drafts.
 
 ## How it works
 
@@ -26,7 +26,9 @@ OpenSearch has no joins, so each request makes three searches:
 2. **Linked Issue labels** — fetch those issues' labels from the issues index by `_id`.
 3. **Page** — candidates, plus one `should` clause per selected label: `labels.keyword` = label, OR `linked_issues` in the issues carrying it.
 
-The dropdown options are the union of steps 1 and 2. They are built from all candidates, not narrowed by the other filter, so every option has at least one candidate. A label taken from a shared link that no candidate carries any more stays selected and returns an empty list.
+The dropdown options are the union of steps 1 and 2. They're **dependent**: when an Area is selected, the Component options come from a second facet aggregation over just the candidates matching that Area, and vice versa. That's up to two extra searches. Neither dropdown is narrowed by its own selection, so you can still switch Area freely. The linked issues in a narrowed facet are a subset of step 1's, so step 2's labels already cover them.
+
+Because of this, any Area + Component pair picked from the lists returns at least one candidate. Only a shared link can name a pair that matches nothing, for example after a PR is relabelled or closed. The stale label stays selected, and the page shows "No candidates match these filters." with a Clear link.
 
 Linked Issue labels are read on every request rather than copied onto PR documents. Retagging an issue shows up after the next issue sync, with no PR re-sync needed.
 

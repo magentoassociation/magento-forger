@@ -60,8 +60,10 @@ Ranks Maintainers by review activity — both raw-count boards (PRs approved = r
 
 ### Community Picking
 
+The community upvotes open PRs it wants merged into Magento 2. After each voting period, the top-voted PRs are prioritized for merging.
+
 **Community Pick Candidate**:
-An open, non-draft PR carrying none of the labels in `github.community_picked.exclude_labels` (default `Release Line: 2.5`, `Project: Community Picked`). Ranked by 👍 reactions on the PR body, oldest first on ties. Maintainers pick a candidate by labeling it `Project: Community Picked`, which removes it from the list.
+An open, non-draft PR carrying none of the labels in `github.community_picked.exclude_labels` (default `Release Line: 2.5`, `Project: Community Picked`). Ranked by 👍 reactions on the PR body, oldest first on ties.
 _Avoid_: nominee; "vote" as a noun for Forger data (votes live on GitHub — Forger only mirrors the 👍 count)
 
 **Linked Issue**:

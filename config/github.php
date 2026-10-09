@@ -16,8 +16,7 @@ return [
     'history_start' => env('GITHUB_HISTORY_START', '2014-12-01'),
 
     'community_picked' => [
-        // Open PRs carrying any of these labels are not Community Pick Candidates:
-        // already picked, or on a release line the community does not vote on.
+        // Open PRs carrying any of these labels are not Community Pick Candidates.
         'exclude_labels' => ['Release Line: 2.5', 'Project: Community Picked'],
     ],
 ];

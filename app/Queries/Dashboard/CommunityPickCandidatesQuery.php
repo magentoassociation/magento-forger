@@ -46,11 +46,16 @@ class CommunityPickCandidatesQuery
         $candidates = $this->candidateQuery();
         [$linkedIssues, $prLabels] = $this->candidateFacets($candidates);
         $issueLabels = $this->issueLabels($linkedIssues);
+        $allOptions = $this->options($linkedIssues, $prLabels, $issueLabels);
 
-        $query = $candidates;
-        foreach (array_filter([$area, $component]) as $label) {
-            $query['bool']['filter'][] = $this->matchesEffectiveLabel($label, $issueLabels);
-        }
+        $areaMatch = $area ? $this->matchesEffectiveLabel($area, $issueLabels) : null;
+        $componentMatch = $component ? $this->matchesEffectiveLabel($component, $issueLabels) : null;
+        $query = $this->narrow($candidates, $areaMatch, $componentMatch);
+
+        // Each dropdown offers only labels on candidates matching the other selection,
+        // so an Area + Component pair picked from the lists never comes up empty.
+        $areaOptions = $componentMatch ? $this->narrowedOptions($candidates, $componentMatch, $issueLabels) : $allOptions;
+        $componentOptions = $areaMatch ? $this->narrowedOptions($candidates, $areaMatch, $issueLabels) : $allOptions;
 
         $response = $this->client->search([
             'index' => $this->pullRequestIndex(),
@@ -68,15 +73,62 @@ class CommunityPickCandidatesQuery
             ],
         ]);
 
-        $options = array_unique(array_merge($prLabels, ...array_values($issueLabels)));
-        sort($options);
-
         return [
             'rows' => array_map(fn (array $hit): array => $this->toRow($hit['_source'], $issueLabels), $response['hits']['hits'] ?? []),
             'total' => (int) ($response['hits']['total']['value'] ?? 0),
-            'areaOptions' => $this->withPrefix($options, self::AREA_PREFIX),
-            'componentOptions' => $this->withPrefix($options, self::COMPONENT_PREFIX),
+            'areaOptions' => $this->withPrefix($areaOptions, self::AREA_PREFIX),
+            'componentOptions' => $this->withPrefix($componentOptions, self::COMPONENT_PREFIX),
         ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $candidates
+     * @param  array<string, mixed>|null  ...$matches  Effective-label clauses; null ones are skipped.
+     * @return array<string, mixed>
+     */
+    private function narrow(array $candidates, ?array ...$matches): array
+    {
+        foreach (array_filter($matches) as $match) {
+            $candidates['bool']['filter'][] = $match;
+        }
+
+        return $candidates;
+    }
+
+    /**
+     * Area/Component labels across the candidates that match $match. Their Linked
+     * Issues are a subset of every candidate's, so $issueLabels already covers them.
+     *
+     * @param  array<string, mixed>  $candidates
+     * @param  array<string, mixed>  $match
+     * @param  array<int, list<string>>  $issueLabels
+     * @return list<string>
+     */
+    private function narrowedOptions(array $candidates, array $match, array $issueLabels): array
+    {
+        [$linkedIssues, $prLabels] = $this->candidateFacets($this->narrow($candidates, $match));
+
+        return $this->options($linkedIssues, $prLabels, $issueLabels);
+    }
+
+    /**
+     * Sorted union of the PRs' own Area/Component labels and those of their Linked Issues.
+     *
+     * @param  list<int>  $linkedIssues
+     * @param  list<string>  $prLabels
+     * @param  array<int, list<string>>  $issueLabels
+     * @return list<string>
+     */
+    private function options(array $linkedIssues, array $prLabels, array $issueLabels): array
+    {
+        $options = $prLabels;
+        foreach ($linkedIssues as $issue) {
+            $options = array_merge($options, $issueLabels[$issue] ?? []);
+        }
+        $options = array_values(array_unique($options));
+        sort($options);
+
+        return $options;
     }
 
     /**
@@ -94,7 +146,7 @@ class CommunityPickCandidatesQuery
     }
 
     /**
-     * Linked Issue numbers and the PRs' own Area/Component labels across every candidate.
+     * Linked Issue numbers and the PRs' own Area/Component labels across the given PRs.
      *
      * @param  array<string, mixed>  $candidates
      * @return array{list<int>, list<string>}

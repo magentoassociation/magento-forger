@@ -21,6 +21,9 @@ class CommunityPickCandidatesQueryTest extends TestCase
     /** @var list<array<string, mixed>> */
     private array $issueRequests = [];
 
+    /** @var list<array<string, mixed>> */
+    private array $facetRequests = [];
+
     protected function tearDown(): void
     {
         Mockery::close();
@@ -194,14 +197,64 @@ class CommunityPickCandidatesQueryTest extends TestCase
         $this->assertSame(['Component: Quote'], $result['componentOptions']);
     }
 
-    public function testFacetsAreAggregatedOverCandidatesOnly(): void
+    public function testUnfilteredOptionsAreAggregatedOverAllCandidates(): void
     {
-        $facetRequest = [];
-        $this->fetch(area: 'Area: Checkout', facetRequest: $facetRequest);
+        $this->fetch();
 
-        $this->assertSame(0, $facetRequest['body']['size']);
-        $this->assertSame([['term' => ['is_open' => true]]], $facetRequest['body']['query']['bool']['filter']);
-        $this->assertSame('(Area|Component): .*', $facetRequest['body']['aggs']['pr_labels']['terms']['include']);
+        $this->assertCount(1, $this->facetRequests);
+        $this->assertSame(0, $this->facetRequests[0]['body']['size']);
+        $this->assertSame([['term' => ['is_open' => true]]], $this->facetRequests[0]['body']['query']['bool']['filter']);
+        $this->assertSame('(Area|Component): .*', $this->facetRequests[0]['body']['aggs']['pr_labels']['terms']['include']);
+    }
+
+    public function testComponentOptionsAreNarrowedToCandidatesMatchingTheSelectedArea(): void
+    {
+        $result = $this->fetch(
+            area: 'Area: Checkout',
+            issues: [101 => ['Area: Checkout', 'Component: Quote'], 102 => ['Area: Catalog', 'Component: Admin']],
+            prLabels: ['Component: Payment', 'Component: Admin'],
+            narrowedFacets: ['Area: Checkout' => ['linked' => [101], 'prLabels' => ['Component: Payment']]],
+        );
+
+        $this->assertSame(['Component: Payment', 'Component: Quote'], $result['componentOptions']);
+        // Area options are not narrowed by their own selection.
+        $this->assertSame(['Area: Catalog', 'Area: Checkout'], $result['areaOptions']);
+        $this->assertSame(
+            ['bool' => ['should' => [
+                ['term' => ['labels.keyword' => 'Area: Checkout']],
+                ['terms' => ['linked_issues' => [101]]],
+            ], 'minimum_should_match' => 1]],
+            $this->facetRequests[1]['body']['query']['bool']['filter'][1],
+        );
+    }
+
+    public function testAreaOptionsAreNarrowedToCandidatesMatchingTheSelectedComponent(): void
+    {
+        $result = $this->fetch(
+            component: 'Component: Admin',
+            issues: [101 => ['Area: Checkout', 'Component: Quote'], 102 => ['Area: Catalog', 'Component: Admin']],
+            narrowedFacets: ['Component: Admin' => ['linked' => [102], 'prLabels' => ['Area: Admin UI']]],
+        );
+
+        $this->assertSame(['Area: Admin UI', 'Area: Catalog'], $result['areaOptions']);
+        $this->assertSame(['Component: Admin', 'Component: Quote'], $result['componentOptions']);
+    }
+
+    public function testBothSelectionsNarrowEachOthersOptions(): void
+    {
+        $result = $this->fetch(
+            area: 'Area: Checkout',
+            component: 'Component: Quote',
+            issues: [101 => ['Area: Checkout', 'Component: Quote'], 102 => ['Area: Catalog', 'Component: Quote']],
+            narrowedFacets: [
+                'Area: Checkout' => ['linked' => [101], 'prLabels' => []],
+                'Component: Quote' => ['linked' => [101, 102], 'prLabels' => []],
+            ],
+        );
+
+        $this->assertCount(3, $this->facetRequests);
+        $this->assertSame(['Area: Catalog', 'Area: Checkout'], $result['areaOptions']);
+        $this->assertSame(['Component: Quote'], $result['componentOptions']);
     }
 
     /**
@@ -231,7 +284,8 @@ class CommunityPickCandidatesQueryTest extends TestCase
      * @param  list<int>|null  $linkedIssues  Facet buckets; defaults to the keys of $issues.
      * @param  list<string>  $prLabels  Facet buckets of the candidates' own Area/Component labels.
      * @param  list<array<string, mixed>>  $hits  `_source` of each page hit.
-     * @param  array<string, mixed>  $facetRequest  Receives the facet aggregation request.
+     * @param  array<string, array{linked: list<int>, prLabels: list<string>}>  $narrowedFacets  Facet buckets
+     *                                                                                           for a facet request narrowed by the keyed label.
      * @return array{rows: list<array<string, mixed>>, total: int, areaOptions: list<string>, componentOptions: list<string>}
      */
     private function fetch(
@@ -243,13 +297,13 @@ class CommunityPickCandidatesQueryTest extends TestCase
         array $prLabels = [],
         array $hits = [],
         ?int $total = null,
-        array &$facetRequest = [],
+        array $narrowedFacets = [],
     ): array {
         $buckets = static fn (array $keys): array => ['buckets' => array_map(static fn ($k): array => ['key' => $k, 'doc_count' => 1], $keys)];
 
         $client = Mockery::mock(Client::class);
         $client->shouldReceive('search')->andReturnUsing(
-            function (array $params) use ($issues, $linkedIssues, $prLabels, $hits, $total, $buckets, &$facetRequest): array {
+            function (array $params) use ($issues, $linkedIssues, $prLabels, $hits, $total, $buckets, $narrowedFacets): array {
                 if (str_ends_with($params['index'], 'github-issues')) {
                     $this->issueRequests[] = $params;
                     $ids = array_map('intval', $params['body']['query']['ids']['values']);
@@ -261,11 +315,14 @@ class CommunityPickCandidatesQueryTest extends TestCase
                 }
 
                 if (isset($params['body']['aggs'])) {
-                    $facetRequest = $params;
+                    $this->facetRequests[] = $params;
+                    $narrowedBy = $params['body']['query']['bool']['filter'][1]['bool']['should'][0]['term']['labels.keyword'] ?? null;
+                    $facets = $narrowedFacets[$narrowedBy ?? '']
+                        ?? ['linked' => $linkedIssues ?? array_keys($issues), 'prLabels' => $prLabels];
 
                     return ['aggregations' => [
-                        'linked_issues' => $buckets($linkedIssues ?? array_keys($issues)),
-                        'pr_labels' => $buckets($prLabels),
+                        'linked_issues' => $buckets($facets['linked']),
+                        'pr_labels' => $buckets($facets['prLabels']),
                     ]];
                 }
 
