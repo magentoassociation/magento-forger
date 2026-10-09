@@ -14,13 +14,13 @@ Two Artisan commands — `sync:github:issues` and `sync:github:prs` — share a 
 4. Stops early when the last node's `updatedAt` is older than the `--since` cutoff (incremental mode).
 5. Drops any node whose `createdAt` is before `github.history_start` (default 2014-12-01, when the repo began merging outside PRs). Applies to all four item syncs (issues, PRs, events, interactions), so an old issue's events and interactions are skipped with it. Pages are ordered by `updatedAt`, so this filters per node; it never ends the sync early.
 
-`GitHubSyncer` is callback-based: callers inject `fetchPage`, `index`, `onPage`, `onNode`, and `onError` closures, plus an optional `createdSince` floor.
+`GitHubSyncer` is callback-based: callers inject `fetchPage`, `index`, `onPage`, `onNode`, and `onError` closures, plus an optional `createdSince` floor. Errors per page are logged and skipped — the sync continues rather than aborting.
+
+Both commands implement `Isolatable` so Laravel prevents concurrent runs of the same command.
 
 ### Purging pre-floor history
 
-`sync:github:purge-history` is a one-off cleanup for data stored before the floor existed. It finds every issue/PR in the indexes with `created_at` before `github.history_start` and deletes those numbers from all six indexes: PRs and issues by `_id`, `github-pr-reviews` / `github-pr-timeline` by `pr_number`, `github-events` / `github-interactions` by `issues-id`. It asks for confirmation unless `--force` is passed. Run `leaderboard:compute` afterwards. Errors per page are logged and skipped — the sync continues rather than aborting.
-
-Both commands implement `Isolatable` so Laravel prevents concurrent runs of the same command.
+`sync:github:purge-history` is a one-off cleanup for data stored before the floor existed. It finds every issue/PR in the indexes with `created_at` before `github.history_start` and deletes those numbers from all six indexes: PRs and issues by `_id`, `github-pr-reviews` / `github-pr-timeline` by `pr_number`, `github-events` / `github-interactions` by `issues-id`. It asks for confirmation unless `--force` is passed. Each index is purged separately: a failed delete is reported, the remaining indexes are still purged, and the command exits with code 1. Run `leaderboard:compute` afterwards.
 
 ### Schedule
 
