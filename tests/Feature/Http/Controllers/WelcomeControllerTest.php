@@ -99,9 +99,9 @@ class WelcomeControllerTest extends TestCase
         $response->assertSee(e('"label":"Sep 2026","short":"Sep","opened":34,"closed":1100'), false);
         $response->assertSeeInOrder(['<span>Nov</span>', '<span>Dec</span>', '<span>Sep</span>', '<span>Oct</span>'], false);
         // Footer: all-time opened since the first month, linking to the By Month page.
-        $response->assertSee('href="'.route('prs.PRsByMonth').'" aria-label="Full history: Pull requests by month"', false);
+        $response->assertSee('href="'.route('prs.byMonth').'" aria-label="Full history: Pull requests by month"', false);
         $response->assertSee('<b>1,234</b> opened since Dec 2014', false);
-        $response->assertSee('href="'.route('issues.issuesByMonth').'" aria-label="Full history: Issues by month"', false);
+        $response->assertSee('href="'.route('issues.byMonth').'" aria-label="Full history: Issues by month"', false);
     }
 
     public function testMomentumMonthsWithNoBucketCountAsZero(): void

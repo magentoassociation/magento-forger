@@ -25,9 +25,9 @@
     } elseif ($currentRouteName === 'leaderboard.detail') {
         $boardName = (isset($boards, $board) && isset($boards[$board])) ? $boards[$board] : null;
         $formattedLabel = $boardName ? $boardName . ' Contributions' : 'Contributions';
-    } elseif ($currentRouteName === 'issues.issuesByMonth') {
+    } elseif ($currentRouteName === 'issues.byMonth') {
         $formattedLabel = 'Issues By Month';
-    } elseif ($currentRouteName === 'prs.PRsByMonth') {
+    } elseif ($currentRouteName === 'prs.byMonth') {
         $formattedLabel = 'PRs By Month';
     }
 @endphp

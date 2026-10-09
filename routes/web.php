@@ -28,8 +28,8 @@ Route::get('leaderboard/{board}', [Controllers\ScoreLeaderboardController::class
 Route::get('leaderboard/{board}/user/{login}', [Controllers\ScoreLeaderboardController::class, 'detail'])->name('leaderboard.detail');
 
 // old routes
-Route::get('issuesByMonth', [Controllers\IssuesByMonthController::class, 'index'])->name('issues.issuesByMonth');
-Route::get('prsByMonth', [Controllers\PrsByMonthController::class, 'index'])->name('prs.PRsByMonth');
+Route::get('issues/by-month', [Controllers\IssuesByMonthController::class, 'index'])->name('issues.byMonth');
+Route::get('prs/by-month', [Controllers\PrsByMonthController::class, 'index'])->name('prs.byMonth');
 Route::get('labels/allLabels', [Controllers\LabelController::class, 'listAllLabels'])->name('labels.listAllLabels');
 
 // Login page (required by auth middleware)
