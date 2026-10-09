@@ -45,13 +45,19 @@ The PR sync stores two fields on each PR document:
 | `thumbs_up_count` | `reactions(content: THUMBS_UP) { totalCount }` on the PR body |
 | `linked_issues` | issue numbers from `closingIssuesReferences` |
 
-Both are written by `sync:github:prs`. PRs indexed before these fields existed sort last (`missing: _last`, `unmapped_type: long`) and show 0 👍 until re-synced.
+Both are written by `sync:github:prs`, and refreshed on every open PR every 15 minutes by `sync:github:pr-reactions` (which also refreshes `is_draft`).
+
+Adding a reaction does **not** bump a PR's `updatedAt`. Checked against live data on 2026-10-09: for example, #41310's latest 👍 was on Oct 8, but its `updatedAt` was Sep 29. The incremental PR sync stops on `updatedAt`, so on its own it would miss new votes until the weekly full sync. Closing references added through the sidebar may not bump it either, so the reactions sync re-reads them too.
+
+`sync:github:pr-reactions` sends plain bulk `update`s with no upsert. An open PR the main sync hasn't indexed yet is skipped, never stored as a stub, and the next PR sync picks it up. Bulk requests report item failures in the response rather than throwing, so the command reads that response. Any item failure other than `document_missing_exception` fails the page, and the run exits 1. PRs that neither sync has written yet sort last (`missing: _last`, `unmapped_type: long`).
 
 ## Key files
 
 - `app/Http/Controllers/CommunityPickedController.php` — page controller, `page` validation
 - `app/Queries/Dashboard/CommunityPickCandidatesQuery.php` — candidate rule, sort, pagination
 - `resources/views/communityPicked/index.blade.php` — table view
+- `app/Console/Commands/SyncGitHubPrReactions.php` — 15-minute 👍 / Linked Issue refresh
+- `resources/graphql/github/github_pr_reactions.graphql` — open-PR reactions query
 - `config/github.php` — `community_picked.exclude_labels`
 
 ## Configuration
@@ -62,7 +68,7 @@ Both are written by `sync:github:prs`. PRs indexed before these fields existed s
 
 ## Gotchas / constraints
 
-- 👍 counts are only as fresh as the last PR sync that touched the PR. Reactions may not bump a PR's `updatedAt`, in which case the 15-minute incremental sync misses new votes until the weekly full sync.
+- 👍 counts lag GitHub by up to 15 minutes plus one `sync:github:pr-reactions` run (about 12 pages of 100 open PRs).
 - `closingIssuesReferences` only captures closing keywords and sidebar links; a PR that mentions an issue without one has no Linked Issues, so it matches filters on its own labels only.
 - The Linked Issue lookup fetches up to 10,000 issues in one page. Candidates link far fewer today; page the lookup if that changes.
 - Linked Issues missing from the issues index (created before `github.history_start`, or not yet synced) contribute no labels.

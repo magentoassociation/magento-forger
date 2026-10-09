@@ -28,6 +28,7 @@ Both commands implement `Isolatable` so Laravel prevents concurrent runs of the 
 |-----|---------|-------|
 | Full + incremental sync (issues) | Weekly full (00:00) + every 15 min | Full has no cutoff; incremental `--since "1 hour ago"` |
 | Full + incremental sync (PRs) | Weekly full (01:00) + every 15 min | `SyncGitHubPRs` |
+| PR reactions (open PRs only) | Every 15 min | `SyncGitHubPrReactions` — 👍 count, Linked Issues, draft flag. Reactions don't bump `updatedAt`, so the incremental PR sync misses them. No full-sync pause: it writes the same values the full PR sync does |
 | Full + incremental sync (interactions) | Weekly full (02:00) + every 15 min | `SyncGitHubInteractions` |
 | Full + incremental sync (events) | Weekly full (03:00) + every 15 min | `SyncGitHubEvents` |
 | Teams roster | Daily (10:00) | `SyncGitHubTeams` |
@@ -39,6 +40,7 @@ Each incremental pauses in a ±20-min window around *its own* full-sync time (is
 
 - `app/Console/Commands/SyncGitHubIssues.php` — Issues sync command
 - `app/Console/Commands/SyncGitHubPRs.php` — PRs sync command
+- `app/Console/Commands/SyncGitHubPrReactions.php` — Open-PR 👍 / Linked Issue refresh (partial update, skips unindexed PRs)
 - `app/Console/Commands/SyncGitHubInteractions.php` — Comments/reviews sync command
 - `app/Console/Commands/SyncGitHubEvents.php` — Issue timeline events sync command
 - `app/Console/Commands/SyncGitHubTeams.php` — Maintainer/council roster sync command

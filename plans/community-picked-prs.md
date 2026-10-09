@@ -112,10 +112,10 @@ First, verify the PRD assumption: react to a PR and compare its `updatedAt` befo
 
 ### Acceptance criteria
 
-- [ ] `updatedAt` behaviour verified and recorded in the feature doc
-- [ ] (If built) a new 👍 shows on the page within one 15-minute cycle
-- [ ] (If built) PRs not yet indexed are skipped; no title-less documents created
-- [ ] (If built) command exits non-zero when a page fails
-- [ ] (If built) scheduled every 15 min, `withoutOverlapping`, background
-- [ ] (If built) tests: command pages and forwards nodes, error exit code, partial update uses no upsert, schedule entry
-- [ ] (If built) GitHub sync doc lists the new job in its schedule table and key files
+- [x] `updatedAt` behaviour verified and recorded in the feature doc (reactions do **not** bump it; built)
+- [x] (If built) a new 👍 shows on the page within one 15-minute cycle
+- [x] (If built) PRs not yet indexed are skipped; no title-less documents created
+- [x] (If built) command exits non-zero when a page fails
+- [x] (If built) scheduled every 15 min, `withoutOverlapping`, background
+- [x] (If built) tests: command pages and forwards nodes, error exit code, partial update uses no upsert, schedule entry
+- [x] (If built) GitHub sync doc lists the new job in its schedule table and key files

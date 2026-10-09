@@ -71,7 +71,7 @@ class CommunityPickedController extends Controller
                 'These open pull requests are waiting to be picked for merging. Vote for the ones you want by giving '.
                     'the PR description a 👍 on GitHub — click a PR\'s 👍 count to open it.',
                 'The most-wanted PRs rise to the top. Once maintainers pick a PR, it leaves this list. '.
-                    'Vote counts refresh as Forger syncs with GitHub.',
+                    'Vote counts refresh from GitHub every 15 minutes.',
             ]
         );
     }

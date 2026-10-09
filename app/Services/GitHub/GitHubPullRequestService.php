@@ -44,6 +44,24 @@ class GitHubPullRequestService
     }
 
     /**
+     * One page of open PRs with only the fields that change without bumping updatedAt:
+     * 👍 count and closing issue references (plus the draft flag).
+     *
+     * @throws GitHubGraphQLException
+     * @throws \JsonException
+     */
+    public function fetchOpenPullRequestReactions(string $owner, string $repo, ?string $cursor = null): array
+    {
+        $data = $this->executeQuery('github_pr_reactions.graphql', [
+            'owner' => $owner,
+            'name' => $repo,
+            'cursor' => $cursor,
+        ]);
+
+        return $data['repository']['pullRequests'] ?? ['nodes' => [], 'pageInfo' => []];
+    }
+
+    /**
      * Fetches any additional timelineItems pages beyond the first 100 and merges them into the PR node.
      */
     public function expandTimelineItems(array $pr, string $owner, string $repo): array
