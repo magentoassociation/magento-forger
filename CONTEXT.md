@@ -12,6 +12,7 @@ A dashboard and tooling application for the Magento Association to track and sur
 - [Authentication](docs/features/authentication.md) — GitHub OAuth login, admin role, rate limiting
 - [Analytics](docs/features/analytics.md) — Homepage counts, issues/PRs by month, chart API, universe bar
 - [Admin Panel](docs/features/admin-panel.md) — Filament user management
+- [Community-picked PRs](docs/features/community-picked.md) — Community Pick Candidates ranked by 👍, voting links out to GitHub
 
 ## Language
 
@@ -56,6 +57,22 @@ A date range defined by calendar boundaries. Presets: last month (first–last d
 
 **Maintainer Leaderboard**:
 Ranks Maintainers by review activity — both raw-count boards (PRs approved = review state `APPROVED`, PRs rejected = `CHANGES_REQUESTED`, sourced from the `github-pr-reviews` index) and a weighted **Maintainer Score** that adds an impact-weighted bonus when an approved PR is later merged, a staleness-weighted bonus for claiming a long-pending PR (credited only once reviewed), and triage credit for applying labels. Review-latency stats (time-to-review, time-to-claim) are derived from the `github-pr-timeline` index. See [ADR 0002](docs/adr/0002-maintainer-leaderboard.md), [Weighted Scoring](docs/features/leaderboard-scoring.md), and [Maintainer Leaderboards](docs/features/maintainer-leaderboards.md).
+
+### Community Picking
+
+The community upvotes open PRs it wants merged into Magento 2. After each voting period, the top-voted PRs are prioritized for merging.
+
+**Community Pick Candidate**:
+An open, non-draft PR carrying none of the labels in `github.community_picked.exclude_labels` (default `Release Line: 2.5`, `Project: Community Picked`). Ranked by 👍 reactions on the PR body, oldest first on ties.
+_Avoid_: nominee; "vote" as a noun for Forger data (votes live on GitHub — Forger only mirrors the 👍 count)
+
+**Linked Issue**:
+An issue in a PR's `closingIssuesReferences` — linked by a closing keyword ("Fixes magento/magento2#123") or the sidebar Development link. Stored on the PR document as `linked_issues`.
+_Avoid_: related issue (mentions and cross-references are not links)
+
+**Effective Labels**:
+The union of a PR's own labels and its Linked Issues' labels, resolved at query time from the issues index. Area and Component labels usually live only on the issue, so this is what PR label filtering matches against.
+_Avoid_: PR labels (those are only the PR's own)
 
 ---
 
