@@ -85,17 +85,17 @@ Dropdown options are aggregated from the current candidate set only, so no optio
 
 ### Acceptance criteria
 
-- [ ] Rows show Effective Area/Component labels
-- [ ] Filtering by a label set only on a linked issue returns that PR
-- [ ] Filtering by a label set only on the PR returns that PR
-- [ ] Area + Component together return only PRs matching both
-- [ ] Dropdowns list only `Area:` / `Component:` labels present on current candidates
-- [ ] Retagging an issue is reflected after the next issue sync, with no PR re-sync needed
-- [ ] Filtered URL reproduces the same results when shared
-- [ ] Invalid params are rejected, not passed to OpenSearch
-- [ ] Pagination preserves active filters
-- [ ] Tests: union matching (PR only / issue only / both), AND, facets from candidates only, empty result, controller param handling
-- [ ] Feature doc describes the filter and the query-time join
+- [x] Rows show Effective Area/Component labels
+- [x] Filtering by a label set only on a linked issue returns that PR
+- [x] Filtering by a label set only on the PR returns that PR
+- [x] Area + Component together return only PRs matching both
+- [x] Dropdowns list only `Area:` / `Component:` labels present on current candidates
+- [x] Retagging an issue is reflected after the next issue sync, with no PR re-sync needed
+- [x] Filtered URL reproduces the same results when shared
+- [x] Invalid params are rejected, not passed to OpenSearch
+- [x] Pagination preserves active filters
+- [x] Tests: union matching (PR only / issue only / both), AND, facets from candidates only, empty result, controller param handling
+- [x] Feature doc describes the filter and the query-time join
 
 ---
 

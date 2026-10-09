@@ -23,19 +23,25 @@ class CommunityPickedController extends Controller
 
     public function index(Request $request, CommunityPickCandidatesQuery $query): View
     {
-        $page = (int) ($request->validate([
+        $filters = $request->validate([
             'page' => ['nullable', 'integer', 'min:1', 'max:'.self::MAX_PAGE],
-        ])['page'] ?? 1);
+            // bail: starts_with throws on an array (?area[]=x) instead of failing.
+            'area' => ['bail', 'nullable', 'string', 'max:255', 'starts_with:'.CommunityPickCandidatesQuery::AREA_PREFIX],
+            'component' => ['bail', 'nullable', 'string', 'max:255', 'starts_with:'.CommunityPickCandidatesQuery::COMPONENT_PREFIX],
+        ]);
+        $page = (int) ($filters['page'] ?? 1);
+        $area = $filters['area'] ?? null;
+        $component = $filters['component'] ?? null;
 
         $dataMissing = false;
 
         try {
-            $result = $query->execute($page);
+            $result = $query->execute($area, $component, $page);
         } catch (\Exception $e) {
             if (! $this->isMissingIndex($e)) {
                 abort(500, 'Error fetching PR data: '.$e->getMessage());
             }
-            $result = ['rows' => [], 'total' => 0];
+            $result = ['rows' => [], 'total' => 0, 'areaOptions' => [], 'componentOptions' => []];
             $dataMissing = true;
         }
 
@@ -48,6 +54,11 @@ class CommunityPickedController extends Controller
                 $page,
                 ['path' => $request->url(), 'query' => $request->query()],
             ),
+            // Not `component`: Blade reserves $component for component rendering.
+            'selectedArea' => $area,
+            'selectedComponent' => $component,
+            'areaOptions' => $result['areaOptions'],
+            'componentOptions' => $result['componentOptions'],
             'dataMissing' => $dataMissing,
         ]);
     }

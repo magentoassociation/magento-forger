@@ -75,6 +75,60 @@ class CommunityPickedControllerTest extends TestCase
         $response->assertSee('community-picked?page=3', false);
     }
 
+    public function testShowsEffectiveLabelsAndFilterOptions(): void
+    {
+        $this->bindClient(
+            [$this->candidate(1, linked: [101], labels: ['Area: APIs'])],
+            prLabels: ['Area: APIs'],
+            issues: [101 => ['Area: Checkout', 'Component: Quote']],
+        );
+
+        $response = $this->get('/prs/community-picked');
+
+        $response->assertSeeInOrder(['Area: APIs', 'Area: Checkout', 'Component: Quote']);
+        $response->assertSee('<option value="Area: Checkout" >Checkout</option>', false);
+        $response->assertSee('<option value="Component: Quote" >Quote</option>', false);
+    }
+
+    public function testFiltersPassThroughAndStaySelected(): void
+    {
+        $requests = [];
+        $this->bindClient(
+            [$this->candidate(1)],
+            total: 120,
+            requests: $requests,
+            issues: [101 => ['Area: Checkout', 'Component: Quote']],
+        );
+
+        $response = $this->get('/prs/community-picked?area='.urlencode('Area: Checkout').'&component='.urlencode('Component: Quote'));
+
+        $response->assertOk();
+        $this->assertCount(3, $requests[0]['body']['query']['bool']['filter']);
+        $response->assertSee('<option value="Area: Checkout" selected>Checkout</option>', false);
+        $response->assertSee('<option value="Component: Quote" selected>Quote</option>', false);
+        $response->assertSee('area=Area%3A%20Checkout&amp;component=Component%3A%20Quote&amp;page=2', false);
+    }
+
+    public function testKeepsASharedFilterSelectableWhenNoCandidateCarriesIt(): void
+    {
+        $this->bindClient([]);
+
+        $response = $this->get('/prs/community-picked?area='.urlencode('Area: Gone'));
+
+        $response->assertSee('<option value="Area: Gone" selected>Gone</option>', false);
+        $response->assertSee('No candidates match these filters.');
+        $response->assertSee('>Clear</a>', false);
+    }
+
+    public function testRejectsLabelsOutsideTheirPrefix(): void
+    {
+        $this->bindClient([]);
+
+        $this->get('/prs/community-picked?area='.urlencode('Component: Quote'))->assertSessionHasErrors('area');
+        $this->get('/prs/community-picked?component='.urlencode('Priority: P1'))->assertSessionHasErrors('component');
+        $this->get('/prs/community-picked?area[]=x')->assertSessionHasErrors('area');
+    }
+
     public function testRejectsInvalidPage(): void
     {
         $this->bindClient([]);
@@ -113,9 +167,11 @@ class CommunityPickedControllerTest extends TestCase
     }
 
     /**
+     * @param  list<int>  $linked
+     * @param  list<string>  $labels
      * @return array<string, mixed>
      */
-    private function candidate(int $number): array
+    private function candidate(int $number, array $linked = [], array $labels = []): array
     {
         return [
             'id' => $number,
@@ -124,18 +180,38 @@ class CommunityPickedControllerTest extends TestCase
             'author' => 'jane',
             'created_at' => '2026-01-01T00:00:00Z',
             'thumbs_up_count' => 1,
-            'linked_issues' => [],
+            'linked_issues' => $linked,
+            'labels' => $labels,
         ];
     }
 
     /**
-     * @param  list<array<string, mixed>>  $sources  `_source` of each hit
-     * @param  list<array<string, mixed>>  $requests  Collects every search request.
+     * @param  list<array<string, mixed>>  $sources  `_source` of each page hit
+     * @param  list<array<string, mixed>>  $requests  Collects every page search request.
+     * @param  list<string>  $prLabels  Area/Component labels on the candidates themselves (filter options).
+     * @param  array<int, list<string>>  $issues  Linked issue number => labels in the issues index.
      */
-    private function bindClient(array $sources, ?int $total = null, array &$requests = []): void
+    private function bindClient(array $sources, ?int $total = null, array &$requests = [], array $prLabels = [], array $issues = []): void
     {
+        $buckets = static fn (array $keys): array => ['buckets' => array_map(static fn ($k): array => ['key' => $k], $keys)];
+
         $client = Mockery::mock(Client::class);
-        $client->shouldReceive('search')->andReturnUsing(static function (array $params) use ($sources, $total, &$requests): array {
+        $client->shouldReceive('search')->andReturnUsing(static function (array $params) use ($sources, $total, &$requests, $prLabels, $issues, $buckets): array {
+            if (str_ends_with($params['index'], 'github-issues')) {
+                return ['hits' => ['hits' => array_map(
+                    static fn (int $id, array $labels): array => ['_id' => (string) $id, '_source' => ['labels' => $labels]],
+                    array_keys($issues),
+                    $issues,
+                )]];
+            }
+
+            if (isset($params['body']['aggs'])) {
+                return ['aggregations' => [
+                    'linked_issues' => $buckets(array_keys($issues)),
+                    'pr_labels' => $buckets($prLabels),
+                ]];
+            }
+
             $requests[] = $params;
 
             return ['hits' => [
