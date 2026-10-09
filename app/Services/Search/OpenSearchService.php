@@ -204,6 +204,8 @@ class OpenSearchService
             'changed_files' => $pr['changedFiles'] ?? null,
             'comments_count' => $pr['comments']['totalCount'] ?? 0,
             'reviews_count' => $pr['reviews']['totalCount'] ?? 0,
+            'thumbs_up_count' => $pr['reactions']['totalCount'] ?? 0,
+            'linked_issues' => array_column($pr['closingIssuesReferences']['nodes'] ?? [], 'number'),
         ];
     }
 

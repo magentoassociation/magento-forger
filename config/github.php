@@ -14,4 +14,10 @@ return [
     // and timeline items) are never synced, and `sync:github:purge-history` deletes
     // any already stored. Dec 2014 is when the repo began merging outside PRs.
     'history_start' => env('GITHUB_HISTORY_START', '2014-12-01'),
+
+    'community_picked' => [
+        // Open PRs carrying any of these labels are not Community Pick Candidates:
+        // already picked, or on a release line the community does not vote on.
+        'exclude_labels' => ['Release Line: 2.5', 'Project: Community Picked'],
+    ],
 ];

@@ -159,6 +159,31 @@ class OpenSearchServiceTest extends TestCase
         $this->assertNull($doc['additions']);
         $this->assertNull($doc['deletions']);
         $this->assertNull($doc['changed_files']);
+        $this->assertSame(0, $doc['thumbs_up_count']);
+        $this->assertSame([], $doc['linked_issues']);
+    }
+
+    public function testPullRequestDocumentIncludesThumbsUpCountAndLinkedIssues(): void
+    {
+        $doc = $this->buildDocument('toPullRequestDocument', [
+            'number' => 12,
+            'id' => 'PR_12',
+            'title' => 'Fixes two issues',
+            'url' => 'https://github.com/magento/magento2/pull/12',
+            'state' => 'OPEN',
+            'isDraft' => false,
+            'labels' => ['nodes' => []],
+            'createdAt' => '2026-01-01T00:00:00Z',
+            'updatedAt' => '2026-01-02T00:00:00Z',
+            'author' => ['login' => 'jane'],
+            'comments' => ['totalCount' => 0],
+            'reviews' => ['totalCount' => 0],
+            'reactions' => ['totalCount' => 8],
+            'closingIssuesReferences' => ['nodes' => [['number' => 101], ['number' => 102]]],
+        ]);
+
+        $this->assertSame(8, $doc['thumbs_up_count']);
+        $this->assertSame([101, 102], $doc['linked_issues']);
     }
 
     public function testIssueDocumentIncludesAuthorCompany(): void

@@ -30,6 +30,9 @@ query($owner: String!, $name: String!, $cursor: String) {
         comments {
           totalCount
         }
+        reactions(content: THUMBS_UP) {
+          totalCount
+        }
         reviews(first: 50) {
           totalCount
           nodes {
