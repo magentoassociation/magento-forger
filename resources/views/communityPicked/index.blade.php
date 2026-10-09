@@ -1,3 +1,4 @@
+@use('App\Queries\Dashboard\CommunityPickCandidatesQuery')
 @extends('layouts.app')
 
 @section('content')
@@ -12,7 +13,7 @@
 
     @php
         $repoUrl = 'https://github.com/'.config('github.repo');
-        $filtered = $selectedArea || $selectedComponent;
+        $filtered = $selectedArea || $selectedComponent || $selectedAuthor;
         // A shared link may name a label no current candidate carries; keep it selectable.
         $withSelected = fn (?string $selected, array $options): array => $selected && ! in_array($selected, $options, true) ? [$selected, ...$options] : $options;
         $filters = [
@@ -35,9 +36,29 @@
                 </div>
             @endforeach
             <div class="col-sm-auto">
+                <label for="filter-author" class="form-label mb-1">Author</label>
+                <input type="search" id="filter-author" name="author" value="{{ $selectedAuthor }}" list="filter-author-options"
+                       class="form-control" placeholder="GitHub username" autocomplete="off" spellcheck="false"
+                       maxlength="50" onchange="this.form.submit()">
+                <datalist id="filter-author-options">
+                    @foreach ($authorOptions as $option)
+                        <option value="{{ $option }}"></option>
+                    @endforeach
+                </datalist>
+            </div>
+            <div class="col-sm-auto">
+                <label for="filter-sort" class="form-label mb-1">Sort</label>
+                <select id="filter-sort" name="sort" class="form-select" onchange="this.form.submit()">
+                    @foreach ([CommunityPickCandidatesQuery::SORT_VOTES => 'Most votes', CommunityPickCandidatesQuery::SORT_OLDEST => 'Oldest first', CommunityPickCandidatesQuery::SORT_NEWEST => 'Newest first'] as $value => $label)
+                        <option value="{{ $value }}" @selected($value === $sort)>{{ $label }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="col-sm-auto">
                 <button type="submit" class="btn btn-primary">Filter</button>
                 @if ($filtered)
-                    <a href="{{ route('prs.communityPicked') }}" class="btn btn-link">Clear</a>
+                    {{-- Clears the filters, keeps the sort. --}}
+                    <a href="{{ route('prs.communityPicked', $sort === CommunityPickCandidatesQuery::SORT_VOTES ? [] : ['sort' => $sort]) }}" class="btn btn-link">Clear</a>
                 @endif
             </div>
         </form>
@@ -90,7 +111,7 @@
                             </td>
                             <td>
                                 @if ($pr['author'])
-                                    <a href="https://github.com/{{ $pr['author'] }}" target="_blank" rel="noopener">{{ $pr['author'] }}</a>
+                                    <a href="{{ route('leaderboard.detail', ['board' => 'contributor', 'login' => $pr['author']]) }}">{{ $pr['author'] }}</a>
                                 @else
                                     <span class="text-muted">—</span>
                                 @endif

@@ -12,6 +12,7 @@ use App\DataTransferObjects\Misc\InfoText;
 use App\Queries\Dashboard\CommunityPickCandidatesQuery;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class CommunityPickedController extends Controller
@@ -28,20 +29,25 @@ class CommunityPickedController extends Controller
             // bail: starts_with throws on an array (?area[]=x) instead of failing.
             'area' => ['bail', 'nullable', 'string', 'max:255', 'starts_with:'.CommunityPickCandidatesQuery::AREA_PREFIX],
             'component' => ['bail', 'nullable', 'string', 'max:255', 'starts_with:'.CommunityPickCandidatesQuery::COMPONENT_PREFIX],
+            // GitHub logins: alphanumerics and hyphens; apps end in [bot].
+            'author' => ['bail', 'nullable', 'string', 'max:50', 'regex:/^[A-Za-z0-9-]+(\[bot\])?$/'],
+            'sort' => ['nullable', Rule::in(CommunityPickCandidatesQuery::SORTS)],
         ]);
+        $sort = $filters['sort'] ?? CommunityPickCandidatesQuery::SORT_VOTES;
         $page = (int) ($filters['page'] ?? 1);
         $area = $filters['area'] ?? null;
         $component = $filters['component'] ?? null;
+        $author = $filters['author'] ?? null;
 
         $dataMissing = false;
 
         try {
-            $result = $query->execute($area, $component, $page);
+            $result = $query->execute($area, $component, $author, $page, $sort);
         } catch (\Exception $e) {
             if (! $this->isMissingIndex($e)) {
                 abort(500, 'Error fetching PR data: '.$e->getMessage());
             }
-            $result = ['rows' => [], 'total' => 0, 'areaOptions' => [], 'componentOptions' => []];
+            $result = ['rows' => [], 'total' => 0, 'areaOptions' => [], 'componentOptions' => [], 'authorOptions' => []];
             $dataMissing = true;
         }
 
@@ -57,8 +63,11 @@ class CommunityPickedController extends Controller
             // Not `component`: Blade reserves $component for component rendering.
             'selectedArea' => $area,
             'selectedComponent' => $component,
+            'selectedAuthor' => $author,
+            'sort' => $sort,
             'areaOptions' => $result['areaOptions'],
             'componentOptions' => $result['componentOptions'],
+            'authorOptions' => $result['authorOptions'],
             'dataMissing' => $dataMissing,
         ]);
     }

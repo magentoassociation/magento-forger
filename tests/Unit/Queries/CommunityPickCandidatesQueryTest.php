@@ -69,6 +69,24 @@ class CommunityPickCandidatesQueryTest extends TestCase
         $this->assertSame(['created_at' => ['order' => 'asc']], $sort[1]);
     }
 
+    public function testOldestFirstSortsByCreatedAtThenMostVotes(): void
+    {
+        $this->fetch(sort: CommunityPickCandidatesQuery::SORT_OLDEST);
+
+        $sort = $this->pageRequest['body']['sort'];
+        $this->assertSame(['created_at' => ['order' => 'asc']], $sort[0]);
+        $this->assertSame('desc', $sort[1]['thumbs_up_count']['order']);
+    }
+
+    public function testNewestFirstSortsByCreatedAtDescendingThenMostVotes(): void
+    {
+        $this->fetch(sort: CommunityPickCandidatesQuery::SORT_NEWEST);
+
+        $sort = $this->pageRequest['body']['sort'];
+        $this->assertSame(['created_at' => ['order' => 'desc']], $sort[0]);
+        $this->assertSame('desc', $sort[1]['thumbs_up_count']['order']);
+    }
+
     public function testPaginatesFiftyPerPage(): void
     {
         $this->fetch(page: 3);
@@ -252,9 +270,66 @@ class CommunityPickCandidatesQueryTest extends TestCase
             ],
         );
 
-        $this->assertCount(3, $this->facetRequests);
+        // Unfiltered, narrowed by component, by area, and by both (for the author options).
+        $this->assertCount(4, $this->facetRequests);
         $this->assertSame(['Area: Catalog', 'Area: Checkout'], $result['areaOptions']);
         $this->assertSame(['Component: Quote'], $result['componentOptions']);
+    }
+
+    public function testAuthorFilterMatchesTheLoginIgnoringCase(): void
+    {
+        $this->fetch(author: 'SWNSMA');
+
+        $this->assertContains(
+            ['term' => ['author.keyword' => ['value' => 'SWNSMA', 'case_insensitive' => true]]],
+            $this->pageRequest['body']['query']['bool']['filter'],
+        );
+    }
+
+    public function testAuthorFilterCombinesWithLabelFilters(): void
+    {
+        $this->fetch(area: 'Area: Checkout', author: 'jane', issues: [101 => ['Area: Checkout']]);
+
+        $filter = $this->pageRequest['body']['query']['bool']['filter'];
+        $this->assertCount(3, $filter);
+        $this->assertSame(['term' => ['labels.keyword' => 'Area: Checkout']], $filter[1]['bool']['should'][0]);
+        $this->assertSame(['term' => ['author.keyword' => ['value' => 'jane', 'case_insensitive' => true]]], $filter[2]);
+    }
+
+    public function testAuthorOptionsAreCandidateAuthorsSortedIgnoringCase(): void
+    {
+        $result = $this->fetch(authors: ['zoe', 'Bob', 'alice']);
+
+        $this->assertSame(['alice', 'Bob', 'zoe'], $result['authorOptions']);
+    }
+
+    public function testAuthorOptionsAreNarrowedByTheSelectedLabels(): void
+    {
+        $result = $this->fetch(
+            area: 'Area: Checkout',
+            issues: [101 => ['Area: Checkout']],
+            authors: ['alice', 'bob', 'jane'],
+            narrowedFacets: ['Area: Checkout' => ['authors' => ['jane']]],
+        );
+
+        $this->assertSame(['jane'], $result['authorOptions']);
+    }
+
+    public function testLabelOptionsAreNarrowedByTheSelectedAuthor(): void
+    {
+        $result = $this->fetch(
+            author: 'jane',
+            issues: [101 => ['Area: Checkout', 'Component: Quote'], 102 => ['Area: Catalog', 'Component: Admin']],
+            authors: ['alice', 'jane'],
+            narrowedFacets: ['jane' => ['linked' => [101], 'prLabels' => []]],
+        );
+
+        $this->assertSame(['Area: Checkout'], $result['areaOptions']);
+        $this->assertSame(['Component: Quote'], $result['componentOptions']);
+        // The author list is not narrowed by its own selection.
+        $this->assertSame(['alice', 'jane'], $result['authorOptions']);
+        // Area and component options share one facet request narrowed by author alone.
+        $this->assertCount(2, $this->facetRequests);
     }
 
     /**
@@ -284,17 +359,22 @@ class CommunityPickCandidatesQueryTest extends TestCase
      * @param  list<int>|null  $linkedIssues  Facet buckets; defaults to the keys of $issues.
      * @param  list<string>  $prLabels  Facet buckets of the candidates' own Area/Component labels.
      * @param  list<array<string, mixed>>  $hits  `_source` of each page hit.
-     * @param  array<string, array{linked: list<int>, prLabels: list<string>}>  $narrowedFacets  Facet buckets
-     *                                                                                           for a facet request narrowed by the keyed label.
-     * @return array{rows: list<array<string, mixed>>, total: int, areaOptions: list<string>, componentOptions: list<string>}
+     * @param  list<string>  $authors  Facet buckets of the candidates' authors.
+     * @param  array<string, array{linked?: list<int>, prLabels?: list<string>, authors?: list<string>}>  $narrowedFacets
+     *                                                                                                                     Facet buckets for a facet request narrowed by the keyed
+     *                                                                                                                     filter values (comma-joined, e.g. "Area: Checkout,jane").
+     * @return array{rows: list<array<string, mixed>>, total: int, areaOptions: list<string>, componentOptions: list<string>, authorOptions: list<string>}
      */
     private function fetch(
         ?string $area = null,
         ?string $component = null,
+        ?string $author = null,
         int $page = 1,
+        string $sort = CommunityPickCandidatesQuery::SORT_VOTES,
         array $issues = [],
         ?array $linkedIssues = null,
         array $prLabels = [],
+        array $authors = [],
         array $hits = [],
         ?int $total = null,
         array $narrowedFacets = [],
@@ -303,7 +383,7 @@ class CommunityPickCandidatesQueryTest extends TestCase
 
         $client = Mockery::mock(Client::class);
         $client->shouldReceive('search')->andReturnUsing(
-            function (array $params) use ($issues, $linkedIssues, $prLabels, $hits, $total, $buckets, $narrowedFacets): array {
+            function (array $params) use ($issues, $linkedIssues, $prLabels, $authors, $hits, $total, $buckets, $narrowedFacets): array {
                 if (str_ends_with($params['index'], 'github-issues')) {
                     $this->issueRequests[] = $params;
                     $ids = array_map('intval', $params['body']['query']['ids']['values']);
@@ -316,13 +396,19 @@ class CommunityPickCandidatesQueryTest extends TestCase
 
                 if (isset($params['body']['aggs'])) {
                     $this->facetRequests[] = $params;
-                    $narrowedBy = $params['body']['query']['bool']['filter'][1]['bool']['should'][0]['term']['labels.keyword'] ?? null;
-                    $facets = $narrowedFacets[$narrowedBy ?? '']
-                        ?? ['linked' => $linkedIssues ?? array_keys($issues), 'prLabels' => $prLabels];
+                    // Filter clauses after the is_open term are the narrowing ones.
+                    $narrowedBy = implode(',', array_map(
+                        static fn (array $clause): string => $clause['bool']['should'][0]['term']['labels.keyword']
+                            ?? $clause['term']['author.keyword']['value'],
+                        array_slice($params['body']['query']['bool']['filter'], 1),
+                    ));
+                    $facets = ($narrowedFacets[$narrowedBy] ?? [])
+                        + ['linked' => $linkedIssues ?? array_keys($issues), 'prLabels' => $prLabels, 'authors' => $authors];
 
                     return ['aggregations' => [
                         'linked_issues' => $buckets($facets['linked']),
                         'pr_labels' => $buckets($facets['prLabels']),
+                        'authors' => $buckets($facets['authors']),
                     ]];
                 }
 
@@ -335,6 +421,6 @@ class CommunityPickCandidatesQueryTest extends TestCase
             }
         );
 
-        return (new CommunityPickCandidatesQuery($client))->execute($area, $component, $page);
+        return (new CommunityPickCandidatesQuery($client))->execute($area, $component, $author, $page, $sort);
     }
 }

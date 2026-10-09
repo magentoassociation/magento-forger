@@ -11,14 +11,18 @@ One public page, `GET /prs/community-picked` (`prs.communityPicked`), listed in 
 `CommunityPickCandidatesQuery` reads the pull-requests index and returns Community Pick Candidates (see CONTEXT.md):
 
 - `is_open` true, `is_draft` not true, no `labels.keyword` in `github.community_picked.exclude_labels`
-- sorted by `thumbs_up_count` desc, then `created_at` asc
+- sorted by `?sort=`:
+  - `votes` (default): `thumbs_up_count` desc, then `created_at` asc
+  - `oldest`: `created_at` asc, then `thumbs_up_count` desc
+  - `newest`: `created_at` desc, then `thumbs_up_count` desc
+  - Any other value fails validation. Clear resets the filters but keeps the sort.
 - 50 per page; `page` is validated to 1–200 because OpenSearch caps `from + size` at 10,000
 
-Each row shows the 👍 count (a link to the PR on GitHub, new tab), number + title, Linked Issues, Effective Area/Component labels, author, and age.
+Each row shows the 👍 count (a link to the PR on GitHub, new tab), number + title, Linked Issues, Effective Area/Component labels, author (linked to their Forger contributor page, `leaderboard.detail`), and age.
 
 ### Filtering by Area / Component
 
-Two GET dropdowns, `?area=Area: …` and `?component=Component: …`, combined with AND. Filtered URLs are shareable, and pagination keeps the filters. A PR matches a label when its **Effective Labels** (CONTEXT.md) include it: the PR carries the label itself, or any Linked Issue does.
+Two GET dropdowns, `?area=Area: …` and `?component=Component: …`, combined with AND (and with the author filter below). Filtered URLs are shareable, and pagination keeps the filters. A PR matches a label when its **Effective Labels** (CONTEXT.md) include it: the PR carries the label itself, or any Linked Issue does.
 
 OpenSearch has no joins, so each request makes three searches:
 
@@ -33,6 +37,12 @@ Because of this, any Area + Component pair picked from the lists returns at leas
 Linked Issue labels are read on every request rather than copied onto PR documents. Retagging an issue shows up after the next issue sync, with no PR re-sync needed.
 
 `area` must start with `Area: ` and `component` with `Component: `; any other value fails validation and never reaches OpenSearch.
+
+### Filtering by author
+
+`?author=<login>` matches the PR author's GitHub login (`author.keyword`), ignoring case, and ANDs with the label filters. It's a text field with a native `<datalist>` of candidate authors (several hundred, too many for a `<select>`). The facet aggregation also collects `authors`, so author suggestions and label options narrow each other the same way Area and Component do. With all three filters set, each request runs up to three narrowed facet searches; searches narrowed by the same set of filters are shared.
+
+`author` must look like a GitHub login (letters, digits and hyphens, optionally ending in `[bot]`, at most 50 characters).
 
 ### Voting
 
