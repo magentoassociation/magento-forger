@@ -104,7 +104,8 @@
                             </td>
                             <td>
                                 @forelse ($pr['labels'] as $label)
-                                    <span class="badge rounded-pill bg-primary-subtle text-primary-emphasis fw-normal">{{ $label }}</span>
+                                    @php $color = str_starts_with($label, CommunityPickCandidatesQuery::COMPONENT_PREFIX) ? 'success' : 'primary'; @endphp
+                                    <span class="badge rounded-pill bg-{{ $color }}-subtle text-{{ $color }}-emphasis fw-normal">{{ $label }}</span>
                                 @empty
                                     <span class="text-muted">—</span>
                                 @endforelse

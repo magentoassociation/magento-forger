@@ -78,10 +78,10 @@ class CommunityPickedController extends Controller
     private function getInfoText(): InfoText
     {
         return new InfoText(
-            title: 'Vote by clicking 👍 on the PR description on GitHub',
+            title: 'How community picking works',
             paragraphs: [
-                'Vote for the open pull requests you want merged into Magento 2 by giving the PR description '.
-                    'a 👍 on GitHub — click a PR\'s number to open it.',
+                'Vote for the open pull requests you want merged into Magento 2: click a PR\'s number to open it '.
+                    'on GitHub, then click 👍 on the PR description.',
                 'After each voting period, the top-voted PRs are prioritized for merging. '.
                     'Vote counts refresh from GitHub every 15 minutes.',
             ]

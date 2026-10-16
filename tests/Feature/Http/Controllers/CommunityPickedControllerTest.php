@@ -48,7 +48,8 @@ class CommunityPickedControllerTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('Community-picked PRs');
-        $response->assertSee('Vote by clicking 👍 on the PR description on GitHub');
+        $response->assertSee('How community picking works');
+        $response->assertSee('then click 👍 on the PR description');
         $response->assertSee('Exclude orphan plugins from code generation');
         $response->assertSee('href="https://github.com/magento/magento2/pull/39812" target="_blank" rel="noopener"', false);
         $response->assertSee('<td class="text-center text-nowrap">👍 8</td>', false);
@@ -89,6 +90,8 @@ class CommunityPickedControllerTest extends TestCase
         $response = $this->get('/prs/community-picked');
 
         $response->assertSeeInOrder(['Area: APIs', 'Area: Checkout', 'Component: Quote']);
+        $response->assertSee('bg-primary-subtle text-primary-emphasis fw-normal">Area: Checkout</span>', false);
+        $response->assertSee('bg-success-subtle text-success-emphasis fw-normal">Component: Quote</span>', false);
         $response->assertSee('<option value="Area: Checkout" >Checkout</option>', false);
         $response->assertSee('<option value="Component: Quote" >Quote</option>', false);
     }
