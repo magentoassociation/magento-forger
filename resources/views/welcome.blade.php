@@ -184,6 +184,34 @@
         </div>
     </section>
 
+    {{-- Community-Picked PRs — only for viewers who may see that page (null otherwise). --}}
+    @if ($communityPicks)
+        <section class="container hp-section hp-cp" aria-labelledby="hp-cp-title">
+            <div class="hp-cp-heading">
+                <h2 class="hp-h2" id="hp-cp-title">Community-Picked PRs</h2>
+                <p class="hp-sub">Vote for the open PRs you want merged. After each voting period, the top-voted PRs are prioritized for merging.</p>
+            </div>
+            {{-- Before the rows in source; the grid moves it below them at narrow widths. --}}
+            <a href="{{ route('prs.communityPicked') }}" class="hp-cp-all">See all {{ number_format($communityPicks['total']) }} and vote</a>
+            <div class="hp-cp-list">
+                <div class="hp-cp-colhead" role="presentation">
+                    <span class="hp-cp-votes">Votes</span>
+                    <span>Pull request</span>
+                </div>
+                @foreach ($communityPicks['rows'] as $pr)
+                    <a class="hp-cp-row" href="{{ $pr['url'] }}" target="_blank" rel="noopener"
+                       aria-label="{{ $pr['number'] }}, {{ $pr['title'] }}, {{ number_format($pr['thumbs_up_count']) }} {{ $pr['thumbs_up_count'] === 1 ? 'vote' : 'votes' }}">
+                        <span class="hp-cp-votes">{{ number_format($pr['thumbs_up_count']) }}</span>
+                        <span class="hp-cp-pr">
+                            <span class="hp-cp-num">#{{ $pr['number'] }}</span>
+                            <span class="hp-cp-title">{{ $pr['title'] }}</span>
+                        </span>
+                    </a>
+                @endforeach
+            </div>
+        </section>
+    @endif
+
     {{-- Momentum (social proof) — each chart hidden when its aggregation fails --}}
     @if ($prStats !== null || $issueStats !== null)
         <section class="container hp-section hp-momentum">

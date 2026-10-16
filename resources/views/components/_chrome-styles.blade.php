@@ -1178,6 +1178,78 @@
     }
 
     /* Momentum (spec README-homepage.md "Momentum") */
+    /* Community-Picked PRs (#15a): heading + outlined button, then the top three. */
+    .hp-cp {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: end;
+        column-gap: 20px;
+        padding-bottom: 38px;
+    }
+    .hp-cp-heading { margin-bottom: 14px; }
+    .hp-cp-heading .hp-sub { margin: 0; }
+    .hp-cp-all {
+        margin-bottom: 14px;
+        padding: 10px 16px;
+        border: 1px solid #d5d8dc;
+        border-radius: 7px;
+        font-family: 'Libre Franklin', system-ui, sans-serif;
+        font-weight: 600;
+        font-size: 13.5px;
+        color: #15171b;
+        text-decoration: none;
+        white-space: nowrap;
+        transition: border-color 120ms ease-out;
+    }
+    .hp-cp-all:hover { border-color: #15171b; color: #15171b; }
+    .hp-cp-list { grid-column: 1 / -1; }
+    .hp-cp-colhead,
+    .hp-cp-row { display: flex; gap: 16px; }
+    .hp-cp-colhead {
+        padding-bottom: 8px;
+        border-bottom: 1px solid #e6e7ea;
+        font-family: 'Martian Mono', ui-monospace, monospace;
+        font-size: 9px;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+        color: #6b7178;
+    }
+    .hp-cp-votes { width: 40px; flex: none; }
+    .hp-cp-row {
+        align-items: baseline;
+        padding: 11px 0;
+        border-bottom: 1px solid #f0f1f3;
+        color: #15171b;
+        text-decoration: none;
+        transition: background 120ms ease-out;
+    }
+    .hp-cp-row:hover { background: #faf9f7; color: #15171b; }
+    .hp-cp-row .hp-cp-votes {
+        font-family: 'Martian Mono', ui-monospace, monospace;
+        font-weight: 700;
+        font-size: 15px;
+        font-variant-numeric: tabular-nums;
+    }
+    .hp-cp-pr { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+    .hp-cp-num {
+        flex: none;
+        font-family: 'Martian Mono', ui-monospace, monospace;
+        font-weight: 500;
+        font-size: 12px;
+        color: #ee6524;
+        text-decoration: underline;
+        text-underline-offset: 2px;
+    }
+    .hp-cp-title {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-family: 'Libre Franklin', system-ui, sans-serif;
+        font-weight: 600;
+        font-size: 14.5px;
+        line-height: 1.4;
+    }
+
     .hp-momentum { padding-top: 4px; padding-bottom: 40px; }
     .hp-momentum-head { display: flex; align-items: flex-end; gap: 20px; margin-bottom: 16px; }
     .hp-momentum-heading { flex: 1; min-width: 0; }
@@ -1375,6 +1447,19 @@
         .hp-grid { grid-template-columns: minmax(0, 1fr); }
         .hp-charts { grid-auto-flow: row; }
         .hp-momentum { padding-bottom: 38px; }
+        /* Community-Picked: button below the rows, full width; number inline, title two lines. */
+        .hp-cp { grid-template-columns: minmax(0, 1fr); padding-bottom: 36px; }
+        .hp-cp-all { grid-row: 3; margin: 16px 0 0; padding: 11px 18px; text-align: center; }
+        .hp-cp-colhead, .hp-cp-row { gap: 12px; }
+        .hp-cp-votes { width: 34px; }
+        .hp-cp-pr {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .hp-cp-num { margin-right: 7px; }
+        .hp-cp-title { white-space: normal; }
         .hp-momentum-head { flex-direction: column; align-items: stretch; gap: 16px; }
         /* Below lg the card drops to the top three (+ the visitor's row). Head is child 1,
            so ranked rows sit at child 2–6; hide the 4th and 5th — but never the viewer's own

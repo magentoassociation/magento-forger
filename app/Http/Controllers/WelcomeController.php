@@ -11,15 +11,17 @@ namespace App\Http\Controllers;
 use App\Helpers\GitHubLinkHelper;
 use App\Models\GithubProfile;
 use App\Models\LeaderboardEntry;
+use App\Queries\Dashboard\CommunityPickCandidatesQuery;
 use App\Services\HomepageCountsService;
 use App\Services\Search\OpenSearchService;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Collection as SupportCollection;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\View\View;
 
 class WelcomeController extends Controller
 {
-    public function index(OpenSearchService $search, HomepageCountsService $counts): View
+    public function index(OpenSearchService $search, HomepageCountsService $counts, CommunityPickCandidatesQuery $picks): View
     {
         $dataMissing = false;
         $prStats = $this->openedClosedPerMonth($search->searchPRs(...), 'prs', $dataMissing);
@@ -39,6 +41,7 @@ class WelcomeController extends Controller
             'links' => config('homepage.links'),
             'topFive' => $topFive,
             'viewerEntry' => $viewerEntry,
+            'communityPicks' => $this->communityPicks($picks),
             'profiles' => $this->profilesFor(
                 $topFive->pluck('login')->push($viewerEntry?->login)->filter()
             ),
@@ -61,6 +64,28 @@ class WelcomeController extends Controller
             ->orderByDesc('score')
             ->limit(5)
             ->get();
+    }
+
+    /**
+     * The three most-voted Community Pick Candidates and the open count, for viewers
+     * who may see the Community-Picked PRs page. Null hides the section: no access,
+     * an empty index, or a failed query.
+     *
+     * @return array{rows: list<array<string, mixed>>, total: int}|null Rows as CommunityPickCandidatesQuery returns them.
+     */
+    private function communityPicks(CommunityPickCandidatesQuery $query): ?array
+    {
+        if (Gate::denies('view-community-picked')) {
+            return null;
+        }
+
+        try {
+            $result = $query->execute(rows: 3);
+        } catch (\Exception) {
+            return null;
+        }
+
+        return $result['total'] > 0 ? ['rows' => $result['rows'], 'total' => $result['total']] : null;
     }
 
     /**

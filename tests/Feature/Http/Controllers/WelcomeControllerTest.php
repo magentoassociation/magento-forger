@@ -9,6 +9,9 @@ declare(strict_types=1);
 namespace Tests\Feature\Http\Controllers;
 
 use App\Helpers\GitHubLinkHelper;
+use App\Models\RoleEligibility;
+use App\Models\User;
+use App\Queries\Dashboard\CommunityPickCandidatesQuery;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
@@ -36,6 +39,16 @@ class WelcomeControllerTest extends TestCase
         parent::tearDown();
     }
 
+    /**
+     * @param  array{rows: list<array<string, mixed>>, total: int}  $result
+     */
+    private function bindPicks(array $result): void
+    {
+        $query = Mockery::mock(CommunityPickCandidatesQuery::class);
+        $query->shouldReceive('execute')->andReturn($result + ['areaOptions' => [], 'componentOptions' => [], 'authorOptions' => []]);
+        $this->app->instance(CommunityPickCandidatesQuery::class, $query);
+    }
+
     public function testHomepageRendersPathsAndAreaTilesWithLiveCounts(): void
     {
         $this->bindClient($this->prAggregations(), [
@@ -53,6 +66,60 @@ class WelcomeControllerTest extends TestCase
         $response->assertSee('Framework');     // area tile (prefix stripped)
         $response->assertSee('221 open');      // area tile pill
         $response->assertSee('aria-current="page"', false); // current nav item
+    }
+
+    public function testCommunityPicksShowTopThreeToCouncilMembers(): void
+    {
+        $this->bindClient($this->prAggregations(), []);
+        $this->bindPicks(['rows' => [
+            ['number' => 41427, 'title' => 'Enable storefront autocomplete on login forms by default', 'url' => 'https://github.com/magento/magento2/pull/41427', 'thumbs_up_count' => 23],
+            ['number' => 41205, 'title' => 'Fix ArgumentCountError', 'url' => 'https://github.com/magento/magento2/pull/41205', 'thumbs_up_count' => 1],
+        ], 'total' => 1028]);
+        $user = User::factory()->create();
+        RoleEligibility::query()->create(['login' => $user->github_username, 'role' => 'community-council', 'active' => true]);
+
+        $response = $this->actingAs($user)->get(route('home'));
+
+        $response->assertSeeInOrder(['First time contributing?', 'Community-Picked PRs', 'Momentum']);
+        $response->assertSee('href="'.route('prs.communityPicked').'" class="hp-cp-all">See all 1,028 and vote</a>', false);
+        $response->assertSee('href="https://github.com/magento/magento2/pull/41427" target="_blank" rel="noopener"', false);
+        $response->assertSee('aria-label="41427, Enable storefront autocomplete on login forms by default, 23 votes"', false);
+        $response->assertSee('aria-label="41205, Fix ArgumentCountError, 1 vote"', false);
+    }
+
+    public function testCommunityPicksAskForThreeRows(): void
+    {
+        $this->bindClient($this->prAggregations(), []);
+        $query = Mockery::mock(CommunityPickCandidatesQuery::class);
+        $query->shouldReceive('execute')->once()->with(null, null, null, 3)->andReturn(['rows' => [], 'total' => 0]);
+        $this->app->instance(CommunityPickCandidatesQuery::class, $query);
+
+        $this->actingAs(User::factory()->create(['is_admin' => true]))->get(route('home'))->assertOk();
+    }
+
+    public function testCommunityPicksAreHiddenFromEveryoneElse(): void
+    {
+        $this->bindClient($this->prAggregations(), []);
+        $query = Mockery::mock(CommunityPickCandidatesQuery::class);
+        $query->shouldNotReceive('execute');
+        $this->app->instance(CommunityPickCandidatesQuery::class, $query);
+
+        $this->get(route('home'))->assertOk()->assertDontSee('class="hp-cp-all"', false);
+        $this->actingAs(User::factory()->create())->get(route('home'))->assertOk()->assertDontSee('class="hp-cp-all"', false);
+    }
+
+    public function testCommunityPicksAreHiddenWhenEmptyOrFailing(): void
+    {
+        $this->bindClient($this->prAggregations(), []);
+        $admin = User::factory()->create(['is_admin' => true]);
+
+        $this->bindPicks(['rows' => [], 'total' => 0]);
+        $this->actingAs($admin)->get(route('home'))->assertOk()->assertDontSee('class="hp-cp-all"', false);
+
+        $query = Mockery::mock(CommunityPickCandidatesQuery::class);
+        $query->shouldReceive('execute')->andThrow(new RuntimeException('index_not_found_exception'));
+        $this->app->instance(CommunityPickCandidatesQuery::class, $query);
+        $this->actingAs($admin)->get(route('home'))->assertOk()->assertDontSee('class="hp-cp-all"', false);
     }
 
     public function testHomepageRendersMomentumChartsWithMonthlyPrAndIssueCounts(): void

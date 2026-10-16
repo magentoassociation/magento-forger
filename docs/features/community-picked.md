@@ -6,9 +6,9 @@ Surface open PRs on the tracked repository that the community can vote to have m
 
 ## How it works
 
-One page, `GET /prs/community-picked` (`prs.communityPicked`), listed in the PRs menu dropdown and the footer.
+One page, `GET /prs/community-picked` (`prs.communityPicked`), listed in the PRs menu dropdown (not the footer). The homepage (`WelcomeController`) also shows the three most-voted candidates and a "See all N and vote" link, between the first-timer block and Momentum. It reuses `CommunityPickCandidatesQuery` with `rows: 3` and the same tie order. It runs only for viewers who pass the same gate and is hidden when the query fails or finds nothing.
 
-Only admins and active community-council members can see it (`view-community-picked` gate, `User::canViewCommunityPicked()`). Council membership is read live from `role_eligibilities` (role `community-council`, synced by `sync:github:teams`), so leaving the council removes access unless the user is also an admin. Council members are promoted to admin at login and that's never revoked, so in practice a former member who has logged in keeps access through the admin flag. Everyone else, guests included, gets a 404, and the menu and footer links are hidden.
+Only admins and active community-council members can see it (`view-community-picked` gate, `User::canViewCommunityPicked()`). Council membership is read live from `role_eligibilities` (role `community-council`, synced by `sync:github:teams`), so leaving the council removes access unless the user is also an admin. Council members are promoted to admin at login and that's never revoked, so in practice a former member who has logged in keeps access through the admin flag. Everyone else, guests included, gets a 404, and the menu item is hidden.
 
 `CommunityPickCandidatesQuery` reads the pull-requests index and returns Community Pick Candidates (see CONTEXT.md):
 
