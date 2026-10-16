@@ -66,6 +66,13 @@ class WelcomeControllerTest extends TestCase
         $response->assertSee('Framework');     // area tile (prefix stripped)
         $response->assertSee('221 open');      // area tile pill
         $response->assertSee('aria-current="page"', false); // current nav item
+        // Section layout: white / band / white grounds, first-timer as its own section.
+        $response->assertSeeInOrder([
+            '<section class="hp-sec hp-start">',
+            '<section class="hp-sec hp-sec--band hp-area">',
+            '<section class="hp-sec hp-first">',
+            '<section class="hp-sec hp-momentum">',
+        ], false);
     }
 
     public function testCommunityPicksShowTopThreeToCouncilMembers(): void
@@ -81,7 +88,7 @@ class WelcomeControllerTest extends TestCase
         $response = $this->actingAs($user)->get(route('home'));
 
         $response->assertSeeInOrder(['First time contributing?', 'Community-Picked PRs', 'Momentum']);
-        $response->assertSee('href="'.route('prs.communityPicked').'" class="hp-cp-all">See all 1,028 and vote</a>', false);
+        $response->assertSee('href="'.route('prs.communityPicked').'" class="hp-sec-btn hp-cp-all">See all 1,028 and vote</a>', false);
         $response->assertSee('href="https://github.com/magento/magento2/pull/41427" target="_blank" rel="noopener"', false);
         $response->assertSee('aria-label="41427, Enable storefront autocomplete on login forms by default, 23 votes"', false);
         $response->assertSee('aria-label="41205, Fix ArgumentCountError, 1 vote"', false);
@@ -104,8 +111,8 @@ class WelcomeControllerTest extends TestCase
         $query->shouldNotReceive('execute');
         $this->app->instance(CommunityPickCandidatesQuery::class, $query);
 
-        $this->get(route('home'))->assertOk()->assertDontSee('class="hp-cp-all"', false);
-        $this->actingAs(User::factory()->create())->get(route('home'))->assertOk()->assertDontSee('class="hp-cp-all"', false);
+        $this->get(route('home'))->assertOk()->assertDontSee('class="hp-sec-btn hp-cp-all"', false);
+        $this->actingAs(User::factory()->create())->get(route('home'))->assertOk()->assertDontSee('class="hp-sec-btn hp-cp-all"', false);
     }
 
     public function testCommunityPicksAreHiddenWhenEmptyOrFailing(): void
@@ -114,12 +121,12 @@ class WelcomeControllerTest extends TestCase
         $admin = User::factory()->create(['is_admin' => true]);
 
         $this->bindPicks(['rows' => [], 'total' => 0]);
-        $this->actingAs($admin)->get(route('home'))->assertOk()->assertDontSee('class="hp-cp-all"', false);
+        $this->actingAs($admin)->get(route('home'))->assertOk()->assertDontSee('class="hp-sec-btn hp-cp-all"', false);
 
         $query = Mockery::mock(CommunityPickCandidatesQuery::class);
         $query->shouldReceive('execute')->andThrow(new RuntimeException('index_not_found_exception'));
         $this->app->instance(CommunityPickCandidatesQuery::class, $query);
-        $this->actingAs($admin)->get(route('home'))->assertOk()->assertDontSee('class="hp-cp-all"', false);
+        $this->actingAs($admin)->get(route('home'))->assertOk()->assertDontSee('class="hp-sec-btn hp-cp-all"', false);
     }
 
     public function testHomepageRendersMomentumChartsWithMonthlyPrAndIssueCounts(): void

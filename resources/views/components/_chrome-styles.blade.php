@@ -1076,30 +1076,48 @@
 
     /* Focus ring on every link/button across the homepage, not just the hero. */
     .hp-hero a:focus-visible, .hp-hero button:focus-visible,
-    .hp-section a:focus-visible, .hp-section button:focus-visible,
-    .hp-first a:focus-visible, .hp-first button:focus-visible {
+    .hp-section a:focus-visible, .hp-section button:focus-visible {
         outline: 2px solid #f26322;
         outline-offset: 2px;
     }
 
-    /* Sections below the hero */
+    /* Sections below the hero (README-homepage "Section layout"): white or a
+       full-bleed warm-grey band, and a 220px heading column beside the content.
+       The heading column holds the heading, description and optional button. */
     .hp-section { padding-left: 36px; padding-right: 36px; }
-    .hp-start { padding-top: 32px; }
-    .hp-area { padding-top: 26px; padding-bottom: 34px; }
-    .hp-area .hp-sub { margin-bottom: 14px; }
+    .hp-sec--band {
+        background: #faf9f7;
+        border-top: 1px solid #e6e7ea;
+        border-bottom: 1px solid #e6e7ea;
+    }
+    .hp-sec-inner {
+        display: grid;
+        grid-template-columns: 220px minmax(0, 1fr);
+        grid-template-rows: auto 1fr;
+        column-gap: 36px;
+        padding-top: 40px;
+        padding-bottom: 40px;
+    }
+    .hp-momentum > .hp-sec-inner { padding-bottom: 44px; }
+    .hp-sec-head { grid-column: 1; grid-row: 1; }
+    .hp-sec-btn { grid-column: 1; grid-row: 2; align-self: start; justify-self: start; margin-top: 16px; }
+    .hp-sec-body { grid-column: 2; grid-row: 1 / span 2; min-width: 0; }
     .hp-h2 {
-        margin: 0 0 4px;
+        margin: 0;
         font-family: 'Libre Franklin', system-ui, sans-serif;
         font-weight: 700;
-        font-size: 21px;
-        letter-spacing: -.024em;
+        font-size: 19px;
+        letter-spacing: -.022em;
+        line-height: 1.2;
         color: #15171b;
     }
     .hp-sub {
-        margin: 0 0 16px;
+        margin: 6px 0 0;
         font-family: 'Libre Franklin', system-ui, sans-serif;
-        font-size: 14.5px;
-        color: #3c4148;
+        font-size: 13.5px;
+        line-height: 1.55;
+        color: #5d636c;
+        text-wrap: pretty;
     }
 
     /* Ready to code row */
@@ -1161,6 +1179,8 @@
         text-decoration: none;
     }
     a.hp-cell:hover { background: #faf9f7; }
+    /* Cells stay white on the band; hover darkens so it still shows. */
+    .hp-sec--band a.hp-cell:hover { background: #f1eee9; }
     .hp-cell--empty { pointer-events: none; }
     .hp-cell-name {
         font-family: 'Libre Franklin', system-ui, sans-serif;
@@ -1177,19 +1197,8 @@
         white-space: nowrap;
     }
 
-    /* Momentum (spec README-homepage.md "Momentum") */
-    /* Community-Picked PRs (#15a): heading + outlined button, then the top three. */
-    .hp-cp {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) auto;
-        align-items: end;
-        column-gap: 20px;
-        padding-bottom: 38px;
-    }
-    .hp-cp-heading { margin-bottom: 14px; }
-    .hp-cp-heading .hp-sub { margin: 0; }
+    /* Community-Picked PRs (#15a): outlined button in the heading column, top three as rows. */
     .hp-cp-all {
-        margin-bottom: 14px;
         padding: 10px 16px;
         border: 1px solid #d5d8dc;
         border-radius: 7px;
@@ -1202,7 +1211,6 @@
         transition: border-color 120ms ease-out;
     }
     .hp-cp-all:hover { border-color: #15171b; color: #15171b; }
-    .hp-cp-list { grid-column: 1 / -1; }
     .hp-cp-colhead,
     .hp-cp-row { display: flex; gap: 16px; }
     .hp-cp-colhead {
@@ -1223,7 +1231,8 @@
         text-decoration: none;
         transition: background 120ms ease-out;
     }
-    .hp-cp-row:hover { background: #faf9f7; color: #15171b; }
+    /* On the band, so hover is a step darker than the usual #faf9f7. */
+    .hp-cp-row:hover { background: #f1eee9; color: #15171b; }
     .hp-cp-row .hp-cp-votes {
         font-family: 'Martian Mono', ui-monospace, monospace;
         font-weight: 700;
@@ -1250,16 +1259,11 @@
         line-height: 1.4;
     }
 
-    .hp-momentum { padding-top: 4px; padding-bottom: 40px; }
-    .hp-momentum-head { display: flex; align-items: flex-end; gap: 20px; margin-bottom: 16px; }
-    .hp-momentum-heading { flex: 1; min-width: 0; }
-    .hp-momentum-heading .hp-sub { margin: 0; }
-    .hp-momentum-head .hp-cta-primary { flex: none; }
+    /* Momentum: cards stacked, Pull requests first; side by side they're too narrow
+       in the content column for the month labels. */
     .hp-charts {
-        /* One equal column per rendered card (one or two). */
         display: grid;
-        grid-auto-flow: column;
-        grid-auto-columns: minmax(0, 1fr);
+        grid-template-columns: minmax(0, 1fr);
         gap: 16px;
     }
 
@@ -1382,32 +1386,8 @@
     /* 150px plot + 22px year-axis row Chart.js draws beneath it + 14px top headroom for the top y label. */
     .chart-card-canvas--alltime { height: 186px; margin-top: 20px; }
 
-    /* First time contributing */
-    .hp-first {
-        margin-top: 30px;
-        padding-top: 24px;
-        border-top: 1px solid #e6e7ea;
-        display: flex;
-        gap: 26px;
-    }
-    .hp-first-head { width: 200px; flex: none; }
-    .hp-h3 {
-        margin: 0;
-        font-family: 'Libre Franklin', system-ui, sans-serif;
-        font-weight: 700;
-        font-size: 17px;
-        letter-spacing: -.018em;
-        color: #15171b;
-    }
-    .hp-first-sub {
-        margin: 6px 0 0;
-        font-family: 'Libre Franklin', system-ui, sans-serif;
-        font-size: 13.5px;
-        line-height: 1.55;
-        color: #5d636c;
-    }
+    /* First time contributing: three steps across the content column. */
     .hp-steps {
-        flex: 1;
         display: flex;
         margin: 0;
         padding: 0;
@@ -1444,12 +1424,15 @@
         .hp-cta-primary { display: flex; }
         .hp-hero-right { width: 100%; align-self: stretch; }
         .hp-section { padding-left: 20px; padding-right: 20px; }
+        /* Sections stack: heading, content, then the button at full width. */
+        .hp-sec-inner { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; padding-top: 32px; padding-bottom: 32px; }
+        .hp-momentum > .hp-sec-inner { padding-bottom: 38px; }
+        .hp-sec-head { grid-row: 1; }
+        .hp-sec-body { grid-column: 1; grid-row: 2; margin-top: 16px; }
+        .hp-sec-btn { grid-row: 3; justify-self: stretch; text-align: center; }
         .hp-grid { grid-template-columns: minmax(0, 1fr); }
-        .hp-charts { grid-auto-flow: row; }
-        .hp-momentum { padding-bottom: 38px; }
-        /* Community-Picked: button below the rows, full width; number inline, title two lines. */
-        .hp-cp { grid-template-columns: minmax(0, 1fr); padding-bottom: 36px; }
-        .hp-cp-all { grid-row: 3; margin: 16px 0 0; padding: 11px 18px; text-align: center; }
+        /* Community-Picked: number inline, title two lines. */
+        .hp-cp-all { padding: 11px 18px; }
         .hp-cp-colhead, .hp-cp-row { gap: 12px; }
         .hp-cp-votes { width: 34px; }
         .hp-cp-pr {
@@ -1460,14 +1443,11 @@
         }
         .hp-cp-num { margin-right: 7px; }
         .hp-cp-title { white-space: normal; }
-        .hp-momentum-head { flex-direction: column; align-items: stretch; gap: 16px; }
         /* Below lg the card drops to the top three (+ the visitor's row). Head is child 1,
            so ranked rows sit at child 2–6; hide the 4th and 5th — but never the viewer's own
            highlighted row when they rank 4 or 5 (spec: the visitor's row is never dropped). */
         .hp-board-row:nth-child(n+5):not(.hp-board-row--you) { display: none; }
-        .hp-first { flex-direction: column; gap: 0; }
-        .hp-first-head { width: auto; }
-        .hp-steps { flex-direction: column; margin-top: 14px; }
+        .hp-steps { flex-direction: column; }
         .hp-step, .hp-step:nth-child(1), .hp-step:nth-child(2), .hp-step:nth-child(3) {
             padding: 14px 0 0;
             border-left: 0;

@@ -124,123 +124,147 @@
         </div>
     </section>
 
+    {{-- Sections below the hero (README-homepage "Section layout"): fixed white / warm-grey
+         grounds, a 220px heading column (heading, description, optional button) beside the
+         content. Below lg it stacks: heading, content, then the button at full width. --}}
+
     {{-- Start contributing --}}
     @if ($ready)
-        <section class="container hp-section hp-start">
-            <h2 class="hp-h2">Start contributing</h2>
-            <p class="hp-sub">Pick up a confirmed, prioritized issue and open your first PR.</p>
-            <a href="{{ $ready['url'] }}" target="magentoForgerGitHub" rel="noopener" class="hp-ready">
-                <span class="hp-ready-body">
-                    <span class="hp-ready-title">Ready to code</span>
-                    <span class="hp-ready-desc">Confirmed, prioritized issues waiting for a developer.</span>
-                </span>
-                @isset($ready['count'])
-                    <span class="hp-chip">{{ number_format($ready['count']) }} open</span>
-                @endisset
-                <span class="hp-ready-arrow" aria-hidden="true">→</span>
-            </a>
+        <section class="hp-sec hp-start">
+            <div class="container hp-section hp-sec-inner">
+                <div class="hp-sec-head">
+                    <h2 class="hp-h2">Start contributing</h2>
+                    <p class="hp-sub">Pick up a confirmed, prioritized issue and open your first PR.</p>
+                </div>
+                <div class="hp-sec-body">
+                    <a href="{{ $ready['url'] }}" target="magentoForgerGitHub" rel="noopener" class="hp-ready">
+                        <span class="hp-ready-body">
+                            <span class="hp-ready-title">Ready to code</span>
+                            <span class="hp-ready-desc">Confirmed, prioritized issues waiting for a developer.</span>
+                        </span>
+                        @isset($ready['count'])
+                            <span class="hp-chip">{{ number_format($ready['count']) }} open</span>
+                        @endisset
+                        <span class="hp-ready-arrow" aria-hidden="true">→</span>
+                    </a>
+                </div>
+            </div>
         </section>
     @endif
 
-    {{-- Pick your area + First time contributing --}}
-    <section class="container hp-section hp-area">
-        @if (! empty($areas))
-            <h2 class="hp-h2">Pick your area</h2>
-            <p class="hp-sub">Jump straight to open issues in the part of Magento you know best.</p>
-            <div class="hp-grid">
-                @foreach ($areas as $area)
-                    <a class="hp-cell" href="{{ $area['url'] }}" target="magentoForgerGitHub" rel="noopener"
-                       aria-label="{{ $area['name'] }}, {{ number_format($area['count']) }} open">
-                        <span class="hp-cell-name">{{ $area['name'] }}</span>
-                        <span class="hp-cell-count">{{ number_format($area['count']) }} open</span>
-                    </a>
-                @endforeach
-                @if (count($areas) % 2 === 1)
-                    <span class="hp-cell hp-cell--empty" aria-hidden="true"></span>
-                @endif
+    {{-- Pick your area --}}
+    @if (! empty($areas))
+        <section class="hp-sec hp-sec--band hp-area">
+            <div class="container hp-section hp-sec-inner">
+                <div class="hp-sec-head">
+                    <h2 class="hp-h2">Pick your area</h2>
+                    <p class="hp-sub">Jump straight to open issues in the part of Magento you know best.</p>
+                </div>
+                <div class="hp-sec-body">
+                    <div class="hp-grid">
+                        @foreach ($areas as $area)
+                            <a class="hp-cell" href="{{ $area['url'] }}" target="magentoForgerGitHub" rel="noopener"
+                               aria-label="{{ $area['name'] }}, {{ number_format($area['count']) }} open">
+                                <span class="hp-cell-name">{{ $area['name'] }}</span>
+                                <span class="hp-cell-count">{{ number_format($area['count']) }} open</span>
+                            </a>
+                        @endforeach
+                        @if (count($areas) % 2 === 1)
+                            <span class="hp-cell hp-cell--empty" aria-hidden="true"></span>
+                        @endif
+                    </div>
+                </div>
             </div>
-        @endif
+        </section>
+    @endif
 
-        <div class="hp-first">
-            <div class="hp-first-head">
-                <h3 class="hp-h3">First time contributing?</h3>
-                <p class="hp-first-sub">Three steps to your first merged PR.</p>
+    {{-- First time contributing --}}
+    <section class="hp-sec hp-first">
+        <div class="container hp-section hp-sec-inner">
+            <div class="hp-sec-head">
+                <h3 class="hp-h2">First time contributing?</h3>
+                <p class="hp-sub">Three steps to your first merged PR.</p>
             </div>
-            <ol class="hp-steps">
-                <li class="hp-step">
-                    <span class="hp-step-num">01</span>
-                    Read the <a href="{{ $links['contributing'] }}" target="_blank" rel="noopener">Contribution Guidelines</a>
-                </li>
-                <li class="hp-step">
-                    <span class="hp-step-num">02</span>
-                    Set up your <a href="{{ $links['dev_setup'] }}" target="_blank" rel="noopener">development environment</a>
-                </li>
-                <li class="hp-step">
-                    <span class="hp-step-num">03</span>
-                    <a href="{{ $ready['url'] ?? route('leaderboard.show', ['board' => 'contributor']) }}"
-                       @if ($ready) target="magentoForgerGitHub" rel="noopener" @endif>Claim an issue</a> and open your first PR
-                </li>
-            </ol>
+            <div class="hp-sec-body">
+                <ol class="hp-steps">
+                    <li class="hp-step">
+                        <span class="hp-step-num">01</span>
+                        Read the <a href="{{ $links['contributing'] }}" target="_blank" rel="noopener">Contribution Guidelines</a>
+                    </li>
+                    <li class="hp-step">
+                        <span class="hp-step-num">02</span>
+                        Set up your <a href="{{ $links['dev_setup'] }}" target="_blank" rel="noopener">development environment</a>
+                    </li>
+                    <li class="hp-step">
+                        <span class="hp-step-num">03</span>
+                        <a href="{{ $ready['url'] ?? route('leaderboard.show', ['board' => 'contributor']) }}"
+                           @if ($ready) target="magentoForgerGitHub" rel="noopener" @endif>Claim an issue</a> and open your first PR
+                    </li>
+                </ol>
+            </div>
         </div>
     </section>
 
     {{-- Community-Picked PRs — only for viewers who may see that page (null otherwise). --}}
     @if ($communityPicks)
-        <section class="container hp-section hp-cp" aria-labelledby="hp-cp-title">
-            <div class="hp-cp-heading">
-                <h2 class="hp-h2" id="hp-cp-title">Community-Picked PRs</h2>
-                <p class="hp-sub">Vote for the open PRs you want merged. After each voting period, the top-voted PRs are prioritized for merging.</p>
-            </div>
-            {{-- Before the rows in source; the grid moves it below them at narrow widths. --}}
-            <a href="{{ route('prs.communityPicked') }}" class="hp-cp-all">See all {{ number_format($communityPicks['total']) }} and vote</a>
-            <div class="hp-cp-list">
-                <div class="hp-cp-colhead" role="presentation">
-                    <span class="hp-cp-votes">Votes</span>
-                    <span>Pull request</span>
+        <section class="hp-sec hp-sec--band hp-cp" aria-labelledby="hp-cp-title">
+            <div class="container hp-section hp-sec-inner">
+                <div class="hp-sec-head">
+                    <h2 class="hp-h2" id="hp-cp-title">Community-Picked PRs</h2>
+                    <p class="hp-sub">Vote for the open PRs you want merged. After each voting period, the top-voted PRs are prioritized for merging.</p>
                 </div>
-                @foreach ($communityPicks['rows'] as $pr)
-                    <a class="hp-cp-row" href="{{ $pr['url'] }}" target="_blank" rel="noopener"
-                       aria-label="{{ $pr['number'] }}, {{ $pr['title'] }}, {{ number_format($pr['thumbs_up_count']) }} {{ $pr['thumbs_up_count'] === 1 ? 'vote' : 'votes' }}">
-                        <span class="hp-cp-votes">{{ number_format($pr['thumbs_up_count']) }}</span>
-                        <span class="hp-cp-pr">
-                            <span class="hp-cp-num">#{{ $pr['number'] }}</span>
-                            <span class="hp-cp-title">{{ $pr['title'] }}</span>
-                        </span>
-                    </a>
-                @endforeach
+                <a href="{{ route('prs.communityPicked') }}" class="hp-sec-btn hp-cp-all">See all {{ number_format($communityPicks['total']) }} and vote</a>
+                <div class="hp-sec-body">
+                    <div class="hp-cp-colhead" role="presentation">
+                        <span class="hp-cp-votes">Votes</span>
+                        <span>Pull request</span>
+                    </div>
+                    @foreach ($communityPicks['rows'] as $pr)
+                        <a class="hp-cp-row" href="{{ $pr['url'] }}" target="_blank" rel="noopener"
+                           aria-label="{{ $pr['number'] }}, {{ $pr['title'] }}, {{ number_format($pr['thumbs_up_count']) }} {{ $pr['thumbs_up_count'] === 1 ? 'vote' : 'votes' }}">
+                            <span class="hp-cp-votes">{{ number_format($pr['thumbs_up_count']) }}</span>
+                            <span class="hp-cp-pr">
+                                <span class="hp-cp-num">#{{ $pr['number'] }}</span>
+                                <span class="hp-cp-title">{{ $pr['title'] }}</span>
+                            </span>
+                        </a>
+                    @endforeach
+                </div>
             </div>
         </section>
     @endif
 
     {{-- Momentum (social proof) — each chart hidden when its aggregation fails --}}
     @if ($prStats !== null || $issueStats !== null)
-        <section class="container hp-section hp-momentum">
-            <div class="hp-momentum-head">
-                <div class="hp-momentum-heading">
+        <section class="hp-sec hp-momentum">
+            <div class="container hp-section hp-sec-inner">
+                <div class="hp-sec-head">
                     <h2 class="hp-h2">Momentum</h2>
                     <p class="hp-sub">Contributors open and close pull requests and issues every month. Join them.</p>
                 </div>
                 {{-- The hero CTA, repeated once to close the page on the same ask. --}}
                 <a href="{{ $ready['url'] ?? route('leaderboard.show', ['board' => 'contributor']) }}"
                    @if ($ready) target="magentoForgerGitHub" rel="noopener" @endif
-                   class="hp-cta-primary">Find an issue to work on →</a>
-            </div>
-            @if ($dataMissing)
-                <x-data-missing>
-                    The OpenSearch indices are empty or missing. Run
-                    <code>ddev artisan sync:github:prs</code> and
-                    <code>ddev artisan sync:github:issues</code> to populate them.
-                </x-data-missing>
-            @endif
-            <div class="hp-charts">
-                @if ($prStats !== null)
-                    <x-charts.momentum-card id="prChart" title="Pull requests" noun="PRs" :stats="$prStats"
-                                            :history-url="route('prs.byMonth')" />
-                @endif
-                @if ($issueStats !== null)
-                    <x-charts.momentum-card id="issueChart" title="Issues" noun="issues" :stats="$issueStats"
-                                            :history-url="route('issues.byMonth')" />
-                @endif
+                   class="hp-sec-btn hp-cta-primary">Find an issue to work on →</a>
+                <div class="hp-sec-body">
+                    @if ($dataMissing)
+                        <x-data-missing>
+                            The OpenSearch indices are empty or missing. Run
+                            <code>ddev artisan sync:github:prs</code> and
+                            <code>ddev artisan sync:github:issues</code> to populate them.
+                        </x-data-missing>
+                    @endif
+                    <div class="hp-charts">
+                        @if ($prStats !== null)
+                            <x-charts.momentum-card id="prChart" title="Pull requests" noun="PRs" :stats="$prStats"
+                                                    :history-url="route('prs.byMonth')" />
+                        @endif
+                        @if ($issueStats !== null)
+                            <x-charts.momentum-card id="issueChart" title="Issues" noun="issues" :stats="$issueStats"
+                                                    :history-url="route('issues.byMonth')" />
+                        @endif
+                    </div>
+                </div>
             </div>
         </section>
 
