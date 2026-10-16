@@ -59,6 +59,41 @@ container gutter at narrow widths (same rule as the header).
 
 ---
 
+## Section layout — below the hero
+
+Drawn in `#15a` (and `#24d` at 420px). The five sections below the hero are told apart in two
+ways: **alternating bands** and **side headings**.
+
+**Bands.** Sections alternate white and warm grey, starting white:
+
+| Section | Ground |
+|---|---|
+| Start contributing | `#ffffff` |
+| Pick your area | `#faf9f7` band |
+| First time contributing? | `#ffffff` |
+| Community-Picked PRs | `#faf9f7` band |
+| Momentum | `#ffffff` |
+
+A band is full-bleed (like the hero), with `border-top` and `border-bottom: 1px solid #e6e7ea`; its
+contents sit in the content container. There are no other rules between sections. Every section
+has `padding: 40px 36px`; Momentum's bottom is `44px`. White cells inside a band (the area grid)
+stay white. Row hover inside a band is `#f1eee9` instead of `#faf9f7`, so it still shows.
+
+**Side headings.** Every section is `display: grid; grid-template-columns: 220px minmax(0, 1fr);
+gap: 36px`. The left column holds the heading, its description, and the section's button if it
+has one. The right column holds the content.
+- Heading: `<h2>` (the first-timer block keeps `<h3>`), Libre Franklin 700, **19px**,
+  `letter-spacing: -.022em`, `line-height: 1.2`, `margin: 0`.
+- Description: Libre Franklin 400, **13.5px**, `line-height: 1.55`, `#5d636c`, `margin-top: 6px`,
+  `text-wrap: pretty`. Copy unchanged.
+- Button: `margin-top: 16px`, under the description, at its intrinsic width.
+
+These values replace the per-section heading styles, paddings, heading rows and `margin-top` /
+`border-top` values given in the sections below; everything inside the content column is as
+specified there.
+
+---
+
 ## Hero
 
 Background `#15171b` — the same value as the dark bar, with **no divider between them**: the
@@ -178,7 +213,7 @@ warning about decay on the homepage; the leaderboard's own intro paragraph ("Ran
 
 ## Start contributing
 
-`padding: 32px 36px 0`.
+White. Layout per *Section layout*.
 
 - `<h2>` "Start contributing" — Libre Franklin 700, 21px, `letter-spacing: -.024em`,
   `margin: 0 0 4px`, colour `#15171b`.
@@ -207,7 +242,7 @@ chip keeps its colour regardless of value.
 
 ## Pick your area
 
-`padding: 26px 36px 34px`.
+On a `#faf9f7` band. Layout per *Section layout*.
 
 - `<h2>` "Pick your area" — same as above.
 - Sub: "Jump straight to open issues in the part of Magento you know best." — unchanged, 14.5px,
@@ -234,11 +269,11 @@ scan and the counts line up in two vertical runs.
 
 ## First time contributing?
 
-`margin-top: 30px; padding-top: 24px; border-top: 1px solid #e6e7ea`, inside the same section as
-the area grid. `display: flex; gap: 26px`.
+Its own white section after the area band. Layout per *Section layout*; it is the block the
+side-heading layout was taken from.
 
-**Left** — fixed `width: 200px`, `flex: none`:
-- `<h3>` "First time contributing?" — Libre Franklin 700, 17px, `letter-spacing: -.018em`.
+**Left** (the 220px heading column):
+- `<h3>` "First time contributing?" — Libre Franklin 700, 19px, `letter-spacing: -.022em`.
 - Sub: "Three steps to your first merged PR." — 13.5px, `line-height: 1.55`, `#5d636c`,
   `margin-top: 6px`.
 
@@ -264,15 +299,14 @@ same content as today's box; the box was ~230px tall with more than half of it e
 ## Community-Picked PRs
 
 Between *First time contributing?* and *Momentum*, drawn in `#15a` (and `#24d` at 420px).
-`padding: 0 36px 38px`. Promotes the Community-Picked PRs page (`README-community-picked.md`)
+On a `#faf9f7` band; layout per *Section layout*. Promotes the Community-Picked PRs page (`README-community-picked.md`)
 with the three most-voted open PRs from the same data.
 
-**Heading row** — same layout as Momentum's: `display: flex; align-items: flex-end; gap: 20px;
-margin-bottom: 14px`.
-- Left, `flex: 1`: `<h2>` "Community-Picked PRs" and sub "Vote for the open PRs you want merged.
+**Heading column** (per *Section layout*):
+- `<h2>` "Community-Picked PRs" and description "Vote for the open PRs you want merged.
   After each voting period, the top-voted PRs are prioritized for merging." (`margin: 0`), same
   styles as the other section heads.
-- Right, `flex: none`: outlined button "See all 1,028 and vote" (the live open count), the site's
+- Under the description: outlined button "See all 1,028 and vote" (the live open count), the site's
   outlined control: `padding: 10px 16px`, `1px solid #d5d8dc`, `radius 7px`, Libre Franklin 600
   13.5px, `#15171b`; hover `border-color: #15171b`. Links to the Community-Picked PRs page.
   Outlined rather than orange: the page's orange CTA stays "Find an issue to work on →".
@@ -282,7 +316,7 @@ margin-bottom: 14px`.
 
 **Rows** — the top three by votes (ties: newest first, as on the page). Each row is one `<a>` to
 the PR on GitHub, where the vote happens. `display: flex; align-items: baseline; gap: 16px;
-padding: 11px 0; border-bottom: 1px solid #f0f1f3`; hover background `#faf9f7`.
+padding: 11px 0; border-bottom: 1px solid #f0f1f3`; hover background `#f1eee9` (it sits on the band).
 - Votes: 40px, Martian Mono 700 15px, tabular figures.
 - Number: `#41427`, Martian Mono 500 12px, `#ee6524`, underlined.
 - Title: Libre Franklin 600 14.5px, `line-height: 1.4`, one line, ellipsis.
@@ -295,20 +329,21 @@ Hidden when the pull-requests index is empty or the query fails, like the Moment
 
 ## Momentum
 
-The page's closing section, drawn in `#15a` (and `#24d` at 420px). `padding: 4px 36px 40px`,
-directly after the Community-Picked PRs section. It leads with the **last 12 months**; the full history moves
+The page's closing section, drawn in `#15a` (and `#24d` at 420px). White; layout per
+*Section layout*, directly after the Community-Picked PRs band. It leads with the **last 12 months**; the full history moves
 to the By Month pages (`README-issues-prs-by-month.md`, "Opened and closed, all time"). Each card
 is hidden when its aggregation fails; the section is hidden when both fail (current behaviour).
 
-**Heading row** — `display: flex; align-items: flex-end; gap: 20px; margin-bottom: 16px`.
-- Left, `flex: 1`: `<h2>` "Momentum" and sub "Contributors open and close pull requests and
+**Heading column** (per *Section layout*):
+- `<h2>` "Momentum" and description "Contributors open and close pull requests and
   issues every month. Join them." (`margin: 0`) — same styles as the other section heads. Copy
   unchanged.
-- Right, `flex: none`: the hero CTA repeated — "Find an issue to work on →", same styles and
+- Under the description: the hero CTA repeated — "Find an issue to work on →", same styles and
   destination as the hero button. This is the page's one CTA repeat; it closes the page on the
   ask the hero opened with.
 
-**Cards** — `display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px`.
+**Cards** — `display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px`: stacked, Pull
+requests first. Side by side in the ~690px content column they are too narrow for the month labels.
 Each card: `border: 1px solid #e6e7ea; border-radius: 10px; overflow: hidden;
 display: flex; flex-direction: column`. Body `padding: 18px 20px 14px`:
 
@@ -434,6 +469,9 @@ secondary. No mono in any headline or body paragraph.
 Drawn at 420px in `#24d`.
 
 Below the Bootstrap `lg` breakpoint:
+- *Section layout*: the side-heading grid becomes one column (heading block, then content);
+  bands stay. Section padding `32px 20px` (Momentum `32px 20px 38px`). Headings stay 19px. Section
+  buttons move below the content at full width, as below.
 - The hero stacks: text column, then the leaderboard card, `gap: 30px`. Hero padding drops to
   `34px 20px 38px`; H1 to 36px; the body's `max-width` is released.
 - The CTA goes full width.

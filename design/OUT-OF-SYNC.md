@@ -46,6 +46,10 @@ are not listed.
 - **Homepage: Community-Picked PRs section** (`README-homepage.md`, `#15a`, `#24d`). New, between
   the first-timer block and Momentum: top three PRs by votes, "See all and vote" button. Not built.
 
+- **Homepage section layout** (`README-homepage.md`, *Section layout*; `#15a`, `#24d`). Bands on
+  Pick your area and Community-Picked PRs, side headings in a 220px column on every section,
+  19px headings, Momentum cards stacked. Not built.
+
 ## Unsure
 
 None at the moment.
