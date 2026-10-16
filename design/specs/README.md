@@ -30,7 +30,7 @@ contributor board, `#19b` the contributor scoring modal, and so on.
 | `README-how-scores-work.md` | Standalone scoring page, both boards side by side | `#20a` |
 | `README-highlights.md` | New contributor spotlight, Comebacks, Rising, Recently active | `#8b` |
 | `README-issues-prs-by-month.md` | Both by-month timelines, colour thresholds, month picker | `#14b` `#24e` |
-| `README-community-picked.md` | Community-picked PRs: vote-ranked list, filters, two-line rows | `#27b` `#27c` `#27d` |
+| `README-community-picked.md` | Community-Picked PRs: vote-ranked list, filters, two-line rows | `#27b` `#27c` `#27d` |
 
 Three rules are stated once and apply everywhere: **capitalisation** (below), **focus rings**
 and **hover states** (both in `README-leaderboard-pages.md`).
@@ -208,9 +208,11 @@ load. The depth and the month are reflected in the URL (`?rows=`, and the month 
 
 Title case is for strings that name a destination — the page H1s and the tab and nav labels
 that point at them: "Contributor Leaderboard", "Maintainer Leaderboard", "Monthly Leaderboard",
-"Issues By Month", "PRs By Month", "Leaderboard Highlights". If it is a page and something links to it by name, it is title case. A link that spells
+"Issues By Month", "PRs By Month", "Leaderboard Highlights", "Community-Picked PRs". In a
+hyphenated name both parts are capitalised. If it is a page and something links to it by name, it is title case. A link that spells
 out the full name must match the H1 exactly. Tab, nav and footer labels may use a short form of
-the name — "Contributor", "Highlights", "Leaderboard", "Pull Requests" — and stay title case.
+the name — "Contributor", "Highlights", "Leaderboard", "Pull Requests", "Community-Picked" —
+and stay title case.
 The one exception is the standalone scoring page: its H1 is sentence case, "How scoring works",
 and the footer link to it uses the same words, "How scoring works". The in-page button that
 opens the scoring modal is a sentence, "See how scoring works." — the button label is "See how

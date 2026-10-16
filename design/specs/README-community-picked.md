@@ -1,7 +1,7 @@
-# Handoff: Community-picked PRs
+# Handoff: Community-Picked PRs
 
 ## Overview
-Restyles the Community-picked PRs page (reached from the PRs menu) on the leaderboard template.
+Restyles the Community-Picked PRs page (reached from the PRs menu) on the leaderboard template.
 Approved direction: **27b** at desktop, **27c** at 420px, and **27d** for the filtered state. The page lists open pull requests
 ranked by GitHub 👍 votes, with filters for title, Area, Component and author.
 
@@ -18,7 +18,7 @@ production code. Reproduce it in the Laravel/Blade + Bootstrap codebase. Turn 27
 ## Page structure
 Standard site chrome per `README-header.md`, with **PRs ▾** as the active nav item. Then:
 
-1. **Title block**: H1 "Community-picked PRs", per *Page gutter and title block* in `README.md`.
+1. **Title block**: H1 "Community-Picked PRs", per *Page gutter and title block* in `README.md`.
 2. **Intro**: one paragraph, `padding: 24px 36px 0`, Libre Franklin 14.5px, `line-height: 1.65`,
    `#3c4148`, `max-width: 660px`. Copy, verbatim:
    > Vote for the open pull requests you want merged into Magento 2: click a PR's number to open

@@ -21,7 +21,7 @@ are not listed.
 
 ## To do
 
-- **Merge `feature/community-picked`.** It carries the Community-picked PRs page
+- **Merge `feature/community-picked`.** It carries the Community-Picked PRs page
   (`README-community-picked.md`, `#27b` `#27c` `#27d`) and the SVG dropdown chevron
   (*Dropdown caret*, `README.md`). Both match the spec on the branch except the pills and search field: `.cpr-comp` should be Libre
   Franklin 11.5px (not Martian Mono 10px) on `#fbddcb` (not `#f7f5f2`); `.cpr-area` should be filled
@@ -36,9 +36,16 @@ are not listed.
   Restyle per *Menu interiors*. Nav items sit `gap: 8px` apart (was 2px); filled neighbours
   touched.
 
+- **"Community-Picked" capitalisation** (`README.md`, *Capitalisation*). Page H1 becomes
+  "Community-Picked PRs" (`header.blade.php` `$formattedLabel`);
+  the PRs menu item becomes "Community-Picked" (was "Community Picked", `app/Menus`).
+
 ## Unsure
 
-None at the moment.
+- **Footer link to Community-Picked PRs** (`footer.blade.php`). The code adds it to the Forger
+  column; the spec's column (`README-header.md`, footer) lists Leaderboard, Issues, Pull Requests,
+  How scoring works. Keep it and add it to the spec, or drop it. If kept, it reads
+  "Community-Picked PRs".
 
 ## Kept on purpose
 

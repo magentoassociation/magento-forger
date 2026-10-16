@@ -396,4 +396,5 @@ collapsing them to one column doubles the footer's height and gains nothing. `ga
 56px to 24px and each column becomes `flex: 1`.
 
 ## Out of scope
-The links inside the nav dropdowns are unchanged; their styling is under *Menu interiors*. The PRs menu includes Community-picked PRs (`README-community-picked.md`).
+The links inside the nav dropdowns are unchanged; their styling is under *Menu interiors*. The PRs menu holds "By Month" and "Community-Picked" (the short form of
+"Community-Picked PRs", `README-community-picked.md`).
