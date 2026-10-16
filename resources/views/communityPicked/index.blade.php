@@ -13,7 +13,7 @@
 
     @php
         $repoUrl = 'https://github.com/'.config('github.repo');
-        $filtered = $selectedArea || $selectedComponent || $selectedAuthor;
+        $filtered = $selectedArea || $selectedComponent || $selectedAuthor || $selectedTitle;
         // A shared link may name a label no current candidate carries; keep it selectable.
         $withSelected = fn (?string $selected, array $options): array => $selected && ! in_array($selected, $options, true) ? [$selected, ...$options] : $options;
         $filters = [
@@ -24,6 +24,12 @@
 
     @unless ($dataMissing)
         <form method="GET" action="{{ route('prs.communityPicked') }}" class="row g-2 align-items-end mb-3">
+            <div class="col-sm-auto">
+                <label for="filter-title" class="form-label mb-1">Title</label>
+                <input type="search" id="filter-title" name="title" value="{{ $selectedTitle }}"
+                       class="form-control" placeholder="Title words or PR #" maxlength="200"
+                       onchange="this.form.submit()">
+            </div>
             @foreach ($filters as $name => $filter)
                 <div class="col-sm-auto">
                     <label for="filter-{{ $name }}" class="form-label mb-1">{{ $filter['label'] }}</label>
@@ -84,13 +90,7 @@
                 <tbody>
                     @foreach ($candidates as $pr)
                         <tr>
-                            <td class="text-center">
-                                <a href="{{ $pr['url'] }}" target="_blank" rel="noopener"
-                                   class="btn btn-sm btn-outline-primary text-nowrap"
-                                   aria-label="Vote for #{{ $pr['number'] }} on GitHub ({{ $pr['thumbs_up_count'] }} 👍)">
-                                    👍 {{ number_format($pr['thumbs_up_count']) }}
-                                </a>
-                            </td>
+                            <td class="text-center text-nowrap">👍 {{ number_format($pr['thumbs_up_count']) }}</td>
                             <td>
                                 <a href="{{ $pr['url'] }}" target="_blank" rel="noopener">#{{ $pr['number'] }}</a>
                                 {{ $pr['title'] }}

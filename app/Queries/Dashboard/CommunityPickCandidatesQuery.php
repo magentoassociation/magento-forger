@@ -19,7 +19,8 @@ use OpenSearch\Client;
  * Area/Component filtering matches Effective Labels — the PR's own labels plus its
  * Linked Issues' labels. OpenSearch has no joins, so Linked Issue labels are read
  * from the issues index on every request; retagging an issue needs no PR re-sync.
- * The author filter matches the PR author's GitHub login, ignoring case.
+ * The author filter matches the PR author's GitHub login, ignoring case; the title
+ * filter matches every word of the PR title, the last as a prefix, or a PR number.
  */
 class CommunityPickCandidatesQuery
 {
@@ -58,6 +59,7 @@ class CommunityPickCandidatesQuery
         ?string $author = null,
         int $page = 1,
         string $sort = self::SORT_VOTES,
+        ?string $title = null,
     ): array {
         $candidates = $this->candidateQuery();
         $allFacets = $this->candidateFacets($candidates);
@@ -68,6 +70,7 @@ class CommunityPickCandidatesQuery
             'component' => $component ? $this->matchesEffectiveLabel($component, $issueLabels) : null,
             // GitHub logins are case-insensitive.
             'author' => $author ? ['term' => ['author.keyword' => ['value' => $author, 'case_insensitive' => true]]] : null,
+            'title' => $title ? $this->matchesTitleOrNumber($title) : null,
         ]);
         $query = $this->narrow($candidates, $clauses);
 
@@ -251,6 +254,24 @@ class CommunityPickCandidatesQuery
         }
 
         return ['bool' => ['should' => $should, 'minimum_should_match' => 1]];
+    }
+
+    /**
+     * Every word must appear in the title, the last as a prefix, so results follow typing.
+     * A bare number ("41427" or "#41427") also matches that PR, since titles can hold numbers too.
+     *
+     * @return array<string, mixed>
+     */
+    private function matchesTitleOrNumber(string $title): array
+    {
+        $titleMatch = ['match_bool_prefix' => ['title' => ['query' => $title, 'operator' => 'and']]];
+
+        // 18 digits keeps the term inside a long.
+        if (! preg_match('/^#?(\d{1,18})$/', trim($title), $number)) {
+            return $titleMatch;
+        }
+
+        return ['bool' => ['should' => [['term' => ['id' => (int) $number[1]]], $titleMatch], 'minimum_should_match' => 1]];
     }
 
     /**

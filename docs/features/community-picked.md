@@ -18,7 +18,7 @@ One public page, `GET /prs/community-picked` (`prs.communityPicked`), listed in 
   - Any other value fails validation. Clear resets the filters but keeps the sort.
 - 50 per page; `page` is validated to 1–200 because OpenSearch caps `from + size` at 10,000
 
-Each row shows the 👍 count (a link to the PR on GitHub, new tab), number + title, Linked Issues, Effective Area/Component labels, author (linked to their Forger contributor page, `leaderboard.detail`), and age.
+Each row shows the 👍 count (plain text; the PR number links to GitHub, new tab), number + title, Linked Issues, Effective Area/Component labels, author (linked to their Forger contributor page, `leaderboard.detail`), and age.
 
 ### Filtering by Area / Component
 
@@ -37,6 +37,14 @@ Because of this, any Area + Component pair picked from the lists returns at leas
 Linked Issue labels are read on every request rather than copied onto PR documents. Retagging an issue shows up after the next issue sync, with no PR re-sync needed.
 
 `area` must start with `Area: ` and `component` with `Component: `; any other value fails validation and never reaches OpenSearch.
+
+### Filtering by title
+
+`?title=<words>` is a text field. It uses `match_bool_prefix` on the already-indexed `title` text field with `operator: and`. Every word must appear in the title, and the last word may be a prefix, so "orphan plug" finds "Exclude orphan plugins…". The match is a filter, not a relevance ranking, so the chosen sort still applies.
+
+A bare number (`41427` or `#41427`, up to 18 digits so it fits a `long`) also matches the PR with that number (`id`), OR'd with the title match, since titles can contain numbers too. A number among other words is title text only.
+
+It narrows the Area, Component and Author options like any other filter. It's validated as a string of at most 200 characters; the value goes to OpenSearch as query text, never as query syntax.
 
 ### Filtering by author
 

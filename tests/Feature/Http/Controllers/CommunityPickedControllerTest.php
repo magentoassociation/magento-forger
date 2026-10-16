@@ -48,9 +48,11 @@ class CommunityPickedControllerTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('Community-picked PRs');
+        $response->assertSee('Vote by clicking 👍 on the PR description on GitHub');
         $response->assertSee('Exclude orphan plugins from code generation');
         $response->assertSee('href="https://github.com/magento/magento2/pull/39812" target="_blank" rel="noopener"', false);
-        $response->assertSee('aria-label="Vote for #39812 on GitHub (8 👍)"', false);
+        $response->assertSee('<td class="text-center text-nowrap">👍 8</td>', false);
+        $response->assertDontSee('aria-label="Vote for', false);
         $response->assertSee('href="https://github.com/'.config('github.repo').'/issues/39790"', false);
         $response->assertSee('href="'.route('leaderboard.detail', ['board' => 'contributor', 'login' => 'swnsma']).'">swnsma</a>', false);
         $response->assertDontSee('href="https://github.com/swnsma"', false);
@@ -163,6 +165,43 @@ class CommunityPickedControllerTest extends TestCase
         $this->get('/prs/community-picked?author='.urlencode('a"b'))->assertSessionHasErrors('author');
         $this->get('/prs/community-picked?author='.str_repeat('a', 51))->assertSessionHasErrors('author');
         $this->get('/prs/community-picked?author[]=x')->assertSessionHasErrors('author');
+    }
+
+    public function testTitleFilterPassesThroughAndStaysFilledIn(): void
+    {
+        $requests = [];
+        $this->bindClient([$this->candidate(1)], total: 120, requests: $requests);
+
+        $response = $this->get('/prs/community-picked?title='.urlencode('orphan plug'));
+
+        $response->assertOk();
+        $this->assertContains(
+            ['match_bool_prefix' => ['title' => ['query' => 'orphan plug', 'operator' => 'and']]],
+            $requests[0]['body']['query']['bool']['filter'],
+        );
+        $response->assertSee('name="title" value="orphan plug"', false);
+        $response->assertSee('title=orphan%20plug&amp;page=2', false);
+        $response->assertSee('>Clear</a>', false);
+    }
+
+    public function testTitleBoxFindsAPrByNumber(): void
+    {
+        $requests = [];
+        $this->bindClient([$this->candidate(41427)], requests: $requests);
+
+        $response = $this->get('/prs/community-picked?title='.urlencode('#41427'));
+
+        $response->assertOk();
+        $this->assertContains(['term' => ['id' => 41427]], $requests[0]['body']['query']['bool']['filter'][1]['bool']['should']);
+        $response->assertSee('name="title" value="#41427"', false);
+    }
+
+    public function testRejectsOverlongOrNonStringTitle(): void
+    {
+        $this->bindClient([]);
+
+        $this->get('/prs/community-picked?title='.str_repeat('a', 201))->assertSessionHasErrors('title');
+        $this->get('/prs/community-picked?title[]=x')->assertSessionHasErrors('title');
     }
 
     public function testDefaultsToMostVotesSort(): void

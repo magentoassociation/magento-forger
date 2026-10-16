@@ -69,6 +69,68 @@ class CommunityPickCandidatesQueryTest extends TestCase
         $this->assertSame(['created_at' => ['order' => 'asc']], $sort[1]);
     }
 
+    public function testTitleFilterMatchesEveryWordWithTheLastAsAPrefix(): void
+    {
+        $this->fetch(title: 'orphan plug');
+
+        $this->assertContains(
+            ['match_bool_prefix' => ['title' => ['query' => 'orphan plug', 'operator' => 'and']]],
+            $this->pageRequest['body']['query']['bool']['filter'],
+        );
+    }
+
+    public function testTitleFilterKeepsTheChosenSort(): void
+    {
+        $this->fetch(sort: CommunityPickCandidatesQuery::SORT_NEWEST, title: 'checkout');
+
+        $this->assertSame(['created_at' => ['order' => 'desc']], $this->pageRequest['body']['sort'][0]);
+    }
+
+    public function testTitleFilterMatchesAPrNumberWithOrWithoutHash(): void
+    {
+        foreach (['41427', '#41427', ' #41427 '] as $input) {
+            $this->fetch(title: $input);
+
+            $this->assertContains(
+                ['bool' => ['should' => [
+                    ['term' => ['id' => 41427]],
+                    ['match_bool_prefix' => ['title' => ['query' => $input, 'operator' => 'and']]],
+                ], 'minimum_should_match' => 1]],
+                $this->pageRequest['body']['query']['bool']['filter'],
+                $input,
+            );
+        }
+    }
+
+    public function testTitleFilterTreatsNumbersAmongWordsAsTitleText(): void
+    {
+        foreach (['fix 41427', str_repeat('9', 19)] as $input) {
+            $this->fetch(title: $input);
+
+            $this->assertContains(
+                ['match_bool_prefix' => ['title' => ['query' => $input, 'operator' => 'and']]],
+                $this->pageRequest['body']['query']['bool']['filter'],
+                $input,
+            );
+        }
+    }
+
+    public function testTitleFilterNarrowsEveryOtherFiltersOptions(): void
+    {
+        $result = $this->fetch(
+            title: 'checkout',
+            issues: [101 => ['Area: Checkout', 'Component: Quote'], 102 => ['Area: Catalog', 'Component: Admin']],
+            authors: ['alice', 'jane'],
+            narrowedFacets: ['checkout' => ['linked' => [101], 'prLabels' => [], 'authors' => ['jane']]],
+        );
+
+        $this->assertSame(['Area: Checkout'], $result['areaOptions']);
+        $this->assertSame(['Component: Quote'], $result['componentOptions']);
+        $this->assertSame(['jane'], $result['authorOptions']);
+        // Unfiltered, plus one narrowed by title shared by all three lists.
+        $this->assertCount(2, $this->facetRequests);
+    }
+
     public function testOldestFirstSortsByCreatedAtThenMostVotes(): void
     {
         $this->fetch(sort: CommunityPickCandidatesQuery::SORT_OLDEST);
@@ -371,6 +433,7 @@ class CommunityPickCandidatesQueryTest extends TestCase
         ?string $author = null,
         int $page = 1,
         string $sort = CommunityPickCandidatesQuery::SORT_VOTES,
+        ?string $title = null,
         array $issues = [],
         ?array $linkedIssues = null,
         array $prLabels = [],
@@ -399,7 +462,9 @@ class CommunityPickCandidatesQueryTest extends TestCase
                     // Filter clauses after the is_open term are the narrowing ones.
                     $narrowedBy = implode(',', array_map(
                         static fn (array $clause): string => $clause['bool']['should'][0]['term']['labels.keyword']
-                            ?? $clause['term']['author.keyword']['value'],
+                            ?? $clause['term']['author.keyword']['value']
+                            ?? $clause['match_bool_prefix']['title']['query']
+                            ?? $clause['bool']['should'][1]['match_bool_prefix']['title']['query'],
                         array_slice($params['body']['query']['bool']['filter'], 1),
                     ));
                     $facets = ($narrowedFacets[$narrowedBy] ?? [])
@@ -421,6 +486,6 @@ class CommunityPickCandidatesQueryTest extends TestCase
             }
         );
 
-        return (new CommunityPickCandidatesQuery($client))->execute($area, $component, $author, $page, $sort);
+        return (new CommunityPickCandidatesQuery($client))->execute($area, $component, $author, $page, $sort, $title);
     }
 }

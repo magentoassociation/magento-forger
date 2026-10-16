@@ -32,17 +32,19 @@ class CommunityPickedController extends Controller
             // GitHub logins: alphanumerics and hyphens; apps end in [bot].
             'author' => ['bail', 'nullable', 'string', 'max:50', 'regex:/^[A-Za-z0-9-]+(\[bot\])?$/'],
             'sort' => ['nullable', Rule::in(CommunityPickCandidatesQuery::SORTS)],
+            'title' => ['bail', 'nullable', 'string', 'max:200'],
         ]);
         $sort = $filters['sort'] ?? CommunityPickCandidatesQuery::SORT_VOTES;
         $page = (int) ($filters['page'] ?? 1);
         $area = $filters['area'] ?? null;
         $component = $filters['component'] ?? null;
         $author = $filters['author'] ?? null;
+        $title = $filters['title'] ?? null;
 
         $dataMissing = false;
 
         try {
-            $result = $query->execute($area, $component, $author, $page, $sort);
+            $result = $query->execute($area, $component, $author, $page, $sort, $title);
         } catch (\Exception $e) {
             if (! $this->isMissingIndex($e)) {
                 abort(500, 'Error fetching PR data: '.$e->getMessage());
@@ -64,6 +66,7 @@ class CommunityPickedController extends Controller
             'selectedArea' => $area,
             'selectedComponent' => $component,
             'selectedAuthor' => $author,
+            'selectedTitle' => $title,
             'sort' => $sort,
             'areaOptions' => $result['areaOptions'],
             'componentOptions' => $result['componentOptions'],
@@ -75,10 +78,10 @@ class CommunityPickedController extends Controller
     private function getInfoText(): InfoText
     {
         return new InfoText(
-            title: 'How community picking works',
+            title: 'Vote by clicking 👍 on the PR description on GitHub',
             paragraphs: [
                 'Vote for the open pull requests you want merged into Magento 2 by giving the PR description '.
-                    'a 👍 on GitHub — click a PR\'s 👍 count to open it.',
+                    'a 👍 on GitHub — click a PR\'s number to open it.',
                 'After each voting period, the top-voted PRs are prioritized for merging. '.
                     'Vote counts refresh from GitHub every 15 minutes.',
             ]
