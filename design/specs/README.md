@@ -22,7 +22,7 @@ contributor board, `#19b` the contributor scoring modal, and so on.
 | Spec | Covers | Prototype |
 |---|---|---|
 | `README.md` (this file) | Type scale, design tokens, capitalisation, gutter and title block — the site-wide foundation | — |
-| `README-header.md` | Dark masthead, nav, account chip, footer | `#11a` `#12a` `#13a` `#16a` `#24a` |
+| `README-header.md` | Dark masthead, nav, nav dropdowns, account chip, footer | `#11a` `#12a` `#13a` `#16a` `#24a` `#29a` |
 | `README-homepage.md` | Hero, live top-five card, area grid, first-timer steps | `#15a` `#24d` |
 | `README-leaderboard-pages.md` | All three boards: control strip, search, jump, pagination, hover, narrow widths | `#21a` `#21b` `#21c` `#22a` `#22b` `#22d` `#22c` `#23a` `#23b` `#23c` `#24a` `#25b` |
 | `README-detail-page.md` | Contributor and maintainer detail, all four states, Grouped and List views, monthly detail | `#17a` `#17b` `#17c` `#17d` `#18a` `#18b` `#18c` `#18d` `#24b` |

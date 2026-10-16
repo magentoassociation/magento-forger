@@ -76,13 +76,45 @@ Left to right: logo lockup, primary nav, then a right-aligned group
 - Wordmark: Libre Franklin, 16px, `letter-spacing: -.022em`, two weights in one line —
   "Magento Open Source " in 500 / `#c9ced4`, "Forger" in 700 / `#ffffff`.
 
-**Primary nav** — flex row, `gap: 2px`. Items: Home, Leaderboard, Issues ▾, PRs ▾.
+**Primary nav** — flex row, `gap: 8px`, so two filled items (the current section beside a hovered or open one) never touch. Items: Home, Leaderboard, Issues ▾, PRs ▾.
 - Each item: `padding: 8px 13px`, `border-radius: 6px`, Libre Franklin 14px.
 - Default: weight 500, colour `#c9ced4`, no underline.
 - Hover: colour `#ffffff`, background `#23262b`.
 - Current section: weight 600, colour `#ffffff`, background `#2a2e34` (persistent, not a hover
   state). Exactly one item carries this at a time.
-- Dropdown parents carry the chevron after the label, per *Dropdown caret* in `README.md`; menu behaviour is unchanged from today.
+- Dropdown parents carry the chevron after the label, per *Dropdown caret* in `README.md`.
+
+**Nav dropdowns (Issues ▾, PRs ▾) open on hover.**
+- Pointer: the menu opens when the pointer enters the item and stays open while it is over the
+  item or the menu. It closes 150ms after the pointer leaves both, so a diagonal move to the
+  menu doesn't close it. Moving to the other dropdown item closes the first at once.
+- Only on devices that hover: apply it under `@media (hover: hover) and (pointer: fine)`. On
+  touch, a tap opens and a second tap or outside tap closes, as today.
+- Click still works on desktop: clicking the item toggles the menu, so keyboard and click users
+  are unaffected.
+- Keyboard: `Enter`, `Space` or `↓` opens and focuses the first link; `Esc` closes and returns
+  focus to the item. Focus alone does not open the menu.
+- The item keeps `aria-haspopup="true"` and `aria-expanded` in step with the menu, whether it
+  was opened by hover, click or key.
+- While open, the item shows its hover treatment.
+- The account chip is unchanged: it opens on click only (see *Account menu → Behaviour*).
+
+**Menu interiors (`#29a`).** The same for both nav dropdowns.
+- Panel: background `#23262b`, `1px solid #33383f`, `border-radius: 8px`, `padding: 6px`,
+  `box-shadow: 0 12px 28px rgba(0,0,0,.35)`, `min-width: 210px`, `8px` below the item, left-aligned
+  with it. Items stack with `gap: 2px`.
+- Item: `padding: 8px 12px`, `border-radius: 6px`, Libre Franklin 500, 14px, `#c9ced4`, no
+  underline.
+- **Hover and keyboard focus**: text `#f26322`, no fill (4.8:1 on the panel; on a grey fill it
+  would drop below 4.5:1). The highlight follows the pointer (or the focused item when using
+  arrow keys); exactly one item carries it at a time, and none does when the pointer is outside
+  the panel.
+- **Current page**: text `#ffffff`, weight 600, no fill, `aria-current="page"`. It turns orange
+  only when hovered, like any other item. Remove Bootstrap's `.active` orange fill. The parent
+  item (PRs) keeps its current-section fill `#2a2e34` while you are on any page in its menu.
+- Orange inside the menu is hover and focus only.
+- Parent item focus ring: `:focus-visible` only, so a mouse click or hover never leaves the orange
+  ring on it.
 
 **Utility links.** In this design the bar carries none, in either state — the two things the
 old grey bar held both move: **Admin** into the account menu (see below), and the
@@ -364,4 +396,4 @@ collapsing them to one column doubles the footer's height and gains nothing. `ga
 56px to 24px and each column becomes `flex: 1`.
 
 ## Out of scope
-Primary-nav dropdown menu interiors (Issues ▾, PRs ▾) are unchanged. The PRs menu includes Community-picked PRs (`README-community-picked.md`).
+The links inside the nav dropdowns are unchanged; their styling is under *Menu interiors*. The PRs menu includes Community-picked PRs (`README-community-picked.md`).

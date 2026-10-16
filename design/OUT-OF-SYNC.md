@@ -23,11 +23,18 @@ are not listed.
 
 - **Merge `feature/community-picked`.** It carries the Community-picked PRs page
   (`README-community-picked.md`, `#27b` `#27c` `#27d`) and the SVG dropdown chevron
-  (*Dropdown caret*, `README.md`). Both match the spec on the branch except the pills (`#28f`): `.cpr-comp` should be Libre
+  (*Dropdown caret*, `README.md`). Both match the spec on the branch except the pills and search field: `.cpr-comp` should be Libre
   Franklin 11.5px (not Martian Mono 10px) on `#fbddcb` (not `#f7f5f2`); `.cpr-area` should be filled
   `#e6e7ea` with no border, `padding: 4px 8px`, `#15171b` text (not outlined `#d5d8dc`, `#3c4148`). The search field drops its ⌕ icon
   (`.lb-search-ico`) and its left padding goes to 12px.
   Placeholder becomes "PR title or #" (was "Title words or PR #"). `main` still has neither.
+
+- **Nav dropdowns open on hover** (`README-header.md`, *Nav dropdowns*). Issues ▾ and PRs ▾
+  open on click today. They render from `app/Menus` via `$mainMenu` in `layouts/app.blade.php`.
+  Menu interiors (`#29a`): the current item's solid orange `.active` fill stays put instead of
+  the highlight following the pointer, and a click leaves the orange focus ring on the parent.
+  Restyle per *Menu interiors*. Nav items sit `gap: 8px` apart (was 2px); filled neighbours
+  touched.
 
 ## Unsure
 

@@ -99,8 +99,8 @@ stays and reads "0 open PRs".
       Libre Franklin 11.5px, `#15171b`. Text is the area name alone ("Framework"), no "Area:" prefix.
     - **Component pill**: filled orange. `padding: 4px 8px`, background `#fbddcb`, `radius 5px`, Libre Franklin
       11.5px, `#15171b`. Name alone, no "Component:" prefix. Both pills use the same font and
-      size. The colours follow the By Month charts' grey/orange pair (`#28f`), with Area
-      filled rather than outlined so it reads at a glance. Grey versus orange tells them apart.
+      size. The colours follow the By Month charts' grey/orange (closed/opened) pair, with
+      Area filled rather than outlined so it reads at a glance. Grey versus orange tells them apart.
     - **Issue group**, `margin-left: 6px`, `gap: 6px`: label "Issue" (Martian Mono 9px uppercase,
       `letter-spacing: .06em`, `#6b7178`), then each linked issue as `#41426` (Martian Mono 11px,
       `#ee6524`, underlined, hover `#c74e16`) linking to the issue on GitHub. Several issues sit
