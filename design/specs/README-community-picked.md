@@ -2,7 +2,7 @@
 
 ## Overview
 Restyles the Community-picked PRs page (reached from the PRs menu) on the leaderboard template.
-Approved direction: **27b** at desktop and **27c** at 420px. The page lists open pull requests
+Approved direction: **27b** at desktop, **27c** at 420px, and **27d** for the filtered state. The page lists open pull requests
 ranked by GitHub 👍 votes, with filters for title, Area, Component and author.
 
 ## About the design files
@@ -50,6 +50,16 @@ Standard site chrome per `README-header.md`, with **PRs ▾** as the active nav 
   a 300ms pause in typing. Every filter is written to the query string so a filtered view can be
   shared and survives Back.
 - Area and Component stay dependent (Component lists only the chosen Area's components).
+
+**Clear filters** (`#27d`): a link-styled `<button type="button">` after the Author field.
+Libre Franklin 500, 13.5px, `#ee6524`, underlined (`text-underline-offset: 2px`), hover `#c74e16`,
+`background: none; border: 0; padding: 0 4px`.
+- Shown only while at least one of search, Area, Component or Author is set. With nothing to
+  clear it is removed, not disabled.
+- Resets those four to their rest values and drops them from the query string. Sort is kept.
+- Focus moves to the search field afterwards.
+- A control holding a filter takes a `#15171b` border and its value goes to weight 600.
+- At narrow widths it takes its own full-width row under Author | Sort, left-aligned.
 
 **Count line**: directly under the strip, `margin: 4px 0 22px`. Martian Mono 9.5px uppercase,
 `letter-spacing: .06em`, `#6b7178`: "1,028 open PRs". It counts the filtered set.
@@ -100,7 +110,7 @@ Below roughly 700px:
 
 - Gutter 20px; H1 28px; header and footer per `README-header.md` (as in `#24a`).
 - Control strip becomes a two-column grid (`grid-template-columns: minmax(0,1fr) minmax(0,1fr)`,
-  `gap: 8px`): Search spans both columns; then Area | Component; then Author | Sort. Controls are
+  `gap: 8px`): Search spans both columns; then Area | Component; then Author | Sort; then Clear filters, when shown. Controls are
   `padding: 10px 12px` (44px tall) and stretch to their cell, chevron pushed right.
 - Column heads: **Votes** (34px) and **Pull request** only; `gap: 12px`.
 - Row `gap: 12px`. Votes 15px. Title 14.5px with the PR number inline at its start

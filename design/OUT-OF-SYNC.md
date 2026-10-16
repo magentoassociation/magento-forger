@@ -24,7 +24,7 @@ are not listed.
 - **Community-picked PRs** (`feature/community-picked`, not yet on `main`): built before the
   spec. Restyle to `README-community-picked.md` (`#27b`, `#27c`): title block, no second heading,
   filters apply on change with no Filter button, outlined Area / filled Component pills without
-  prefixes, two-line rows, author links to the contributor detail page, "Show 50 more" in place
+  prefixes, a "Clear filters" button, two-line rows, author links to the contributor detail page, "Show 50 more" in place
   of numbered pages.
 - **Dropdown carets**: every `▾` glyph (nav items, account chip, selects) becomes the 7×5px SVG
   chevron in *Dropdown caret*, `README.md`.

@@ -30,7 +30,7 @@ contributor board, `#19b` the contributor scoring modal, and so on.
 | `README-how-scores-work.md` | Standalone scoring page, both boards side by side | `#20a` |
 | `README-highlights.md` | New contributor spotlight, Comebacks, Rising, Recently active | `#8b` |
 | `README-issues-prs-by-month.md` | Both by-month timelines, colour thresholds, month picker | `#14b` `#24e` |
-| `README-community-picked.md` | Community-picked PRs: vote-ranked list, filters, two-line rows | `#27b` `#27c` |
+| `README-community-picked.md` | Community-picked PRs: vote-ranked list, filters, two-line rows | `#27b` `#27c` `#27d` |
 
 Three rules are stated once and apply everywhere: **capitalisation** (below), **focus rings**
 and **hover states** (both in `README-leaderboard-pages.md`).
