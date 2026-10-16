@@ -1,4 +1,4 @@
-# Community-picked PRs
+# Community-Picked PRs
 
 ## Purpose
 

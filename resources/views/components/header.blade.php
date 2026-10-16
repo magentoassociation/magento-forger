@@ -30,7 +30,7 @@
     } elseif ($currentRouteName === 'prs.byMonth') {
         $formattedLabel = 'PRs By Month';
     } elseif ($currentRouteName === 'prs.communityPicked') {
-        $formattedLabel = 'Community-picked PRs';
+        $formattedLabel = 'Community-Picked PRs';
     }
 @endphp
 

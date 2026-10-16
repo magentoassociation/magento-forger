@@ -50,7 +50,7 @@ class CommunityPickedControllerTest extends TestCase
         $response = $this->get('/prs/community-picked');
 
         $response->assertOk();
-        $response->assertSee('Community-picked PRs');
+        $response->assertSee('<h1>Community-Picked PRs</h1>', false);
         $response->assertDontSee('How community picking works');
         $response->assertSee('then click 👍 on the PR description. After each voting period');
         $response->assertSee('Exclude orphan plugins from code generation');
@@ -104,7 +104,7 @@ class CommunityPickedControllerTest extends TestCase
 
         $this->actingAs($user)->get(route('prs.communityPicked'))
             ->assertOk()
-            ->assertSee('href="'.route('prs.communityPicked').'">Community-picked PRs</a>', false);
+            ->assertSee('href="'.route('prs.communityPicked').'">Community-Picked PRs</a>', false);
     }
 
     public function testIsShownToAdmins(): void
@@ -393,8 +393,8 @@ class CommunityPickedControllerTest extends TestCase
         $this->bindClient([]);
 
         $this->get('/prs/community-picked')
-            ->assertSee('href="'.route('prs.communityPicked').'">Community Picked</a>', false)
-            ->assertSee('href="'.route('prs.communityPicked').'">Community-picked PRs</a>', false);
+            ->assertSee('href="'.route('prs.communityPicked').'">Community-Picked</a>', false)
+            ->assertSee('href="'.route('prs.communityPicked').'">Community-Picked PRs</a>', false);
     }
 
     /**

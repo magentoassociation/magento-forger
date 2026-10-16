@@ -12,7 +12,7 @@ A dashboard and tooling application for the Magento Association to track and sur
 - [Authentication](docs/features/authentication.md) — GitHub OAuth login, admin role, rate limiting
 - [Analytics](docs/features/analytics.md) — Homepage counts, issues/PRs by month, chart API, universe bar
 - [Admin Panel](docs/features/admin-panel.md) — Filament user management
-- [Community-picked PRs](docs/features/community-picked.md) — Community Pick Candidates ranked by 👍, voting links out to GitHub
+- [Community-Picked PRs](docs/features/community-picked.md) — Community Pick Candidates ranked by 👍, voting links out to GitHub
 
 ## Language
 

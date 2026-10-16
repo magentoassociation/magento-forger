@@ -21,7 +21,7 @@
                     <a href="{{ route('issues.byMonth') }}">Issues</a>
                     <a href="{{ route('prs.byMonth') }}">Pull Requests</a>
                     @can('view-community-picked')
-                        <a href="{{ route('prs.communityPicked') }}">Community-picked PRs</a>
+                        <a href="{{ route('prs.communityPicked') }}">Community-Picked PRs</a>
                     @endcan
                     <a href="{{ route('leaderboard.scoring') }}">How scoring works</a>
                 </nav>
