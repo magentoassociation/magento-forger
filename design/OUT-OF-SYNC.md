@@ -40,12 +40,15 @@ are not listed.
   "Community-Picked PRs" (`header.blade.php` `$formattedLabel`);
   the PRs menu item becomes "Community-Picked" (was "Community Picked", `app/Menus`).
 
+- **Remove the footer link to Community-Picked PRs** (`footer.blade.php`). The Forger column
+  lists one link per section (`README-header.md`, footer); the page sits inside Pull Requests.
+
+- **Homepage: Community-Picked PRs section** (`README-homepage.md`, `#15a`, `#24d`). New, between
+  the first-timer block and Momentum: top three PRs by votes, "See all and vote" button. Not built.
+
 ## Unsure
 
-- **Footer link to Community-Picked PRs** (`footer.blade.php`). The code adds it to the Forger
-  column; the spec's column (`README-header.md`, footer) lists Leaderboard, Issues, Pull Requests,
-  How scoring works. Keep it and add it to the spec, or drop it. If kept, it reads
-  "Community-Picked PRs".
+None at the moment.
 
 ## Kept on purpose
 

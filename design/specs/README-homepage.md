@@ -44,8 +44,9 @@ Top to bottom:
 3. Start contributing — "Ready to code" row.
 4. Pick your area — 2-column list.
 5. First time contributing? — three-step rail.
-6. Momentum — last 12 months of PRs and issues, with the CTA repeated.
-7. Footer — 12a, unchanged.
+6. Community-Picked PRs — the three most-voted PRs, linking to the voting page.
+7. Momentum — last 12 months of PRs and issues, with the CTA repeated.
+8. Footer — 12a, unchanged.
 
 **Removed from the current page:** the three benefit cards, and the closing "Ready to ship your
 first fix?" block with its duplicate CTA pair. The hero CTA appears once more, beside the
@@ -260,10 +261,42 @@ same content as today's box; the box was ~230px tall with more than half of it e
 
 ---
 
+## Community-Picked PRs
+
+Between *First time contributing?* and *Momentum*, drawn in `#15a` (and `#24d` at 420px).
+`padding: 0 36px 38px`. Promotes the Community-Picked PRs page (`README-community-picked.md`)
+with the three most-voted open PRs from the same data.
+
+**Heading row** — same layout as Momentum's: `display: flex; align-items: flex-end; gap: 20px;
+margin-bottom: 14px`.
+- Left, `flex: 1`: `<h2>` "Community-Picked PRs" and sub "Vote for the open PRs you want merged.
+  After each voting period, the top-voted PRs are prioritized for merging." (`margin: 0`), same
+  styles as the other section heads.
+- Right, `flex: none`: outlined button "See all 1,028 and vote" (the live open count), the site's
+  outlined control: `padding: 10px 16px`, `1px solid #d5d8dc`, `radius 7px`, Libre Franklin 600
+  13.5px, `#15171b`; hover `border-color: #15171b`. Links to the Community-Picked PRs page.
+  Outlined rather than orange: the page's orange CTA stays "Find an issue to work on →".
+
+**Column heads** — `display: flex; gap: 16px; padding-bottom: 8px; border-bottom: 1px solid
+#e6e7ea`; Martian Mono 9px uppercase `.06em` `#6b7178`: "Votes" (40px), "Pull request".
+
+**Rows** — the top three by votes (ties: newest first, as on the page). Each row is one `<a>` to
+the PR on GitHub, where the vote happens. `display: flex; align-items: baseline; gap: 16px;
+padding: 11px 0; border-bottom: 1px solid #f0f1f3`; hover background `#faf9f7`.
+- Votes: 40px, Martian Mono 700 15px, tabular figures.
+- Number: `#41427`, Martian Mono 500 12px, `#ee6524`, underlined.
+- Title: Libre Franklin 600 14.5px, `line-height: 1.4`, one line, ellipsis.
+- No pills, linked issues, author or age; the full page has them.
+- Accessible name: "41427, Enable storefront autocomplete on login forms by default, 23 votes".
+
+Hidden when the pull-requests index is empty or the query fails, like the Momentum cards.
+
+---
+
 ## Momentum
 
 The page's closing section, drawn in `#15a` (and `#24d` at 420px). `padding: 4px 36px 40px`,
-directly after the first-timer block. It leads with the **last 12 months**; the full history moves
+directly after the Community-Picked PRs section. It leads with the **last 12 months**; the full history moves
 to the By Month pages (`README-issues-prs-by-month.md`, "Opened and closed, all time"). Each card
 is hidden when its aggregation fails; the section is hidden when both fail (current behaviour).
 
@@ -407,6 +440,10 @@ Below the Bootstrap `lg` breakpoint:
 - The area grid collapses to one column; the 1px-gap rule technique still applies.
 - The first-timer block stacks: heading block, then the three steps in a column with
   `border-left` swapped for `border-top: 1px solid #e6e7ea` and `padding: 14px 0 0`.
+- Community-Picked PRs: gutter 20px, `padding: 0 20px 36px`. The button drops below the rows at
+  full width (`margin-top: 16px`, `padding: 11px 18px`). Votes column 34px, `gap: 12px`; the PR
+  number runs inline at the start of the title (`margin-right: 7px`) and the title clamps to two
+  lines.
 - Momentum: the CTA drops under the heading at full width; the cards stack, Pull requests first.
 - The leaderboard card drops to the **top three** plus the visitor's row below `lg`. At five
   rows the hero pushes the CTAs and everything under them off a phone screen; three is enough to
