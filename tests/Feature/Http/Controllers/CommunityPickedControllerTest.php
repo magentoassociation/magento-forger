@@ -104,7 +104,7 @@ class CommunityPickedControllerTest extends TestCase
 
         $this->actingAs($user)->get(route('prs.communityPicked'))
             ->assertOk()
-            ->assertSee('href="'.route('prs.communityPicked').'">Community-Picked PRs</a>', false);
+            ->assertSee('href="'.route('prs.communityPicked').'">Community-Picked</a>', false);
     }
 
     public function testIsShownToAdmins(): void
@@ -388,13 +388,13 @@ class CommunityPickedControllerTest extends TestCase
         $response->assertDontSee('No community pick candidates right now.');
     }
 
-    public function testIsLinkedFromPrsMenuAndFooter(): void
+    public function testIsLinkedFromPrsMenuOnly(): void
     {
         $this->bindClient([]);
 
         $this->get('/prs/community-picked')
             ->assertSee('href="'.route('prs.communityPicked').'">Community-Picked</a>', false)
-            ->assertSee('href="'.route('prs.communityPicked').'">Community-Picked PRs</a>', false);
+            ->assertDontSee('href="'.route('prs.communityPicked').'">Community-Picked PRs</a>', false);
     }
 
     /**
