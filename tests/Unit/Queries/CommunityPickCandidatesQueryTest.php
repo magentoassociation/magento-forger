@@ -24,6 +24,9 @@ class CommunityPickCandidatesQueryTest extends TestCase
     /** @var list<array<string, mixed>> */
     private array $facetRequests = [];
 
+    /** @var list<array<string, mixed>> */
+    private array $spellingRequests = [];
+
     protected function tearDown(): void
     {
         Mockery::close();
@@ -149,19 +152,27 @@ class CommunityPickCandidatesQueryTest extends TestCase
         $this->assertSame('desc', $sort[1]['thumbs_up_count']['order']);
     }
 
-    public function testPaginatesFiftyPerPage(): void
+    public function testFetchesFiftyRowsByDefault(): void
     {
-        $this->fetch(page: 3);
+        $this->fetch();
 
-        $this->assertSame(100, $this->pageRequest['body']['from']);
+        $this->assertArrayNotHasKey('from', $this->pageRequest['body']);
         $this->assertSame(50, $this->pageRequest['body']['size']);
     }
 
-    public function testPageBelowOneIsTreatedAsFirstPage(): void
+    public function testFetchesTheRequestedDepthFromTheTop(): void
     {
-        $this->fetch(page: 0);
+        $this->fetch(rows: 150);
 
-        $this->assertSame(0, $this->pageRequest['body']['from']);
+        $this->assertArrayNotHasKey('from', $this->pageRequest['body']);
+        $this->assertSame(150, $this->pageRequest['body']['size']);
+    }
+
+    public function testRowsBelowOneFetchOneRow(): void
+    {
+        $this->fetch(rows: 0);
+
+        $this->assertSame(1, $this->pageRequest['body']['size']);
     }
 
     public function testMapsHitsToRowsAndTotal(): void
@@ -229,11 +240,53 @@ class CommunityPickCandidatesQueryTest extends TestCase
 
         $this->assertContains(
             ['bool' => ['should' => [
-                ['term' => ['labels.keyword' => 'Area: Checkout']],
+                ['term' => ['labels.keyword' => ['value' => 'Area: Checkout', 'case_insensitive' => true]]],
                 ['terms' => ['linked_issues' => [101, 103]]],
             ], 'minimum_should_match' => 1]],
             $this->pageRequest['body']['query']['bool']['filter'],
         );
+    }
+
+    public function testCaseVariantsMergeIntoTheMostRecentlyUpdatedSpelling(): void
+    {
+        $result = $this->fetch(
+            issues: [101 => ['Area: Test framework'], 102 => ['Area: Test Framework']],
+            prLabels: ['Area: Test framework', 'Component: Quote'],
+            hits: [[
+                'id' => 1, 'title' => 'PR 1', 'url' => 'u', 'created_at' => '2026-01-01T00:00:00Z',
+                'linked_issues' => [101, 102], 'labels' => ['Area: Test framework'],
+            ]],
+            spellings: ['Area: Test framework' => 1000, 'Area: Test Framework' => 2000],
+        );
+
+        $this->assertSame(['Area: Test Framework'], $result['areaOptions']);
+        $this->assertSame(['Area: Test Framework'], $result['rows'][0]['labels']);
+        $this->assertStringContainsString('github-issues', $this->spellingRequests[0]['index']);
+        $this->assertStringContainsString('github-pull-requests', $this->spellingRequests[0]['index']);
+    }
+
+    public function testAStaleSpellingFiltersByEverySpelling(): void
+    {
+        $this->fetch(
+            area: 'Area: Test framework',
+            issues: [101 => ['Area: Test Framework'], 102 => ['Area: Test framework']],
+            spellings: ['Area: Test framework' => 1000, 'Area: Test Framework' => 2000],
+        );
+
+        $this->assertContains(
+            ['bool' => ['should' => [
+                ['term' => ['labels.keyword' => ['value' => 'Area: Test framework', 'case_insensitive' => true]]],
+                ['terms' => ['linked_issues' => [101, 102]]],
+            ], 'minimum_should_match' => 1]],
+            $this->pageRequest['body']['query']['bool']['filter'],
+        );
+    }
+
+    public function testCaseVariantsMergeEvenWithoutSpellingData(): void
+    {
+        $result = $this->fetch(prLabels: ['Area: Test framework', 'Area: Test Framework']);
+
+        $this->assertCount(1, $result['areaOptions']);
     }
 
     public function testLabelOnNoLinkedIssueMatchesOnlyThePrsOwnLabel(): void
@@ -241,7 +294,7 @@ class CommunityPickCandidatesQueryTest extends TestCase
         $this->fetch(area: 'Area: Checkout', issues: [102 => ['Area: Catalog']]);
 
         $this->assertContains(
-            ['bool' => ['should' => [['term' => ['labels.keyword' => 'Area: Checkout']]], 'minimum_should_match' => 1]],
+            ['bool' => ['should' => [['term' => ['labels.keyword' => ['value' => 'Area: Checkout', 'case_insensitive' => true]]]], 'minimum_should_match' => 1]],
             $this->pageRequest['body']['query']['bool']['filter'],
         );
     }
@@ -301,7 +354,7 @@ class CommunityPickCandidatesQueryTest extends TestCase
         $this->assertSame(['Area: Catalog', 'Area: Checkout'], $result['areaOptions']);
         $this->assertSame(
             ['bool' => ['should' => [
-                ['term' => ['labels.keyword' => 'Area: Checkout']],
+                ['term' => ['labels.keyword' => ['value' => 'Area: Checkout', 'case_insensitive' => true]]],
                 ['terms' => ['linked_issues' => [101]]],
             ], 'minimum_should_match' => 1]],
             $this->facetRequests[1]['body']['query']['bool']['filter'][1],
@@ -354,7 +407,7 @@ class CommunityPickCandidatesQueryTest extends TestCase
 
         $filter = $this->pageRequest['body']['query']['bool']['filter'];
         $this->assertCount(3, $filter);
-        $this->assertSame(['term' => ['labels.keyword' => 'Area: Checkout']], $filter[1]['bool']['should'][0]);
+        $this->assertSame(['term' => ['labels.keyword' => ['value' => 'Area: Checkout', 'case_insensitive' => true]]], $filter[1]['bool']['should'][0]);
         $this->assertSame(['term' => ['author.keyword' => ['value' => 'jane', 'case_insensitive' => true]]], $filter[2]);
     }
 
@@ -431,7 +484,7 @@ class CommunityPickCandidatesQueryTest extends TestCase
         ?string $area = null,
         ?string $component = null,
         ?string $author = null,
-        int $page = 1,
+        int $rows = CommunityPickCandidatesQuery::PER_PAGE,
         string $sort = CommunityPickCandidatesQuery::SORT_VOTES,
         ?string $title = null,
         array $issues = [],
@@ -441,12 +494,23 @@ class CommunityPickCandidatesQueryTest extends TestCase
         array $hits = [],
         ?int $total = null,
         array $narrowedFacets = [],
+        array $spellings = [],
     ): array {
         $buckets = static fn (array $keys): array => ['buckets' => array_map(static fn ($k): array => ['key' => $k, 'doc_count' => 1], $keys)];
 
         $client = Mockery::mock(Client::class);
         $client->shouldReceive('search')->andReturnUsing(
-            function (array $params) use ($issues, $linkedIssues, $prLabels, $authors, $hits, $total, $buckets, $narrowedFacets): array {
+            function (array $params) use ($issues, $linkedIssues, $prLabels, $authors, $hits, $total, $buckets, $narrowedFacets, $spellings): array {
+                if (isset($params['body']['aggs']['spellings'])) {
+                    $this->spellingRequests[] = $params;
+
+                    return ['aggregations' => ['spellings' => ['buckets' => array_map(
+                        static fn (string $label, int $updated): array => ['key' => $label, 'updated' => ['value' => $updated]],
+                        array_keys($spellings),
+                        $spellings,
+                    )]]];
+                }
+
                 if (str_ends_with($params['index'], 'github-issues')) {
                     $this->issueRequests[] = $params;
                     $ids = array_map('intval', $params['body']['query']['ids']['values']);
@@ -461,7 +525,7 @@ class CommunityPickCandidatesQueryTest extends TestCase
                     $this->facetRequests[] = $params;
                     // Filter clauses after the is_open term are the narrowing ones.
                     $narrowedBy = implode(',', array_map(
-                        static fn (array $clause): string => $clause['bool']['should'][0]['term']['labels.keyword']
+                        static fn (array $clause): string => $clause['bool']['should'][0]['term']['labels.keyword']['value']
                             ?? $clause['term']['author.keyword']['value']
                             ?? $clause['match_bool_prefix']['title']['query']
                             ?? $clause['bool']['should'][1]['match_bool_prefix']['title']['query'],
@@ -486,6 +550,6 @@ class CommunityPickCandidatesQueryTest extends TestCase
             }
         );
 
-        return (new CommunityPickCandidatesQuery($client))->execute($area, $component, $author, $page, $sort, $title);
+        return (new CommunityPickCandidatesQuery($client))->execute($area, $component, $author, $rows, $sort, $title);
     }
 }

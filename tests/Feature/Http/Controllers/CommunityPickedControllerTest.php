@@ -48,14 +48,16 @@ class CommunityPickedControllerTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('Community-picked PRs');
-        $response->assertSee('How community picking works');
-        $response->assertSee('then click 👍 on the PR description');
+        $response->assertDontSee('How community picking works');
+        $response->assertSee('then click 👍 on the PR description. After each voting period');
         $response->assertSee('Exclude orphan plugins from code generation');
         $response->assertSee('href="https://github.com/magento/magento2/pull/39812" target="_blank" rel="noopener"', false);
-        $response->assertSee('<td class="text-center text-nowrap">👍 8</td>', false);
+        $response->assertSee('<span class="cpr-votes">8<span class="visually-hidden"> votes</span></span>', false);
         $response->assertDontSee('aria-label="Vote for', false);
         $response->assertSee('href="https://github.com/'.config('github.repo').'/issues/39790"', false);
-        $response->assertSee('href="'.route('leaderboard.detail', ['board' => 'contributor', 'login' => 'swnsma']).'">swnsma</a>', false);
+        $response->assertSee('href="'.route('leaderboard.detail', ['board' => 'contributor', 'login' => 'swnsma']).'"
+                                       title="Contributions — @swnsma">@swnsma</a>', false);
+        $response->assertSee('<span class="cpr-issues-label">Issue</span>', false);
         $response->assertDontSee('href="https://github.com/swnsma"', false);
         $response->assertSee('3 months ago');
     }
@@ -67,16 +69,50 @@ class CommunityPickedControllerTest extends TestCase
         $this->get(route('prs.communityPicked'))->assertOk();
     }
 
-    public function testPassesPageToQueryAndPaginates(): void
+    public function testShowsFiftyMoreUpToTheTotal(): void
     {
         $requests = [];
         $this->bindClient([$this->candidate(1)], total: 120, requests: $requests);
 
-        $response = $this->get('/prs/community-picked?page=2');
+        $response = $this->get('/prs/community-picked');
 
         $response->assertOk();
-        $this->assertSame(50, $requests[0]['body']['from']);
-        $response->assertSee('community-picked?page=3', false);
+        $this->assertSame(50, $requests[0]['body']['size']);
+        $response->assertSee('120 open PRs');
+        $response->assertSee('community-picked?rows=100">Show 50 more</a>', false);
+        $response->assertSee('Showing 1–1 of 120');
+        $response->assertDontSee('page=2', false);
+    }
+
+    public function testRowsDeepensTheListAndDropsTheButtonAtTheEnd(): void
+    {
+        $requests = [];
+        $this->bindClient([$this->candidate(1)], total: 120, requests: $requests);
+
+        $response = $this->get('/prs/community-picked?rows=150');
+
+        $this->assertSame(150, $requests[0]['body']['size']);
+        $this->assertArrayNotHasKey('from', $requests[0]['body']);
+        $response->assertDontSee('Show 50 more');
+    }
+
+    public function testCountsASinglePr(): void
+    {
+        $this->bindClient([$this->candidate(1)]);
+
+        $this->get('/prs/community-picked')
+            ->assertSee('1 open PR<', false)
+            ->assertSee('Showing all 1')
+            ->assertDontSee('Show 50 more');
+    }
+
+    public function testRowWithNoLabelsOrIssuesHasNoSecondLine(): void
+    {
+        $this->bindClient([$this->candidate(1)]);
+
+        $this->get('/prs/community-picked')
+            ->assertDontSee('class="cpr-line2"', false)
+            ->assertDontSee('cpr-issues-label">', false);
     }
 
     public function testShowsEffectiveLabelsAndFilterOptions(): void
@@ -90,8 +126,10 @@ class CommunityPickedControllerTest extends TestCase
         $response = $this->get('/prs/community-picked');
 
         $response->assertSeeInOrder(['Area: APIs', 'Area: Checkout', 'Component: Quote']);
-        $response->assertSee('bg-primary-subtle text-primary-emphasis fw-normal">Area: Checkout</span>', false);
-        $response->assertSee('bg-success-subtle text-success-emphasis fw-normal">Component: Quote</span>', false);
+        $response->assertSee('<span class="cpr-area">Checkout</span>', false);
+        $response->assertSee('<span class="cpr-comp">Quote</span>', false);
+        $response->assertSee('<option value="">All areas</option>', false);
+        $response->assertSee('<option value="">All components</option>', false);
         $response->assertSee('<option value="Area: Checkout" >Checkout</option>', false);
         $response->assertSee('<option value="Component: Quote" >Quote</option>', false);
     }
@@ -112,7 +150,7 @@ class CommunityPickedControllerTest extends TestCase
         $this->assertCount(3, $requests[0]['body']['query']['bool']['filter']);
         $response->assertSee('<option value="Area: Checkout" selected>Checkout</option>', false);
         $response->assertSee('<option value="Component: Quote" selected>Quote</option>', false);
-        $response->assertSee('area=Area%3A%20Checkout&amp;component=Component%3A%20Quote&amp;page=2', false);
+        $response->assertSee('area=Area%3A%20Checkout&amp;component=Component%3A%20Quote&amp;rows=100', false);
     }
 
     public function testKeepsASharedFilterSelectableWhenNoCandidateCarriesIt(): void
@@ -123,7 +161,16 @@ class CommunityPickedControllerTest extends TestCase
 
         $response->assertSee('<option value="Area: Gone" selected>Gone</option>', false);
         $response->assertSee('No candidates match these filters.');
-        $response->assertSee('>Clear</a>', false);
+    }
+
+    public function testASharedLinkInAnOldSpellingSelectsTheCurrentLabel(): void
+    {
+        $this->bindClient([], prLabels: ['Area: Test Framework']);
+
+        $response = $this->get('/prs/community-picked?area='.urlencode('Area: Test framework'));
+
+        $response->assertSee('<option value="Area: Test Framework" selected>Test Framework</option>', false);
+        $response->assertDontSee('<option value="Area: Test framework"', false);
     }
 
     public function testRejectsLabelsOutsideTheirPrefix(): void
@@ -149,8 +196,7 @@ class CommunityPickedControllerTest extends TestCase
         );
         $response->assertSee('name="author" value="SWNSMA"', false);
         $response->assertSee('<option value="swnsma"></option>', false);
-        $response->assertSee('author=SWNSMA&amp;page=2', false);
-        $response->assertSee('>Clear</a>', false);
+        $response->assertSee('author=SWNSMA&amp;rows=100', false);
     }
 
     public function testAcceptsBotLogins(): void
@@ -183,8 +229,7 @@ class CommunityPickedControllerTest extends TestCase
             $requests[0]['body']['query']['bool']['filter'],
         );
         $response->assertSee('name="title" value="orphan plug"', false);
-        $response->assertSee('title=orphan%20plug&amp;page=2', false);
-        $response->assertSee('>Clear</a>', false);
+        $response->assertSee('title=orphan%20plug&amp;rows=100', false);
     }
 
     public function testTitleBoxFindsAPrByNumber(): void
@@ -218,7 +263,7 @@ class CommunityPickedControllerTest extends TestCase
         $response->assertSee('<option value="votes" selected>Most votes</option>', false);
     }
 
-    public function testSortsByAgeAndKeepsSortAcrossPagesAndClear(): void
+    public function testSortsByAgeAndKeepsSortWhenShowingMore(): void
     {
         $requests = [];
         $this->bindClient([$this->candidate(1)], total: 120, requests: $requests);
@@ -228,8 +273,7 @@ class CommunityPickedControllerTest extends TestCase
         $response->assertOk();
         $this->assertSame(['created_at' => ['order' => 'asc']], $requests[0]['body']['sort'][0]);
         $response->assertSee('<option value="oldest" selected>Oldest first</option>', false);
-        $response->assertSee('sort=oldest&amp;area=Area%3A%20Checkout&amp;page=2', false);
-        $response->assertSee('href="'.route('prs.communityPicked', ['sort' => 'oldest']).'" class="btn btn-link">Clear</a>', false);
+        $response->assertSee('sort=oldest&amp;area=Area%3A%20Checkout&amp;rows=100', false);
     }
 
     public function testCanSwitchBackToMostVotes(): void
@@ -249,12 +293,13 @@ class CommunityPickedControllerTest extends TestCase
         $this->get('/prs/community-picked?sort=random')->assertSessionHasErrors('sort');
     }
 
-    public function testRejectsInvalidPage(): void
+    public function testRejectsInvalidRows(): void
     {
         $this->bindClient([]);
 
-        $this->get('/prs/community-picked?page=abc')->assertSessionHasErrors('page');
-        $this->get('/prs/community-picked?page=201')->assertSessionHasErrors('page');
+        $this->get('/prs/community-picked?rows=abc')->assertSessionHasErrors('rows');
+        $this->get('/prs/community-picked?rows=0')->assertSessionHasErrors('rows');
+        $this->get('/prs/community-picked?rows=10001')->assertSessionHasErrors('rows');
     }
 
     public function testShowsEmptyStateWhenNoCandidates(): void
@@ -318,6 +363,10 @@ class CommunityPickedControllerTest extends TestCase
 
         $client = Mockery::mock(Client::class);
         $client->shouldReceive('search')->andReturnUsing(static function (array $params) use ($sources, $total, &$requests, $prLabels, $issues, $authors, $buckets): array {
+            if (isset($params['body']['aggs']['spellings'])) {
+                return ['aggregations' => ['spellings' => ['buckets' => []]]];
+            }
+
             if (str_ends_with($params['index'], 'github-issues')) {
                 return ['hits' => ['hits' => array_map(
                     static fn (int $id, array $labels): array => ['_id' => (string) $id, '_source' => ['labels' => $labels]],

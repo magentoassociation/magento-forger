@@ -51,7 +51,7 @@
                             @endif
                         </span>
                         <span class="acct-name">{{ $acctName }}</span>
-                        <span class="acct-caret" aria-hidden="true">▾</span>
+                        @include('components._caret')
                     </button>
                     <div class="dropdown-menu dropdown-menu-end acct-menu" role="menu" aria-labelledby="acct-chip">
                         {{-- Name is already in the chip's accessible name; hide the visual repeat. --}}

@@ -69,7 +69,7 @@ class MainMenu
                     $dropdownHtml = sprintf(
                         '<li class="nav-item dropdown">
         <a class="nav-link dropdown-toggle%s" href="#" id="dropdown-%s" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-            %s <span class="nav-caret" aria-hidden="true">▾</span>
+            %s%s
         </a>
         <ul class="dropdown-menu" aria-labelledby="dropdown-%s">
             %s
@@ -78,8 +78,9 @@ class MainMenu
                         $isActive,     // %1$s
                         $mainItem,             // %2$s
                         self::formatLabel($mainItem),    // %3$s
-                        $mainItem,             // %4$s again for aria-labelledby
-                        $submenuItems          // %5$s
+                        trim(view('components._caret')->render()),    // %4$s
+                        $mainItem,             // %5$s again for aria-labelledby
+                        $submenuItems          // %6$s
                     );
 
                     $menu->add(Html::raw(trim($dropdownHtml)));

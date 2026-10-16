@@ -100,9 +100,9 @@
         font-weight: 600;
     }
 
-    /* Dropdown parents carry a ▾ glyph in the label (matches the account chip), not Bootstrap's border caret. */
+    /* Dropdown parents carry the SVG chevron (README "Dropdown caret"), not Bootstrap's border caret. */
     .site-nav .navbar-nav .dropdown-toggle::after { display: none; }
-    .site-nav .nav-caret { font-size: 10px; line-height: 1; opacity: .75; }
+    .site-nav .dropdown-toggle .caret { margin-left: 5px; vertical-align: 2px; }
 
     /* Right-hand group: utility links + login */
     .site-endgroup {
@@ -177,7 +177,8 @@
         text-overflow: ellipsis;
         white-space: nowrap;
     }
-    .acct-caret { font-size: 10px; color: #9aa3ae; line-height: 1; }
+    /* The chip's 9px gap less 4px leaves the caret's 5px from the name. */
+    .acct-chip .caret { flex: none; margin-left: -4px; color: #9aa3ae; }
 
     .acct-menu {
         width: 196px;
@@ -243,7 +244,7 @@
 
     /* Below lg the chip collapses to the avatar alone; stays in the bar */
     @media (max-width: 991.98px) {
-        .acct-name, .acct-caret { display: none; }
+        .acct-name, .acct-chip .caret { display: none; }
         .acct-chip { padding: 6px; }
     }
 

@@ -25,11 +25,12 @@ contributor board, `#19b` the contributor scoring modal, and so on.
 | `README-header.md` | Dark masthead, nav, account chip, footer | `#11a` `#12a` `#13a` `#16a` `#24a` |
 | `README-homepage.md` | Hero, live top-five card, area grid, first-timer steps | `#15a` `#24d` |
 | `README-leaderboard-pages.md` | All three boards: control strip, search, jump, pagination, hover, narrow widths | `#21a` `#21b` `#21c` `#22a` `#22b` `#22d` `#22c` `#23a` `#23b` `#23c` `#24a` `#25b` |
-| `README-detail-page.md` | Contributor and maintainer detail, all four states, Grouped and List views | `#17a` `#17b` `#17c` `#17d` `#18a` `#18b` `#24b` |
+| `README-detail-page.md` | Contributor and maintainer detail, all four states, Grouped and List views, monthly detail | `#17a` `#17b` `#17c` `#17d` `#18a` `#18b` `#18c` `#18d` `#24b` |
 | `README-scoring-modal.md` | Both scoring modals, the monthly no-decay variant, and the scoring button rule | `#19a` `#19b` `#19c` `#24c` |
 | `README-how-scores-work.md` | Standalone scoring page, both boards side by side | `#20a` |
 | `README-highlights.md` | New contributor spotlight, Comebacks, Rising, Recently active | `#8b` |
 | `README-issues-prs-by-month.md` | Both by-month timelines, colour thresholds, month picker | `#14b` `#24e` |
+| `README-community-picked.md` | Community-picked PRs: vote-ranked list, filters, two-line rows | `#27b` `#27c` |
 
 Three rules are stated once and apply everywhere: **capitalisation** (below), **focus rings**
 and **hover states** (both in `README-leaderboard-pages.md`).
@@ -283,6 +284,15 @@ One hairline, one value. Earlier prototype cards render row rules as `#eff0f2` o
 those are the same rule at different drafts. Use `#f0f1f3` everywhere and do not reintroduce
 the near-identical variants. The same goes for borders: `#e3e5e8` and `#e6e8ea` as border or
 rule colours are `#e6e7ea`.
+
+### Dropdown caret
+Every control that opens a menu or a select (the Issues and PRs nav items, the account chip,
+filter and sort selects) carries the same caret: an inline SVG chevron, **7×5px** (`viewBox="0 0 12 8"`), path
+`M1.5 1.75 6 6.25l4.5-4.5`, stroke `currentColor`, `stroke-width` **2.25** (≈1.3px rendered), round caps and joins,
+`aria-hidden="true"`. Do not use the `▾` text glyph; at any readable size it is too small and
+too narrow to read as an arrow. Colour: `#9aa3ae` on dark controls, `#6b7178` on light ones;
+nav items inherit the link colour. After a label it sits `5px` from the text (`margin-left` or
+the control's flex `gap`), `vertical-align: 2px` when inline.
 
 ### Score formatting
 Scores show one decimal, always (`839.3`, `15.0`, `0.0`), in tabular figures. No thousands

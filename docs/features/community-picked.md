@@ -15,14 +15,16 @@ One public page, `GET /prs/community-picked` (`prs.communityPicked`), listed in 
   - `votes` (default): `thumbs_up_count` desc, then `created_at` asc
   - `oldest`: `created_at` asc, then `thumbs_up_count` desc
   - `newest`: `created_at` desc, then `thumbs_up_count` desc
-  - Any other value fails validation. Clear resets the filters but keeps the sort.
-- 50 per page; `page` is validated to 1–200 because OpenSearch caps `from + size` at 10,000
+  - Any other value fails validation.
+- `?rows=` is the list depth (default 50, validated to 1–10,000 because OpenSearch caps `from + size` at 10,000). The query always fetches from the top. "Show 50 more" links to the next depth; with JavaScript it fetches that URL and appends only the new rows. The button goes at the end of the list.
 
-Each row shows the 👍 count (plain text; the PR number links to GitHub, new tab), number + title, Linked Issues, Effective Area/Component labels, author (linked to their Forger contributor page, `leaderboard.detail`), and age.
+There's no Filter button. Selects apply on change; the title and author fields apply on Enter or after a 300ms typing pause. With JavaScript the page fetches its own URL and swaps in the results and the dependent filter options, so focus stays in the field; the URL is updated with `replaceState`. Without JavaScript, Enter submits the form.
+
+Each row (design spec `design/specs/README-community-picked.md`) shows the 👍 count, then two lines: the PR number (links to GitHub, new tab) and title, then outlined Area pills, filled Component pills (prefixes stripped) and Linked Issues. The second line is omitted when a PR has none. Author (linked to their Forger contributor page, `leaderboard.detail`) and age sit in the right column, or on a third line below 700px.
 
 ### Filtering by Area / Component
 
-Two GET dropdowns, `?area=Area: …` and `?component=Component: …`, combined with AND (and with the author filter below). Filtered URLs are shareable, and pagination keeps the filters. A PR matches a label when its **Effective Labels** (CONTEXT.md) include it: the PR carries the label itself, or any Linked Issue does.
+Two GET dropdowns, `?area=Area: …` and `?component=Component: …`, combined with AND (and with the author filter below). Filtered URLs are shareable, and Show 50 more keeps the filters. A PR matches a label when its **Effective Labels** (CONTEXT.md) include it: the PR carries the label itself, or any Linked Issue does.
 
 OpenSearch has no joins, so each request makes three searches:
 
@@ -32,9 +34,11 @@ OpenSearch has no joins, so each request makes three searches:
 
 The dropdown options are the union of steps 1 and 2. They're **dependent**: when an Area is selected, the Component options come from a second facet aggregation over just the candidates matching that Area, and vice versa. That's up to two extra searches. Neither dropdown is narrowed by its own selection, so you can still switch Area freely. The linked issues in a narrowed facet are a subset of step 1's, so step 2's labels already cover them.
 
-Because of this, any Area + Component pair picked from the lists returns at least one candidate. Only a shared link can name a pair that matches nothing, for example after a PR is relabelled or closed. The stale label stays selected, and the page shows "No candidates match these filters." with a Clear link.
+Because of this, any Area + Component pair picked from the lists returns at least one candidate. Only a shared link can name a pair that matches nothing, for example after a PR is relabelled or closed. The stale label stays selected, and the page shows "No candidates match these filters." Clearing the filters is done in the controls themselves.
 
 Linked Issue labels are read on every request rather than copied onto PR documents. Retagging an issue shows up after the next issue sync, with no PR re-sync needed.
+
+GitHub label names are unique ignoring case, so labels that differ only in case are treated as one. Renaming a label doesn't bump `updatedAt`, so after a case-only rename the incremental syncs leave the old spelling on documents until the weekly full sync. One more search (a terms aggregation over both indices, with the max `updated_at` per spelling) picks the spelling on the most recently updated document. Options, row pills and Linked Issue labels use that spelling, and the label `term` filter is `case_insensitive`, so a shared link in the old spelling still matches. A rename that changes the words isn't merged; it waits for the weekly full sync.
 
 `area` must start with `Area: ` and `component` with `Component: `; any other value fails validation and never reaches OpenSearch.
 
@@ -73,9 +77,9 @@ Adding a reaction does **not** bump a PR's `updatedAt`. Checked against live dat
 
 ## Key files
 
-- `app/Http/Controllers/CommunityPickedController.php` — page controller, `page` validation
-- `app/Queries/Dashboard/CommunityPickCandidatesQuery.php` — candidate rule, sort, pagination
-- `resources/views/communityPicked/index.blade.php` — table view
+- `app/Http/Controllers/CommunityPickedController.php` — page controller, `rows` validation
+- `app/Queries/Dashboard/CommunityPickCandidatesQuery.php` — candidate rule, sort, depth
+- `resources/views/communityPicked/` — list view, `_styles`, `_script` (filter-as-you-type, Show 50 more)
 - `app/Console/Commands/SyncGitHubPrReactions.php` — 15-minute 👍 / Linked Issue refresh
 - `resources/graphql/github/github_pr_reactions.graphql` — open-PR reactions query
 - `config/github.php` — `community_picked.exclude_labels`

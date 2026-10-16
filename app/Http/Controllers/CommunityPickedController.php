@@ -8,24 +8,17 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
-use App\DataTransferObjects\Misc\InfoText;
 use App\Queries\Dashboard\CommunityPickCandidatesQuery;
 use Illuminate\Http\Request;
-use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class CommunityPickedController extends Controller
 {
-    /**
-     * OpenSearch refuses from + size beyond 10,000 hits (max_result_window).
-     */
-    private const MAX_PAGE = 10000 / CommunityPickCandidatesQuery::PER_PAGE;
-
     public function index(Request $request, CommunityPickCandidatesQuery $query): View
     {
         $filters = $request->validate([
-            'page' => ['nullable', 'integer', 'min:1', 'max:'.self::MAX_PAGE],
+            'rows' => ['nullable', 'integer', 'min:1', 'max:'.CommunityPickCandidatesQuery::MAX_ROWS],
             // bail: starts_with throws on an array (?area[]=x) instead of failing.
             'area' => ['bail', 'nullable', 'string', 'max:255', 'starts_with:'.CommunityPickCandidatesQuery::AREA_PREFIX],
             'component' => ['bail', 'nullable', 'string', 'max:255', 'starts_with:'.CommunityPickCandidatesQuery::COMPONENT_PREFIX],
@@ -35,7 +28,7 @@ class CommunityPickedController extends Controller
             'title' => ['bail', 'nullable', 'string', 'max:200'],
         ]);
         $sort = $filters['sort'] ?? CommunityPickCandidatesQuery::SORT_VOTES;
-        $page = (int) ($filters['page'] ?? 1);
+        $rows = (int) ($filters['rows'] ?? CommunityPickCandidatesQuery::PER_PAGE);
         $area = $filters['area'] ?? null;
         $component = $filters['component'] ?? null;
         $author = $filters['author'] ?? null;
@@ -44,7 +37,7 @@ class CommunityPickedController extends Controller
         $dataMissing = false;
 
         try {
-            $result = $query->execute($area, $component, $author, $page, $sort, $title);
+            $result = $query->execute($area, $component, $author, $rows, $sort, $title);
         } catch (\Exception $e) {
             if (! $this->isMissingIndex($e)) {
                 abort(500, 'Error fetching PR data: '.$e->getMessage());
@@ -54,14 +47,12 @@ class CommunityPickedController extends Controller
         }
 
         return view('communityPicked/index', [
-            'infoText' => $this->getInfoText(),
-            'candidates' => new LengthAwarePaginator(
-                $result['rows'],
-                $result['total'],
-                CommunityPickCandidatesQuery::PER_PAGE,
-                $page,
-                ['path' => $request->url(), 'query' => $request->query()],
-            ),
+            'candidates' => $result['rows'],
+            'total' => $result['total'],
+            // Next depth, or null at the end of the list (or at OpenSearch's window).
+            'moreRows' => $rows < min($result['total'], CommunityPickCandidatesQuery::MAX_ROWS)
+                ? min($rows + CommunityPickCandidatesQuery::PER_PAGE, CommunityPickCandidatesQuery::MAX_ROWS)
+                : null,
             // Not `component`: Blade reserves $component for component rendering.
             'selectedArea' => $area,
             'selectedComponent' => $component,
@@ -73,18 +64,5 @@ class CommunityPickedController extends Controller
             'authorOptions' => $result['authorOptions'],
             'dataMissing' => $dataMissing,
         ]);
-    }
-
-    private function getInfoText(): InfoText
-    {
-        return new InfoText(
-            title: 'How community picking works',
-            paragraphs: [
-                'Vote for the open pull requests you want merged into Magento 2: click a PR\'s number to open it '.
-                    'on GitHub, then click 👍 on the PR description.',
-                'After each voting period, the top-voted PRs are prioritized for merging. '.
-                    'Vote counts refresh from GitHub every 15 minutes.',
-            ]
-        );
     }
 }

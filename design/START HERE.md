@@ -6,7 +6,7 @@ Two things in this folder.
 It is the visual reference: every approved design, newest first, each with an id badge
 (`21a`, `19b`, `24d`). The specs cite those ids.
 
-**`specs/`** — nine markdown documents. Start with `specs/README.md`; it opens with an index
+**`specs/`** — ten markdown documents. Start with `specs/README.md`; it opens with an index
 mapping each spec to the prototype ids it describes.
 
 ## Before you plan the work

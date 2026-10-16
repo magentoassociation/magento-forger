@@ -1,134 +1,145 @@
 @use('App\Queries\Dashboard\CommunityPickCandidatesQuery')
+@use('Illuminate\Support\Str')
 @extends('layouts.app')
 
 @section('content')
-    @if ($dataMissing)
-        <x-data-missing>
-            The pull-requests index is empty or missing. Run
-            <code>ddev artisan sync:github:prs</code> to populate it.
-        </x-data-missing>
-    @endif
-
-    <x-info-text :info="$infoText" />
-
     @php
         $repoUrl = 'https://github.com/'.config('github.repo');
         $filtered = $selectedArea || $selectedComponent || $selectedAuthor || $selectedTitle;
         // A shared link may name a label no current candidate carries; keep it selectable.
-        $withSelected = fn (?string $selected, array $options): array => $selected && ! in_array($selected, $options, true) ? [$selected, ...$options] : $options;
+        // Labels are compared ignoring case: the link may carry a spelling from before a rename.
+        $withSelected = fn (?string $selected, array $options): array => $selected && ! in_array(mb_strtolower($selected), array_map('mb_strtolower', $options), true) ? [$selected, ...$options] : $options;
         $filters = [
-            'area' => ['label' => 'Area', 'selected' => $selectedArea, 'options' => $withSelected($selectedArea, $areaOptions)],
-            'component' => ['label' => 'Component', 'selected' => $selectedComponent, 'options' => $withSelected($selectedComponent, $componentOptions)],
+            'area' => ['label' => 'Area', 'all' => 'All areas', 'selected' => $selectedArea, 'options' => $withSelected($selectedArea, $areaOptions)],
+            'component' => ['label' => 'Component', 'all' => 'All components', 'selected' => $selectedComponent, 'options' => $withSelected($selectedComponent, $componentOptions)],
         ];
+        $sorts = [CommunityPickCandidatesQuery::SORT_VOTES => 'Most votes', CommunityPickCandidatesQuery::SORT_OLDEST => 'Oldest first', CommunityPickCandidatesQuery::SORT_NEWEST => 'Newest first'];
+        $shown = count($candidates);
     @endphp
 
-    @unless ($dataMissing)
-        <form method="GET" action="{{ route('prs.communityPicked') }}" class="row g-2 align-items-end mb-3">
-            <div class="col-sm-auto">
-                <label for="filter-title" class="form-label mb-1">Title</label>
-                <input type="search" id="filter-title" name="title" value="{{ $selectedTitle }}"
-                       class="form-control" placeholder="Title words or PR #" maxlength="200"
-                       onchange="this.form.submit()">
-            </div>
-            @foreach ($filters as $name => $filter)
-                <div class="col-sm-auto">
-                    <label for="filter-{{ $name }}" class="form-label mb-1">{{ $filter['label'] }}</label>
-                    <select id="filter-{{ $name }}" name="{{ $name }}" class="form-select" onchange="this.form.submit()">
-                        <option value="">All</option>
+    <div class="lb cp">
+        @if ($dataMissing)
+            <x-data-missing>
+                The pull-requests index is empty or missing. Run
+                <code>ddev artisan sync:github:prs</code> to populate it.
+            </x-data-missing>
+        @endif
+
+        <p class="lb-intro">Vote for the open pull requests you want merged into Magento 2: click a PR's number to open it on GitHub, then click 👍 on the PR description. After each voting period, the top-voted PRs are prioritized for merging. Vote counts refresh from GitHub every 15 minutes.</p>
+
+        @unless ($dataMissing)
+            {{-- No Filter button: selects apply on change, text fields on Enter or a typing pause (script below). --}}
+            <form method="GET" action="{{ route('prs.communityPicked') }}" class="cp-strip" role="search">
+                <div class="lb-search cp-search">
+                    <span class="lb-search-ico" aria-hidden="true">⌕</span>
+                    <input type="search" name="title" value="{{ $selectedTitle }}" class="lb-search-input"
+                           placeholder="Title words or PR #" aria-label="Title words or PR number"
+                           maxlength="200" autocomplete="off">
+                </div>
+                @foreach ($filters as $name => $filter)
+                    <select name="{{ $name }}" class="cp-select" aria-label="{{ $filter['label'] }}">
+                        <option value="">{{ $filter['all'] }}</option>
                         @foreach ($filter['options'] as $option)
-                            <option value="{{ $option }}" @selected($option === $filter['selected'])>{{ \Illuminate\Support\Str::after($option, ': ') }}</option>
+                            <option value="{{ $option }}" @selected(mb_strtolower($option) === mb_strtolower((string) $filter['selected']))>{{ Str::after($option, ': ') }}</option>
                         @endforeach
                     </select>
-                </div>
-            @endforeach
-            <div class="col-sm-auto">
-                <label for="filter-author" class="form-label mb-1">Author</label>
-                <input type="search" id="filter-author" name="author" value="{{ $selectedAuthor }}" list="filter-author-options"
-                       class="form-control" placeholder="GitHub username" autocomplete="off" spellcheck="false"
-                       maxlength="50" onchange="this.form.submit()">
-                <datalist id="filter-author-options">
+                @endforeach
+                <input type="search" name="author" value="{{ $selectedAuthor }}" list="cp-author-options"
+                       class="cp-input" placeholder="Author handle" aria-label="Author handle"
+                       autocomplete="off" spellcheck="false" maxlength="50">
+                <datalist id="cp-author-options">
                     @foreach ($authorOptions as $option)
                         <option value="{{ $option }}"></option>
                     @endforeach
                 </datalist>
-            </div>
-            <div class="col-sm-auto">
-                <label for="filter-sort" class="form-label mb-1">Sort</label>
-                <select id="filter-sort" name="sort" class="form-select" onchange="this.form.submit()">
-                    @foreach ([CommunityPickCandidatesQuery::SORT_VOTES => 'Most votes', CommunityPickCandidatesQuery::SORT_OLDEST => 'Oldest first', CommunityPickCandidatesQuery::SORT_NEWEST => 'Newest first'] as $value => $label)
+                <select name="sort" class="cp-select cp-select--dark" aria-label="Sort">
+                    @foreach ($sorts as $value => $label)
                         <option value="{{ $value }}" @selected($value === $sort)>{{ $label }}</option>
                     @endforeach
                 </select>
-            </div>
-            <div class="col-sm-auto">
-                <button type="submit" class="btn btn-primary">Filter</button>
-                @if ($filtered)
-                    {{-- Clears the filters, keeps the sort. --}}
-                    <a href="{{ route('prs.communityPicked', $sort === CommunityPickCandidatesQuery::SORT_VOTES ? [] : ['sort' => $sort]) }}" class="btn btn-link">Clear</a>
-                @endif
-            </div>
-        </form>
-    @endunless
+                {{-- Default button: Enter in either text field submits without JavaScript. --}}
+                <button type="submit" hidden>Filter</button>
+            </form>
+        @endunless
 
-    @if ($candidates->isEmpty() && ! $dataMissing)
-        <div class="alert alert-info text-center">
-            <h4>{{ $filtered ? 'No candidates match these filters.' : 'No community pick candidates right now.' }}</h4>
-        </div>
-    @elseif ($candidates->isNotEmpty())
-        <div class="table-responsive">
-            <table class="table align-middle">
-                <thead>
-                    <tr>
-                        <th scope="col" class="text-center">👍</th>
-                        <th scope="col">Pull request</th>
-                        <th scope="col">Linked issues</th>
-                        <th scope="col">Area / Component</th>
-                        <th scope="col">Author</th>
-                        <th scope="col">Age</th>
-                    </tr>
-                </thead>
-                <tbody>
+        <div class="cp-results">
+            @unless ($dataMissing)
+                <p class="cp-count">{{ number_format($total) }} open {{ $total === 1 ? 'PR' : 'PRs' }}</p>
+            @endunless
+
+            @if ($shown === 0 && ! $dataMissing)
+                <div class="lb-empty">
+                    <p class="lb-empty-1">{{ $filtered ? 'No candidates match these filters.' : 'No community pick candidates right now.' }}</p>
+                </div>
+            @elseif ($shown > 0)
+                <div class="cp-colhead" role="presentation">
+                    <span>Votes</span>
+                    <span>Pull request</span>
+                    <span class="cp-col-meta">Author · Age</span>
+                </div>
+
+                <div class="cp-rows">
                     @foreach ($candidates as $pr)
-                        <tr>
-                            <td class="text-center text-nowrap">👍 {{ number_format($pr['thumbs_up_count']) }}</td>
-                            <td>
-                                <a href="{{ $pr['url'] }}" target="_blank" rel="noopener">#{{ $pr['number'] }}</a>
-                                {{ $pr['title'] }}
-                            </td>
-                            <td>
-                                @forelse ($pr['linked_issues'] as $issue)
-                                    <a href="{{ $repoUrl }}/issues/{{ $issue }}" target="_blank" rel="noopener">#{{ $issue }}</a>@if (! $loop->last), @endif
-                                @empty
-                                    <span class="text-muted">—</span>
-                                @endforelse
-                            </td>
-                            <td>
-                                @forelse ($pr['labels'] as $label)
-                                    @php $color = str_starts_with($label, CommunityPickCandidatesQuery::COMPONENT_PREFIX) ? 'success' : 'primary'; @endphp
-                                    <span class="badge rounded-pill bg-{{ $color }}-subtle text-{{ $color }}-emphasis fw-normal">{{ $label }}</span>
-                                @empty
-                                    <span class="text-muted">—</span>
-                                @endforelse
-                            </td>
-                            <td>
-                                @if ($pr['author'])
-                                    <a href="{{ route('leaderboard.detail', ['board' => 'contributor', 'login' => $pr['author']]) }}">{{ $pr['author'] }}</a>
-                                @else
-                                    <span class="text-muted">—</span>
+                        @php
+                            $areas = array_filter($pr['labels'], fn (string $label): bool => str_starts_with($label, CommunityPickCandidatesQuery::AREA_PREFIX));
+                            $components = array_filter($pr['labels'], fn (string $label): bool => str_starts_with($label, CommunityPickCandidatesQuery::COMPONENT_PREFIX));
+                            $createdAt = \Carbon\Carbon::parse($pr['created_at']);
+                        @endphp
+                        <div class="cpr" tabindex="-1">
+                            <span class="cpr-votes">{{ number_format($pr['thumbs_up_count']) }}<span class="visually-hidden"> votes</span></span>
+                            <div class="cpr-pr">
+                                <div class="cpr-line1">
+                                    <a class="cpr-num" href="{{ $pr['url'] }}" target="_blank" rel="noopener">#{{ $pr['number'] }}</a>
+                                    <span class="cpr-title">{{ $pr['title'] }}</span>
+                                </div>
+                                @if ($pr['labels'] || $pr['linked_issues'])
+                                    <div class="cpr-line2">
+                                        @foreach ($areas as $label)
+                                            <span class="cpr-area">{{ Str::after($label, ': ') }}</span>
+                                        @endforeach
+                                        @foreach ($components as $label)
+                                            <span class="cpr-comp">{{ Str::after($label, ': ') }}</span>
+                                        @endforeach
+                                        @if ($pr['linked_issues'])
+                                            <span class="cpr-issues">
+                                                <span class="cpr-issues-label">Issue</span>
+                                                @foreach ($pr['linked_issues'] as $issue)
+                                                    <a class="cpr-issue" href="{{ $repoUrl }}/issues/{{ $issue }}" target="_blank" rel="noopener">#{{ $issue }}</a>
+                                                @endforeach
+                                            </span>
+                                        @endif
+                                    </div>
                                 @endif
-                            </td>
-                            @php $createdAt = \Carbon\Carbon::parse($pr['created_at']); @endphp
-                            <td class="text-nowrap">
-                                <time datetime="{{ $createdAt->toIso8601String() }}" title="{{ $createdAt->toFormattedDateString() }}">
-                                    {{ $createdAt->diffForHumans() }}
-                                </time>
-                            </td>
-                        </tr>
+                            </div>
+                            <div class="cpr-meta">
+                                @if ($pr['author'])
+                                    <a class="cpr-author" href="{{ route('leaderboard.detail', ['board' => 'contributor', 'login' => $pr['author']]) }}"
+                                       title="Contributions — {{ '@'.$pr['author'] }}">{{ '@'.$pr['author'] }}</a>
+                                @endif
+                                <time class="cpr-age" datetime="{{ $createdAt->toIso8601String() }}" title="{{ $createdAt->toFormattedDateString() }}">{{ $createdAt->diffForHumans() }}</time>
+                            </div>
+                        </div>
                     @endforeach
-                </tbody>
-            </table>
+                </div>
+
+                <div class="lb-pager">
+                    @if ($moreRows)
+                        <a class="lb-more" href="{{ request()->fullUrlWithQuery(['rows' => $moreRows]) }}">Show {{ CommunityPickCandidatesQuery::PER_PAGE }} more</a>
+                    @endif
+                    <span class="lb-count-stmt">{{ $shown >= $total ? 'Showing all '.number_format($total) : 'Showing 1–'.number_format($shown).' of '.number_format($total) }}</span>
+                </div>
+            @endif
         </div>
 
-        {{ $candidates->links('pagination::bootstrap-5') }}
-    @endif
+        <span class="cp-live visually-hidden" aria-live="polite"></span>
+    </div>
 @endsection
+
+@push('head')
+    @include('leaderboard._lb-styles')
+    @include('communityPicked._styles')
+@endpush
+
+@push('scripts')
+    @include('communityPicked._script')
+@endpush

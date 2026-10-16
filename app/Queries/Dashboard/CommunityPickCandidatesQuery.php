@@ -21,10 +21,20 @@ use OpenSearch\Client;
  * from the issues index on every request; retagging an issue needs no PR re-sync.
  * The author filter matches the PR author's GitHub login, ignoring case; the title
  * filter matches every word of the PR title, the last as a prefix, or a PR number.
+ *
+ * GitHub label names are unique ignoring case, so labels differing only in case are
+ * one label: a rename that only changed case leaves the old spelling on documents the
+ * syncs haven't re-read. Each label shows in its spelling on the most recently updated
+ * document, and filters match every spelling.
  */
 class CommunityPickCandidatesQuery
 {
     public const PER_PAGE = 50;
+
+    /**
+     * OpenSearch refuses from + size beyond 10,000 hits (max_result_window).
+     */
+    public const MAX_ROWS = 10000;
 
     public const AREA_PREFIX = 'Area: ';
 
@@ -39,6 +49,11 @@ class CommunityPickCandidatesQuery
     public const SORTS = [self::SORT_VOTES, self::SORT_OLDEST, self::SORT_NEWEST];
 
     private const FILTER_LABEL_PATTERN = '(Area|Component): .*';
+
+    /**
+     * @var array<string, string> Lowercased label => spelling to show.
+     */
+    private array $spellings = [];
 
     public function __construct(private readonly Client $client) {}
 
@@ -57,10 +72,11 @@ class CommunityPickCandidatesQuery
         ?string $area = null,
         ?string $component = null,
         ?string $author = null,
-        int $page = 1,
+        int $rows = self::PER_PAGE,
         string $sort = self::SORT_VOTES,
         ?string $title = null,
     ): array {
+        $this->spellings = $this->labelSpellings();
         $candidates = $this->candidateQuery();
         $allFacets = $this->candidateFacets($candidates);
         $issueLabels = $this->issueLabels($allFacets['linkedIssues']);
@@ -94,8 +110,8 @@ class CommunityPickCandidatesQuery
         $response = $this->client->search([
             'index' => $this->pullRequestIndex(),
             'body' => [
-                'from' => (max($page, 1) - 1) * self::PER_PAGE,
-                'size' => self::PER_PAGE,
+                // The page shows the first $rows; "Show 50 more" asks for a deeper list.
+                'size' => max($rows, 1),
                 'track_total_hits' => true,
                 '_source' => ['id', 'title', 'url', 'author', 'created_at', 'thumbs_up_count', 'linked_issues', 'labels'],
                 'query' => $query,
@@ -158,10 +174,8 @@ class CommunityPickCandidatesQuery
         foreach ($facets['linkedIssues'] as $issue) {
             $options = array_merge($options, $issueLabels[$issue] ?? []);
         }
-        $options = array_values(array_unique($options));
-        sort($options);
 
-        return $options;
+        return $this->uniqueSorted($options);
     }
 
     /**
@@ -203,7 +217,7 @@ class CommunityPickCandidatesQuery
 
         return [
             'linkedIssues' => array_map('intval', $keys('linked_issues')),
-            'prLabels' => array_map('strval', $keys('pr_labels')),
+            'prLabels' => $this->uniqueSorted(array_map('strval', $keys('pr_labels'))),
             'authors' => array_map('strval', $keys('authors')),
         ];
     }
@@ -232,7 +246,7 @@ class CommunityPickCandidatesQuery
 
         $labels = [];
         foreach ($response['hits']['hits'] ?? [] as $hit) {
-            $labels[(int) $hit['_id']] = $this->filterLabels($hit['_source']['labels'] ?? []);
+            $labels[(int) $hit['_id']] = $this->uniqueSorted($this->filterLabels($hit['_source']['labels'] ?? []));
         }
 
         return $labels;
@@ -246,8 +260,9 @@ class CommunityPickCandidatesQuery
      */
     private function matchesEffectiveLabel(string $label, array $issueLabels): array
     {
-        $should = [['term' => ['labels.keyword' => $label]]];
+        $should = [['term' => ['labels.keyword' => ['value' => $label, 'case_insensitive' => true]]]];
 
+        $label = $this->spelling($label);
         $issues = array_keys(array_filter($issueLabels, static fn (array $labels): bool => in_array($label, $labels, true)));
         if ($issues !== []) {
             $should[] = ['terms' => ['linked_issues' => $issues]];
@@ -287,8 +302,7 @@ class CommunityPickCandidatesQuery
         foreach ($linkedIssues as $issue) {
             $labels = array_merge($labels, $issueLabels[$issue] ?? []);
         }
-        $labels = array_values(array_unique($labels));
-        sort($labels);
+        $labels = $this->uniqueSorted($labels);
 
         return [
             'number' => (int) $source['id'],
@@ -312,6 +326,62 @@ class CommunityPickCandidatesQuery
             $labels,
             static fn (string $label): bool => preg_match('/^'.self::FILTER_LABEL_PATTERN.'$/', $label) === 1,
         ));
+    }
+
+    /**
+     * Each Area/Component label, lowercased, mapped to its spelling on the most recently
+     * updated issue or PR — the one a sync has read since any rename.
+     *
+     * @return array<string, string>
+     */
+    private function labelSpellings(): array
+    {
+        $response = $this->client->search([
+            'index' => $this->pullRequestIndex().','.OpenSearchService::getIndexWithPrefix(OpenSearchService::OPENSEARCH_GITHUB_ISSUES_INDEX),
+            'body' => [
+                'size' => 0,
+                'aggs' => ['spellings' => [
+                    'terms' => ['field' => 'labels.keyword', 'size' => 1000, 'include' => self::FILTER_LABEL_PATTERN],
+                    'aggs' => ['updated' => ['max' => ['field' => 'updated_at']]],
+                ]],
+            ],
+        ]);
+
+        $latest = [];
+        $spellings = [];
+        foreach ($response['aggregations']['spellings']['buckets'] ?? [] as $bucket) {
+            $key = mb_strtolower((string) $bucket['key']);
+            $updated = (float) ($bucket['updated']['value'] ?? 0);
+            if (! isset($latest[$key]) || $updated > $latest[$key]) {
+                $latest[$key] = $updated;
+                $spellings[$key] = (string) $bucket['key'];
+            }
+        }
+
+        return $spellings;
+    }
+
+    private function spelling(string $label): string
+    {
+        return $this->spellings[mb_strtolower($label)] ?? $label;
+    }
+
+    /**
+     * Labels in their current spelling, one per case-insensitive name, sorted.
+     *
+     * @param  list<string>  $labels
+     * @return list<string>
+     */
+    private function uniqueSorted(array $labels): array
+    {
+        $unique = [];
+        foreach ($labels as $label) {
+            $unique[mb_strtolower($label)] ??= $this->spelling($label);
+        }
+        $unique = array_values($unique);
+        sort($unique);
+
+        return $unique;
     }
 
     /**

@@ -82,7 +82,7 @@ Left to right: logo lockup, primary nav, then a right-aligned group
 - Hover: colour `#ffffff`, background `#23262b`.
 - Current section: weight 600, colour `#ffffff`, background `#2a2e34` (persistent, not a hover
   state). Exactly one item carries this at a time.
-- Dropdown parents keep the ▾ glyph in the label; menu behaviour is unchanged from today.
+- Dropdown parents carry the chevron after the label, per *Dropdown caret* in `README.md`; menu behaviour is unchanged from today.
 
 **Utility links.** In this design the bar carries none, in either state — the two things the
 old grey bar held both move: **Admin** into the account menu (see below), and the
@@ -130,7 +130,7 @@ background `#23262b` — the nav hover fill, reused. Hover: `#2f333a`.
 - Name: the user's display name, Libre Franklin 500, 13.5px, colour `#ffffff` — the same size as
   the login button's label, so the chip holds the same weight in the bar as the button it
   replaces. Do not show the `@handle` here; it appears in the menu.
-- Caret: `▾`, 10px, `#9aa3ae`.
+- Caret: 7×5px SVG chevron, `#9aa3ae`. See *Dropdown caret* in `README.md`.
 
 The chip has a resting fill where nav items do not, which is what marks it as the one control in
 the bar that belongs to you rather than to the site. Name truncates with
@@ -364,4 +364,4 @@ collapsing them to one column doubles the footer's height and gains nothing. `ga
 56px to 24px and each column becomes `flex: 1`.
 
 ## Out of scope
-Primary-nav dropdown menu interiors (Issues ▾, PRs ▾) are unchanged.
+Primary-nav dropdown menu interiors (Issues ▾, PRs ▾) are unchanged. The PRs menu includes Community-picked PRs (`README-community-picked.md`).
