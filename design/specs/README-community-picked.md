@@ -7,7 +7,7 @@ ranked by GitHub 👍 votes, with filters for title, Area, Component and author.
 
 ## About the design files
 `../Leaderboard prototype.html`, one level up from this folder, is a design reference written in HTML, not
-production code. Reproduce it in the Laravel/Blade + Bootstrap codebase. Turn 27 holds both frames.
+production code. Reproduce it in the Laravel/Blade + Bootstrap codebase. Turn 27 holds all three frames.
 
 ## Fidelity
 **High-fidelity.** Type, colour, gutter, title block, control styling and row dividers follow
@@ -35,13 +35,17 @@ Standard site chrome per `README-header.md`, with **PRs ▾** as the active nav 
 
 | Control | Type | Rest text | Width |
 |---|---|---|---|
-| Search | text input, ⌕ icon left | "Title words or PR #" (placeholder) | `min-width: 200px` |
+| Search | text input, no icon | "PR title or #" (placeholder) | `min-width: 200px` |
 | Area | select | "All areas" | content |
 | Component | select | "All components" | content |
 | Author | text input | "Author handle" (placeholder) | `min-width: 130px` |
 | Sort | select, **dark control** | "Most votes" | content, `margin-left: auto` |
 
-- Outlined controls: `padding: 7px 12px` (search `7px 30px`), `1px solid #d5d8dc`, `radius 7px`,
+Sort options, in order: **Most votes** (default), **Oldest first**, **Newest first**. Oldest and
+newest sort by the PR's opened date, ties broken by votes. The default is left out of the query
+string.
+
+- Outlined controls: `padding: 7px 12px` (search included; it has no ⌕ icon, unlike the boards' search), `1px solid #d5d8dc`, `radius 7px`,
   Libre Franklin 13.5px. Value text `#15171b`; placeholder `#9aa3ae`.
 - Sort: background `#15171b`, text `#ffffff` weight 600, hover `#2a2e34`.
 - Selects carry the chevron from *Dropdown caret* in `README.md`, `gap: 8px` after the label;
@@ -49,7 +53,11 @@ Standard site chrome per `README-header.md`, with **PRs ▾** as the active nav 
 - **No Filter button.** Selects apply on change; the two text fields apply on Enter and after
   a 300ms pause in typing. Every filter is written to the query string so a filtered view can be
   shared and survives Back.
-- Area and Component stay dependent (Component lists only the chosen Area's components).
+- Area and Component stay dependent (Component lists only the chosen Area's components). Their
+  options show the label without its "Area: " / "Component: " prefix. Selects cap at
+  `max-width: 190px` with an ellipsis so the strip stays on one row at desktop. A value from a
+  shared link that no current PR carries stays selectable.
+- Author suggests handles from the current results (`<datalist>`) as you type.
 
 **Clear filters** (`#27d`): a link-styled `<button type="button">` after the Author field.
 Libre Franklin 500, 13.5px, `#ee6524`, underlined (`text-underline-offset: 2px`), hover `#c74e16`,
@@ -60,6 +68,11 @@ Libre Franklin 500, 13.5px, `#ee6524`, underlined (`text-underline-offset: 2px`)
 - Focus moves to the search field afterwards.
 - A control holding a filter takes a `#15171b` border and its value goes to weight 600.
 - At narrow widths it takes its own full-width row under Author | Sort, left-aligned.
+
+**Empty results.** When nothing matches, the column heads, rows and pagination are replaced by
+the boards' empty-state line (`README-leaderboard-pages.md`): "No candidates match these filters."
+when a filter is set, "No community pick candidates right now." when none is. The count line
+stays and reads "0 open PRs".
 
 **Count line**: directly under the strip, `margin: 4px 0 22px`. Martian Mono 9.5px uppercase,
 `letter-spacing: .06em`, `#6b7178`: "1,028 open PRs". It counts the filtered set.
@@ -82,11 +95,12 @@ Libre Franklin 500, 13.5px, `#ee6524`, underlined (`text-underline-offset: 2px`)
       link. Full title; let it wrap.
   - Line 2, `margin-top: 7px; display: flex; flex-wrap: wrap; align-items: center; gap: 5px`:
     Area pills, then Component pills, then the issue group.
-    - **Area pill**: outlined. `padding: 3px 7px`, `1px solid #d5d8dc`, `radius 5px`, Libre Franklin
-      11.5px, `#3c4148`. Text is the area name alone ("Framework"), no "Area:" prefix.
-    - **Component pill**: filled. `padding: 4px 8px`, background `#f7f5f2`, `radius 5px`, Martian Mono
-      10px, `#15171b`. Name alone, no "Component:" prefix. Outline versus fill is what tells
-      them apart.
+    - **Area pill**: filled grey. `padding: 4px 8px`, background `#e6e7ea`, no border, `radius 5px`,
+      Libre Franklin 11.5px, `#15171b`. Text is the area name alone ("Framework"), no "Area:" prefix.
+    - **Component pill**: filled orange. `padding: 4px 8px`, background `#fbddcb`, `radius 5px`, Libre Franklin
+      11.5px, `#15171b`. Name alone, no "Component:" prefix. Both pills use the same font and
+      size. The colours follow the By Month charts' grey/orange pair (`#28f`), with Area
+      filled rather than outlined so it reads at a glance. Grey versus orange tells them apart.
     - **Issue group**, `margin-left: 6px`, `gap: 6px`: label "Issue" (Martian Mono 9px uppercase,
       `letter-spacing: .06em`, `#6b7178`), then each linked issue as `#41426` (Martian Mono 11px,
       `#ee6524`, underlined, hover `#c74e16`) linking to the issue on GitHub. Several issues sit
@@ -96,14 +110,19 @@ Libre Franklin 500, 13.5px, `#ee6524`, underlined (`text-underline-offset: 2px`)
 - **Author · Age** (150px, right-aligned, stacked, `gap: 4px`, `padding-top: 3px`):
   - Author: `@handle`, Martian Mono 11px, `#3c4148`, underline `rgba(60,65,72,.35)`
     (`text-underline-offset: 2px`), hover `#ee6524`. **Links to the person's contributor detail
-    page** (`README-detail-page.md`), not GitHub; `title="Contributions — @handle"`.
-  - Age: "1 month ago", Martian Mono 10px, `#6b7178`. Age of the PR (opened date).
+    page** (`README-detail-page.md`), not GitHub; `title="Contributions — @handle"`. Long handles
+    truncate with an ellipsis.
+  - Age: "1 month ago", Martian Mono 10px, `#6b7178`. Age of the PR (opened date), in a `<time>`
+    whose `title` gives the full date.
+- The PR number and issue links open GitHub in a new tab (`target="_blank" rel="noopener"`).
+- The vote count carries visually hidden " votes" for screen readers.
 
 ## Pagination
 As on the boards (`README-leaderboard-pages.md`, pagination): a **"Show 50 more"** outlined
 button beside "Showing 1–50 of 1,028" (Martian Mono 9.5px uppercase `#6b7178`), block padding
 `20px 36px 30px`. Appends; depth in the URL as `?rows=`; at the end of the list the button is
-removed. Replaces the live page's numbered pages.
+removed. Replaces the live page's numbered pages. A polite live region announces the new count
+after a filter applies and "50 more shown" after an append.
 
 ## Narrow widths (27c)
 Below roughly 700px:

@@ -1,7 +1,7 @@
 # Out of sync — spec vs code
 
 Where the live site differs from the design specs in `design/specs/`. Last checked **2026-10-16**,
-against `main`, after the monthly scoring-modal routing was added to the spec. Only current
+against `main` and `feature/community-picked`. Only current
 differences are listed; anything fixed is deleted, not kept as history.
 
 ## How to read this
@@ -21,13 +21,13 @@ are not listed.
 
 ## To do
 
-- **Community-picked PRs** (`feature/community-picked`, not yet on `main`): built before the
-  spec. Restyle to `README-community-picked.md` (`#27b`, `#27c`): title block, no second heading,
-  filters apply on change with no Filter button, outlined Area / filled Component pills without
-  prefixes, a "Clear filters" button, two-line rows, author links to the contributor detail page, "Show 50 more" in place
-  of numbered pages.
-- **Dropdown carets**: every `▾` glyph (nav items, account chip, selects) becomes the 7×5px SVG
-  chevron in *Dropdown caret*, `README.md`.
+- **Merge `feature/community-picked`.** It carries the Community-picked PRs page
+  (`README-community-picked.md`, `#27b` `#27c` `#27d`) and the SVG dropdown chevron
+  (*Dropdown caret*, `README.md`). Both match the spec on the branch except the pills (`#28f`): `.cpr-comp` should be Libre
+  Franklin 11.5px (not Martian Mono 10px) on `#fbddcb` (not `#f7f5f2`); `.cpr-area` should be filled
+  `#e6e7ea` with no border, `padding: 4px 8px`, `#15171b` text (not outlined `#d5d8dc`, `#3c4148`). The search field drops its ⌕ icon
+  (`.lb-search-ico`) and its left padding goes to 12px.
+  Placeholder becomes "PR title or #" (was "Title words or PR #"). `main` still has neither.
 
 ## Unsure
 
