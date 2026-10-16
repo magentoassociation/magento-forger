@@ -86,15 +86,17 @@
         color: #c9ced4;
         padding: 8px 13px;
         border-radius: 6px;
-        margin: 0 1px;
     }
+    /* 8px apart so two filled items (current section beside a hovered or open one) never touch. */
+    .site-nav .navbar-nav { gap: 8px; }
+    /* :focus-visible, not :focus: a mouse click must not leave the fill behind. */
     .site-nav .navbar-nav .nav-link:hover,
-    .site-nav .navbar-nav .nav-link:focus {
+    .site-nav .navbar-nav .nav-link:focus-visible,
+    .site-nav .navbar-nav .dropdown-toggle.show {
         color: #fff;
         background: #23262b;
     }
-    .site-nav .navbar-nav .nav-link.active,
-    .site-nav .navbar-nav .nav-item.dropdown.show > .nav-link {
+    .site-nav .navbar-nav .nav-link.active {
         color: #fff;
         background: #2a2e34;
         font-weight: 600;
@@ -103,6 +105,35 @@
     /* Dropdown parents carry the SVG chevron (README "Dropdown caret"), not Bootstrap's border caret. */
     .site-nav .navbar-nav .dropdown-toggle::after { display: none; }
     .site-nav .dropdown-toggle .caret { margin-left: 5px; vertical-align: 2px; }
+
+    /* Nav dropdown interiors (#29a). Orange is hover and focus only; the current
+       page is white and bold, with none of Bootstrap's .active fill. */
+    .site-nav .navbar-nav .dropdown-menu {
+        --bs-dropdown-spacer: 8px;
+        min-width: 210px;
+        padding: 6px;
+        background: #23262b;
+        border: 1px solid #33383f;
+        border-radius: 8px;
+        box-shadow: 0 12px 28px rgba(0, 0, 0, .35);
+    }
+    .site-nav .navbar-nav .dropdown-menu.show { display: flex; flex-direction: column; gap: 2px; }
+    .site-nav .dropdown-menu .dropdown-item {
+        padding: 8px 12px;
+        border-radius: 6px;
+        background: none;
+        font-family: 'Libre Franklin', system-ui, sans-serif;
+        font-weight: 500;
+        font-size: 14px;
+        color: #c9ced4;
+    }
+    .site-nav .dropdown-menu .dropdown-item.active { color: #fff; font-weight: 600; background: none; }
+    .site-nav .dropdown-menu .dropdown-item:focus { background: none; }
+    .site-nav .dropdown-menu .dropdown-item:hover,
+    .site-nav .dropdown-menu .dropdown-item:focus-visible { color: #f26322; background: none; }
+    /* One highlight at a time: the pointer wins over a keyboard-focused item. */
+    .site-nav .dropdown-menu:hover .dropdown-item:focus-visible:not(:hover) { color: #c9ced4; }
+    .site-nav .dropdown-menu:hover .dropdown-item.active:focus-visible:not(:hover) { color: #fff; }
 
     /* Right-hand group: utility links + login */
     .site-endgroup {

@@ -115,6 +115,43 @@
 
 @include('components.footer')
 
+<script>
+    // Nav dropdowns (README-header "Nav dropdowns"): open on hover where the device
+    // hovers, close 150ms after the pointer leaves item and menu. Click, ↓ and Esc
+    // are Bootstrap's own; Enter/Space also open and focus the first link.
+    (function () {
+        var items = Array.prototype.slice.call(document.querySelectorAll('.site-nav .nav-item.dropdown'));
+        var hovers = window.matchMedia('(hover: hover) and (pointer: fine) and (min-width: 992px)');
+        var menu = function (item) { return bootstrap.Dropdown.getOrCreateInstance(item.querySelector('[data-bs-toggle="dropdown"]')); };
+
+        items.forEach(function (item) {
+            var toggle = item.querySelector('[data-bs-toggle="dropdown"]');
+            var closing;
+
+            item.addEventListener('mouseenter', function () {
+                if (!hovers.matches) { return; }
+                window.clearTimeout(closing);
+                items.forEach(function (other) { if (other !== item) { menu(other).hide(); } });
+                // show() focuses the toggle, which would draw the keyboard focus ring on hover.
+                var hadFocus = document.activeElement === toggle;
+                menu(item).show();
+                if (!hadFocus) { toggle.blur(); }
+            });
+            item.addEventListener('mouseleave', function () {
+                if (!hovers.matches) { return; }
+                closing = window.setTimeout(function () { menu(item).hide(); }, 150);
+            });
+            toggle.addEventListener('keydown', function (e) {
+                if (e.key !== 'Enter' && e.key !== ' ') { return; }
+                e.preventDefault();
+                menu(item).show();
+                var first = item.querySelector('.dropdown-item');
+                if (first) { first.focus(); }
+            });
+        });
+    })();
+</script>
+
 @stack('scripts')
 </body>
 </html>

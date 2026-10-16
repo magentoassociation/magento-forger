@@ -71,4 +71,12 @@ class SiteHeaderTest extends TestCase
             ->assertSeeInOrder(['dropdown-toggle', 'Issues', $caret, 'dropdown-toggle', 'PRs', $caret], false)
             ->assertDontSee('▾');
     }
+
+    public function testNavDropdownsAnnounceTheirMenu(): void
+    {
+        $this->get(route('leaderboard.scoring'))
+            ->assertOk()
+            ->assertSee('id="dropdown-issues" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"', false)
+            ->assertSee('id="dropdown-prs" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"', false);
+    }
 }
