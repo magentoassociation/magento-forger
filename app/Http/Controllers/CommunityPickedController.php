@@ -10,6 +10,7 @@ namespace App\Http\Controllers;
 
 use App\Queries\Dashboard\CommunityPickCandidatesQuery;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -17,6 +18,9 @@ class CommunityPickedController extends Controller
 {
     public function index(Request $request, CommunityPickCandidatesQuery $query): View
     {
+        // 404, not 403: the page isn't advertised to anyone who can't see it.
+        abort_unless(Gate::allows('view-community-picked'), 404);
+
         $filters = $request->validate([
             'rows' => ['nullable', 'integer', 'min:1', 'max:'.CommunityPickCandidatesQuery::MAX_ROWS],
             // bail: starts_with throws on an array (?area[]=x) instead of failing.

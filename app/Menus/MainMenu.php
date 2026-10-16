@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace App\Menus;
 
 use App\Helpers\RouteLabelHelper;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 use Spatie\Menu\Laravel\Html;
 use Spatie\Menu\Laravel\Link;
@@ -28,7 +29,8 @@ class MainMenu
             ->filter(fn (\Illuminate\Routing\Route $route): bool => self::hasNoRequiredParameters($route))
             ->filter(fn (\Illuminate\Routing\Route $route): bool => in_array('GET', $route->methods(), true))
             ->map(fn ($route) => $route->getName())
-            ->filter(fn ($name) => preg_match(self::MENU_ROUTE_PATTERN, $name));
+            ->filter(fn ($name) => preg_match(self::MENU_ROUTE_PATTERN, $name))
+            ->reject(fn (string $name): bool => $name === 'prs.communityPicked' && Gate::denies('view-community-picked'));
 
         $menu = Menu::new()
             ->addClass('navbar-nav me-auto mb-2 mb-lg-0')
