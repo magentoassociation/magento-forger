@@ -13,7 +13,8 @@
         border-top: 1px solid #e6e7ea;
     }
     .cp .cp-search { margin-left: 0; }
-    .cp .lb-search-input { min-width: 200px; }
+    /* No ⌕ icon here, unlike the boards' search. */
+    .cp .lb-search-input { min-width: 200px; padding: 7px 12px; }
     .cp-input,
     .cp-select {
         padding: 7px 12px;
@@ -144,23 +145,17 @@
         gap: 5px;
         margin-top: 7px;
     }
-    .cpr-area {
-        padding: 3px 7px;
-        border: 1px solid #d5d8dc;
-        border-radius: 5px;
-        font-size: 11.5px;
-        line-height: 1.2;
-        color: #3c4148;
-    }
+    /* Pill colours follow the By Month charts' grey/orange pair (#28f). */
+    .cpr-area,
     .cpr-comp {
         padding: 4px 8px;
         border-radius: 5px;
-        background: #f7f5f2;
-        font-family: var(--font-mono);
-        font-size: 10px;
+        font-size: 11.5px;
         line-height: 1.2;
         color: #15171b;
     }
+    .cpr-area { background: #e6e7ea; }
+    .cpr-comp { background: #fbddcb; }
     .cpr-issues {
         display: inline-flex;
         align-items: baseline;

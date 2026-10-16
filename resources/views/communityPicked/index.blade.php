@@ -31,9 +31,8 @@
             {{-- No Filter button: selects apply on change, text fields on Enter or a typing pause (script below). --}}
             <form method="GET" action="{{ route('prs.communityPicked') }}" class="cp-strip" role="search">
                 <div class="lb-search cp-search">
-                    <span class="lb-search-ico" aria-hidden="true">⌕</span>
                     <input type="search" name="title" value="{{ $selectedTitle }}" @class(['lb-search-input', 'is-set' => $selectedTitle])
-                           placeholder="Title words or PR #" aria-label="Title words or PR number"
+                           placeholder="PR title or #" aria-label="PR title or number"
                            maxlength="200" autocomplete="off">
                 </div>
                 @foreach ($filters as $name => $filter)
