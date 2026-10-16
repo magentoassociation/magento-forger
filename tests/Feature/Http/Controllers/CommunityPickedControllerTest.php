@@ -173,6 +173,27 @@ class CommunityPickedControllerTest extends TestCase
         $response->assertDontSee('<option value="Area: Test framework"', false);
     }
 
+    public function testClearFiltersIsHiddenWithNothingToClear(): void
+    {
+        $this->bindClient([$this->candidate(1)]);
+
+        $this->get('/prs/community-picked?sort=oldest')
+            ->assertSee('<button type="button" class="cp-clear"  hidden >Clear filters</button>', false)
+            ->assertDontSee('is-set"', false);
+    }
+
+    public function testSetFiltersShowClearFiltersAndMarkTheirControls(): void
+    {
+        $this->bindClient([$this->candidate(1)], prLabels: ['Area: Checkout']);
+
+        $this->get('/prs/community-picked?area='.urlencode('Area: Checkout').'&author=jane')
+            ->assertSee('<button type="button" class="cp-clear" >Clear filters</button>', false)
+            ->assertSee('<select name="area" class="cp-select is-set"', false)
+            ->assertSee('<select name="component" class="cp-select"', false)
+            ->assertSee('class="cp-input is-set"', false)
+            ->assertSee('class="lb-search-input"', false);
+    }
+
     public function testRejectsLabelsOutsideTheirPrefix(): void
     {
         $this->bindClient([]);

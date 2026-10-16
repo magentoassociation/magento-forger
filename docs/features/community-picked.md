@@ -18,7 +18,7 @@ One public page, `GET /prs/community-picked` (`prs.communityPicked`), listed in 
   - Any other value fails validation.
 - `?rows=` is the list depth (default 50, validated to 1–10,000 because OpenSearch caps `from + size` at 10,000). The query always fetches from the top. "Show 50 more" links to the next depth; with JavaScript it fetches that URL and appends only the new rows. The button goes at the end of the list.
 
-There's no Filter button. Selects apply on change; the title and author fields apply on Enter or after a 300ms typing pause. With JavaScript the page fetches its own URL and swaps in the results and the dependent filter options, so focus stays in the field; the URL is updated with `replaceState`. Without JavaScript, Enter submits the form.
+There's no Filter button. Selects apply on change; the title and author fields apply on Enter or after a 300ms typing pause. With JavaScript the page fetches its own URL and swaps in the results and the dependent filter options, so focus stays in the field; the URL is updated with `replaceState`. Without JavaScript, Enter submits the form. **Clear filters** shows while the title, Area, Component or Author filter is set. It resets those four, keeps the sort and moves focus to the title field. Controls holding a filter get a dark border and a bold value.
 
 Each row (design spec `design/specs/README-community-picked.md`) shows the 👍 count, then two lines: the PR number (links to GitHub, new tab) and title, then outlined Area pills, filled Component pills (prefixes stripped) and Linked Issues. The second line is omitted when a PR has none. Author (linked to their Forger contributor page, `leaderboard.detail`) and age sit in the right column, or on a third line below 700px.
 

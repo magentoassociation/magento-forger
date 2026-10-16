@@ -11,6 +11,19 @@
     if (!form || !window.fetch) { return; }
 
     var pending;
+    var clear = form.querySelector('.cp-clear');
+    var filterFields = ['title', 'area', 'component', 'author'].map(function (name) { return form.elements[name]; });
+
+    // Set filters get the .is-set treatment; Clear filters shows while any is set.
+    function syncSet() {
+        var any = false;
+        filterFields.forEach(function (field) {
+            var set = field.value.trim() !== '';
+            field.classList.toggle('is-set', set);
+            any = any || set;
+        });
+        clear.hidden = !any;
+    }
 
     function results() { return document.querySelector('.cp-results'); }
 
@@ -71,6 +84,8 @@
         window.clearTimeout(debounce);
         load(filterUrl(), false);
     });
+    form.addEventListener('input', syncSet);
+    form.addEventListener('change', syncSet);
     form.addEventListener('change', function (e) {
         if (e.target.tagName === 'SELECT') { load(filterUrl(), false); }
     });
@@ -78,6 +93,14 @@
         if (e.target.tagName !== 'INPUT') { return; }
         window.clearTimeout(debounce);
         debounce = window.setTimeout(function () { load(filterUrl(), false); }, 300);
+    });
+
+    clear.addEventListener('click', function () {
+        window.clearTimeout(debounce);
+        filterFields.forEach(function (field) { field.value = ''; });
+        syncSet();
+        filterFields[0].focus();
+        load(filterUrl(), false);
     });
 
     document.addEventListener('click', function (e) {

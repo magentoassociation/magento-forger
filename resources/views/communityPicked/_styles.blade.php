@@ -29,10 +29,34 @@
     /* Chevron per README "Dropdown caret": 7×5px, 8px after the label. */
     .cp-select {
         appearance: none;
+        /* Native selects size to their longest option; cap so the strip stays one row. */
+        max-width: 190px;
+        text-overflow: ellipsis;
         padding-right: 27px;
         background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8' fill='none'%3E%3Cpath d='M1.5 1.75 6 6.25l4.5-4.5' stroke='%236b7178' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 12px center / 7px 5px;
         cursor: pointer;
     }
+    /* A control holding a filter (#27d). */
+    .cp .lb-search-input.is-set,
+    .cp-input.is-set,
+    .cp-select.is-set { border-color: #15171b; font-weight: 600; }
+
+    .cp-clear {
+        padding: 0 4px;
+        border: 0;
+        background: none;
+        font-family: var(--font-sans);
+        font-size: 13.5px;
+        font-weight: 500;
+        color: #ee6524;
+        text-decoration: underline;
+        text-underline-offset: 2px;
+        cursor: pointer;
+        transition: color 120ms ease-out;
+    }
+    .cp-clear:hover { color: #c74e16; }
+    .cp-clear[hidden] { display: none; }
+
     .cp-select--dark {
         margin-left: auto;
         border-color: #15171b;
@@ -180,6 +204,7 @@
 
     .cp .cp-input:focus-visible,
     .cp .cp-select:focus-visible,
+    .cp .cp-clear:focus-visible,
     .cp .cpr-num:focus-visible,
     .cp .cpr-issue:focus-visible,
     .cp .cpr-author:focus-visible {
@@ -198,8 +223,10 @@
         .cp .cp-search { grid-column: 1 / -1; }
         .cp .lb-search-input { width: 100%; min-width: 0; padding-top: 10px; padding-bottom: 10px; }
         .cp-input,
-        .cp-select { width: 100%; min-width: 0; padding-top: 10px; padding-bottom: 10px; }
+        .cp-select { width: 100%; min-width: 0; max-width: none; padding-top: 10px; padding-bottom: 10px; }
         .cp-select--dark { margin-left: 0; }
+        /* Own row under Author | Sort. */
+        .cp-clear { grid-column: 1 / -1; grid-row: 4; justify-self: start; }
 
         .cp-colhead,
         .cpr { grid-template-columns: 34px minmax(0, 1fr); column-gap: 12px; }

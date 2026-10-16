@@ -32,12 +32,12 @@
             <form method="GET" action="{{ route('prs.communityPicked') }}" class="cp-strip" role="search">
                 <div class="lb-search cp-search">
                     <span class="lb-search-ico" aria-hidden="true">⌕</span>
-                    <input type="search" name="title" value="{{ $selectedTitle }}" class="lb-search-input"
+                    <input type="search" name="title" value="{{ $selectedTitle }}" @class(['lb-search-input', 'is-set' => $selectedTitle])
                            placeholder="Title words or PR #" aria-label="Title words or PR number"
                            maxlength="200" autocomplete="off">
                 </div>
                 @foreach ($filters as $name => $filter)
-                    <select name="{{ $name }}" class="cp-select" aria-label="{{ $filter['label'] }}">
+                    <select name="{{ $name }}" @class(['cp-select', 'is-set' => $filter['selected']]) aria-label="{{ $filter['label'] }}">
                         <option value="">{{ $filter['all'] }}</option>
                         @foreach ($filter['options'] as $option)
                             <option value="{{ $option }}" @selected(mb_strtolower($option) === mb_strtolower((string) $filter['selected']))>{{ Str::after($option, ': ') }}</option>
@@ -45,13 +45,15 @@
                     </select>
                 @endforeach
                 <input type="search" name="author" value="{{ $selectedAuthor }}" list="cp-author-options"
-                       class="cp-input" placeholder="Author handle" aria-label="Author handle"
+                       @class(['cp-input', 'is-set' => $selectedAuthor]) placeholder="Author handle" aria-label="Author handle"
                        autocomplete="off" spellcheck="false" maxlength="50">
                 <datalist id="cp-author-options">
                     @foreach ($authorOptions as $option)
                         <option value="{{ $option }}"></option>
                     @endforeach
                 </datalist>
+                {{-- Shown while a filter is set; the script keeps it in step as filters change. --}}
+                <button type="button" class="cp-clear" @if (! $filtered) hidden @endif>Clear filters</button>
                 <select name="sort" class="cp-select cp-select--dark" aria-label="Sort">
                     @foreach ($sorts as $value => $label)
                         <option value="{{ $value }}" @selected($value === $sort)>{{ $label }}</option>
