@@ -72,6 +72,35 @@ class SiteHeaderTest extends TestCase
             ->assertDontSee('▾');
     }
 
+    public function testLeaderboardParentLinksToMainBoardAndListsBoards(): void
+    {
+        $this->get(route('leaderboard.scoring'))
+            ->assertOk()
+            ->assertSee('href="'.route('leaderboard.index').'" id="dropdown-leaderboard"', false)
+            ->assertSeeInOrder([
+                'href="'.route('leaderboard.show', ['board' => 'contributor']).'">Contributor</a>',
+                'href="'.route('leaderboard.show', ['board' => 'maintainer']).'">Maintainer</a>',
+                'href="'.route('leaderboard.monthly.index', ['board' => 'contributor']).'">Monthly</a>',
+                'href="'.route('leaderboard.highlights').'">Highlights</a>',
+            ], false);
+    }
+
+    public function testLeaderboardMenuMarksTheCurrentBoard(): void
+    {
+        $this->get(route('leaderboard.show', ['board' => 'maintainer']))
+            ->assertOk()
+            ->assertSee('class="nav-link dropdown-toggle active" href="'.route('leaderboard.index').'"', false)
+            ->assertSee('class="dropdown-item active" aria-current="page" href="'.route('leaderboard.show', ['board' => 'maintainer']).'">Maintainer</a>', false)
+            ->assertSee('class="dropdown-item" href="'.route('leaderboard.show', ['board' => 'contributor']).'">Contributor</a>', false);
+    }
+
+    public function testDropdownWithoutLandingPageKeepsHashHref(): void
+    {
+        $this->get(route('leaderboard.scoring'))
+            ->assertOk()
+            ->assertSee('class="nav-link dropdown-toggle" href="#" id="dropdown-prs"', false);
+    }
+
     public function testNavDropdownsAnnounceTheirMenu(): void
     {
         $this->get(route('leaderboard.scoring'))

@@ -141,6 +141,11 @@
                 if (!hovers.matches) { return; }
                 closing = window.setTimeout(function () { menu(item).hide(); }, 150);
             });
+            // A parent with its own page (Leaderboard) follows its link on click where
+            // hover opens the menu; touch devices still need the click to toggle it.
+            toggle.addEventListener('click', function () {
+                if (hovers.matches && toggle.getAttribute('href') !== '#') { window.location.href = toggle.href; }
+            });
             toggle.addEventListener('keydown', function (e) {
                 if (e.key !== 'Enter' && e.key !== ' ') { return; }
                 e.preventDefault();

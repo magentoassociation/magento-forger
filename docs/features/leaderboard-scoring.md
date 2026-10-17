@@ -39,7 +39,7 @@ A maintainer who also authors PRs accrues a Contributor Score *and* a Maintainer
 | 8 | Maintainer | **Approved PR later merged** (approver bonus) | join reviews → PR `merged_at` | derivable | ✅ emitted by `ScoredEventReader` (`Action::APPROVED_THEN_MERGED`, impact-weighted, self-review guarded) |
 | 9 | Maintainer | **Label applied** (triage) | `github-events` + `github-pr-timeline` | event date | ✅ `ScoredEventReader` label events (deduped per actor/target/label; excludes configured labels) |
 | 10 | Contributor | Comment on issue/PR | `github-interactions` (`type=comment`) | `created_at` | ✅ available — optional, see caveat |
-| 11 | Maintainer | **Claimed & reviewed a pending-review PR** (flat bonus) | `github-pr-timeline` + `github-pr-reviews` | claim `created_at` | ✅ `ReviewLatencyAnalyzer` (flat weight; only credited if the claim is reviewed — time-to-claim is kept as a stat only) |
+| 11 | Maintainer | **Reviewed a PR** (self-assigned, then reviewed; flat bonus; no staleness check) | `github-pr-timeline` + `github-pr-reviews` | self-assignment `created_at` | ✅ `ReviewLatencyAnalyzer` (flat weight; only credited once the self-assigned PR is reviewed — time-to-claim is kept as a stat only) |
 
 > **Comment scoring caveat:** comments are now available (the interactions index is live), but they are the easiest signal to farm with low-value chatter. If scored at all, give them a low base weight and cap points per thread/day. Recommended: leave comments *out* of the Score initially and revisit, rather than incentivize noise on `magento/magento2`.
 
@@ -75,7 +75,7 @@ Base weights live in **`config/leaderboard.php`** with a `version` integer (bump
 | Review commented (7) | 1 |
 | Approved-then-merged — approver bonus (8) | 6 |
 | Label applied — triage (9) | 0.5 |
-| Claimed & reviewed a pending-review PR (11) | 2 |
+| Reviewed a PR — self-assigned, then reviewed (11) | 2 |
 
 **Impact weight** — from the issue/PR's **priority labels**, not lines of code. Applied to every issue/PR event (issue opened, PR opened, PR merged, issue-resolved-by-merge, and the approver's approved-then-merged bonus). The highest `Priority: Px` label on the item sets the multiplier; unlabeled work stays at `1.0` (so it still earns its base). Issues additionally carrying the confirmed label get an additive bonus, but only on `issue_opened` (rewarding the person who filed a bug a maintainer later confirmed). The sum is clamped to `[min, max]`.
 
@@ -189,7 +189,7 @@ github_user_stats
   maintainer_score_prev,
   rising_baseline_score,       # contributor score as of rising.window_days ago, for the "Rising" delta
   median_time_to_review_hours, # maintainers: responsiveness after claiming
-  median_time_to_claim_days,   # maintainers: how stale the PRs they pick up are
+  median_time_to_claim_days,   # maintainers: how long PRs waited before they picked them up (stat only)
   reviews_in_window,
   returned_after_days,         # comeback: days of silence bridged by a return (null if not a comeback)
   comeback_url, comeback_title, # the PR/issue that ended the silence (the return contribution)
@@ -208,9 +208,9 @@ A companion `github_score_snapshots` table (`login`, `contributor_score`, `captu
 | Current gap | days since `last_contribution_at` — drives lapse detection | derived |
 | Streak | consecutive weeks with ≥1 contribution | derived |
 | Time-to-review (maintainer-controlled) | median hours from reviewer **self-assignment** to that maintainer's first `submitted_at` | ✅ `ReviewLatencyAnalyzer` |
-| Time-to-claim | median days a claimed PR sat in the review pool before pickup | ✅ `ReviewLatencyAnalyzer` (also drives the `pr_claimed` bonus) |
+| Time-to-claim | median days a claimed PR sat in the review pool before pickup | ✅ `ReviewLatencyAnalyzer` (stat only; does not affect the `pr_reviewed` bonus) |
 
-### Review workflow (Magento-specific) and the claim incentive
+### Review workflow (Magento-specific) and the "Reviewed a PR" bonus
 
 Contributors do **not** request reviews. The flow is:
 
@@ -220,7 +220,7 @@ Contributors do **not** request reviews. The flow is:
 
 This produces two different clocks:
 
-- **Time-to-claim** (`Progress: pending review` applied → self-assignment): how long the PR sat before this maintainer picked it up. This is recorded as the `median_time_to_claim_days` responsiveness stat but **does not scale the score** — `pr_claimed` earns a flat bonus. Anti-farming guards: the bonus is only credited once the maintainer reviews the PR, and only when that review is submitted **after** the claim (a pre-claim or back-dated review scores nothing — latencies are computed as signed diffs so a negative span can't be `abs()`-ed into points); and repeated self-assignments on the same PR (`ClaimRecordReader`) collapse to one claim per (PR, maintainer), keeping the earliest, so re-requesting review can't manufacture extra claim credit.
+- **Time-to-claim** (`Progress: pending review` applied → self-assignment): how long the PR sat before this maintainer picked it up. This is recorded as the `median_time_to_claim_days` responsiveness stat but **does not scale the score** — `pr_reviewed` earns a flat bonus. Anti-farming guards: the bonus is only credited once the maintainer reviews the PR, and only when that review is submitted **after** the claim (a pre-claim or back-dated review scores nothing — latencies are computed as signed diffs so a negative span can't be `abs()`-ed into points); and repeated self-assignments on the same PR (`ClaimRecordReader`) collapse to one claim per (PR, maintainer), keeping the earliest, so re-requesting review can't manufacture extra claim credit.
 - **Time-to-review** (self-assignment → first review submitted): the span a maintainer controls after claiming — stored as the `median_time_to_review_hours` responsiveness stat.
 
 These are computed from the `github-pr-timeline` index by `ClaimRecordReader` (assembling claim, pending-review-label, and first-review timings) and `ReviewLatencyAnalyzer` (the pure scoring + median math). Label-applied / triage scoring (#9) is scored separately by `ScoredEventReader::labelAppliedEvents()` (0.5 base points, deduped per actor/target/label), see [GitHub Timeline-Events Sync](github-timeline-events.md).

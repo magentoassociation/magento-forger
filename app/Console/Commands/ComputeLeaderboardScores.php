@@ -52,7 +52,7 @@ class ComputeLeaderboardScores extends Command implements Isolatable
         $this->info("Reading scored events since {$from->toDateString()} ...");
         $events = $reader->read($from, $now);
 
-        // Built with the repo so pr_claimed line items carry a PR link.
+        // Built with the repo so pr_reviewed line items carry a PR link.
         $analyzer = new ReviewLatencyAnalyzer((string) config('github.repo'));
         $latency = $analyzer->analyze($claimReader->read($from, $now));
         $events = array_merge($events, $latency['events']);

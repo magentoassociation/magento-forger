@@ -182,7 +182,7 @@ class ScoreLeaderboardControllerTest extends TestCase
 
         $this->get(route('leaderboard.detail', ['board' => 'maintainer', 'login' => 'maint']))
             ->assertOk()
-            ->assertSee('Applied a triage label')
+            ->assertSee('Applied a label')
             ->assertSee("'bug' label");
     }
 
