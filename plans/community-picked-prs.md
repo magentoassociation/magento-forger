@@ -9,15 +9,20 @@ Durable decisions that apply across all phases:
 - **Routes**:
   - `GET /issues/by-month` → `issues.byMonth`
   - `GET /prs/by-month` → `prs.byMonth`
-  - `GET /prs/community-picked` → `prs.communityPicked` (public, no auth)
-  - Query params on community-picked: `area`, `component`, `page`
+  - `GET /prs/community-picked` → `prs.communityPicked` (admins and active community-council members only, via the `view-community-picked` gate; everyone else, guests included, gets a 404; *deviation from #83, which specified public*)
+  - Query params on community-picked (all optional, validated in `CommunityPickedController`):
+    - `area` / `component`: one `Area: …` / `Component: …` label
+    - `author`: a GitHub login
+    - `title`: words from the PR title, or a PR number
+    - `sort`: `votes` (default), `oldest` or `newest`
+    - `rows`: how many rows to show (default 50, max 10,000). "Show 50 more" raises it; it replaces the `page` param
   - Old `/issuesByMonth` and `/prsByMonth` removed, no redirects
 - **Schema** (PR documents in the pull-requests index, dynamic mapping, no migration):
   - `linked_issues`: list of issue numbers from `closingIssuesReferences`
   - `thumbs_up_count`: total 👍 reactions on the PR body
 - **Domain terms**: Community Pick Candidate, Linked Issue, Effective Labels (see PRD / CONTEXT.md)
 - **Candidate rule**: open, non-draft, none of `github.community_picked.exclude_labels` (default `Release Line: 2.5`, `Project: Community Picked`)
-- **Ranking**: `thumbs_up_count` desc, then `created_at` asc; 50 per page
+- **Ranking**: set by `sort`. `votes` (default) is `thumbs_up_count` desc, ties oldest first; `oldest` / `newest` order by `created_at`, ties by most 👍. Shows 50 rows first, and "Show 50 more" adds 50 at a time (`rows`), up to 10,000
 - **Voting**: link-out to the PR on GitHub only; no writes to GitHub, no vote storage, no OAuth scope change
 - **Label join**: resolved at query time (issues index → issue numbers → PRs by own labels OR `linked_issues`); never denormalised onto PR docs
 - **Navigation**: main menu auto-groups by route-name prefix; `prs.*` routes form the "PRs" dropdown
@@ -50,9 +55,9 @@ Move the Issues by month and PRs by month pages to `/issues/by-month` and `/prs/
 
 ### What to build
 
-End-to-end path from GitHub to page, with no filtering yet. The main PR sync starts storing `thumbs_up_count` (👍 only) and `linked_issues` on PR documents. A public `/prs/community-picked` page lists Community Pick Candidates, ranked by 👍 then oldest first, paginated at 50. Each row shows the 👍 count (linking to the PR on GitHub in a new tab), #number + title, linked issues, author, and relative age.
+End-to-end path from GitHub to page, with no filtering yet. The main PR sync starts storing `thumbs_up_count` (👍 only) and `linked_issues` on PR documents. A `/prs/community-picked` page lists Community Pick Candidates, ranked by 👍 then oldest first, paginated at 50. Each row shows the 👍 count (linking to the PR on GitHub in a new tab), #number + title, linked issues, author, and relative age.
 
-The excluded labels come from config. The page appears under the PRs dropdown, has the header title "Community-picked PRs", and is linked from the footer. A missing index shows the standard "data missing" placeholder. Add the feature doc and the three CONTEXT.md terms.
+The excluded labels come from config. The page appears under the PRs dropdown and has the header title "Community-Picked PRs". It has no footer link (*deviation from #83*: the footer's Forger column lists one link per section, and this page sits inside Pull Requests). A missing index shows the standard "data missing" placeholder. Add the feature doc and the three CONTEXT.md terms.
 
 Demoable after one full PR sync.
 
@@ -65,8 +70,8 @@ Demoable after one full PR sync.
 - [x] Pagination at 50 per page works
 - [x] 👍 count links to the PR URL, opening a new tab
 - [x] Rows show number, title, linked issues, author, relative age
-- [x] Page is reachable without login
-- [x] "Community Picked" appears in the PRs dropdown; header shows "Community-picked PRs"; footer links to it
+- [x] Page is reachable by admins and active community-council members only; everyone else, guests included, gets a 404 (*deviation from #83: "reachable without login"*)
+- [x] "Community-Picked" appears in the PRs dropdown, for viewers who can open the page; header shows "Community-Picked PRs"; no footer link (*deviation from #83: "footer links to it"*)
 - [x] Missing index renders the placeholder, not an error
 - [x] Tests: candidate query (exclusions, drafts, sort, pagination), PR document fields, controller rendering + placeholder
 - [x] Feature doc added; CONTEXT.md has Community Pick Candidate, Linked Issue, Effective Labels
