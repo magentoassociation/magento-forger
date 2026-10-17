@@ -102,7 +102,7 @@ Computed in the leaderboard compute job, per PR and per maintainer:
 - **Reviewer requested, removed, re-requested** → use the first claim that precedes the maintainer's first review; ignore `ReviewRequestRemovedEvent` except to detect churn.
 - **Reviewed without a recorded self-assign** (data gaps, pre-timeline PRs) → `claimed_at` null → exclude from Time-to-review rather than charging queue time to the reviewer.
 - **Multiple maintainers on one PR** → each gets their own `claimed_at` / `first_review_at`; metrics are per maintainer.
-- **Bot actors** (`engcom-*`, `dependabot[bot]`, `github-actions[bot]`, `m2-assistant`) excluded, same as elsewhere.
+- **Bot actors** (`engcom-*`, `dependabot[bot]`, `github-actions[bot]`, `m2-assistant`, `magento-github-admin-beta`) excluded, same as elsewhere.
 
 ## Relationship to the events / interactions indexes
 

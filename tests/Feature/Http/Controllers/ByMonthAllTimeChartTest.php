@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Tests\Feature\Http\Controllers;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Exceptions;
 use Mockery;
 use OpenSearch\Client;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -78,6 +79,21 @@ class ByMonthAllTimeChartTest extends TestCase
         $response->assertViewHas('allTimeStats', null);
         $response->assertDontSee('<h2 class="bm-alltime-title">', false);
         $response->assertDontSee('id="allTimeChart"', false);
+    }
+
+    #[DataProvider('pages')]
+    public function testPageReportsMainSearchFailureWithoutLeakingDetails(string $route): void
+    {
+        $exceptions = Exceptions::fake();
+        $client = Mockery::mock(Client::class);
+        $client->shouldReceive('search')->andThrow(new RuntimeException('secret-cluster-host:9200 refused'));
+        $this->app->instance(Client::class, $client);
+
+        $response = $this->get(route($route));
+
+        $response->assertStatus(500);
+        $response->assertDontSee('secret-cluster-host');
+        $exceptions->assertReported(RuntimeException::class);
     }
 
     #[DataProvider('pages')]

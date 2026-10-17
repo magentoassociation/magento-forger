@@ -89,13 +89,27 @@ class User extends Authenticatable implements FilamentUser
      */
     public function canViewFullMaintainerBoard(): bool
     {
-        if ($this->is_admin) {
-            return true;
-        }
+        return $this->is_admin || $this->hasActiveRole(['maintainer', 'community-council']);
+    }
 
+    /**
+     * Whether this user may see Community-Picked PRs: admins and active community
+     * council members. Council membership is read live, not from is_admin alone,
+     * though admins keep access whatever their council status.
+     */
+    public function canViewCommunityPicked(): bool
+    {
+        return $this->is_admin || $this->hasActiveRole(['community-council']);
+    }
+
+    /**
+     * @param  list<string>  $roles
+     */
+    private function hasActiveRole(array $roles): bool
+    {
         return $this->github_username !== null
             && RoleEligibility::query()
-                ->whereIn('role', ['maintainer', 'community-council'])
+                ->whereIn('role', $roles)
                 ->where('active', true)
                 ->where('login', $this->github_username)
                 ->exists();

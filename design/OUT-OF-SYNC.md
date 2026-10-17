@@ -1,7 +1,7 @@
 # Out of sync — spec vs code
 
-Where the live site differs from the design specs in `design/specs/`. Last checked **2026-10-08**,
-after the Momentum rework was built and the specs were updated to match the code. Only current
+Where the live site differs from the design specs in `design/specs/`. Last checked **2026-10-17**,
+against `feature/community-picked`. Only current
 differences are listed; anything fixed is deleted, not kept as history.
 
 ## How to read this

@@ -89,6 +89,51 @@ class OpenSearchService
         $this->indexPullRequestTimeline($pullRequests);
     }
 
+    /**
+     * Refresh 👍 count, Linked Issues and draft flag on already-indexed PRs. A plain
+     * update, not an upsert: a PR the main sync has not indexed yet is skipped
+     * (document_missing) rather than stored as a title-less stub.
+     *
+     * @param  list<array<string, mixed>>  $pullRequests  Nodes from the open-PR reactions query.
+     *
+     * @throws \RuntimeException When any item fails for a reason other than a missing document —
+     *                           bulk reports item failures in its response instead of throwing.
+     */
+    public function updatePullRequestReactions(array $pullRequests): void
+    {
+        if (empty($pullRequests)) {
+            return;
+        }
+        $indexName = self::getIndexWithPrefix(self::OPENSEARCH_GITHUB_PULL_REQUESTS_INDEX);
+
+        $body = [];
+        foreach ($pullRequests as $pr) {
+            $body[] = ['update' => ['_index' => $indexName, '_id' => $pr['number'], 'retry_on_conflict' => 3]];
+            $body[] = ['doc' => [
+                'is_draft' => $pr['isDraft'],
+                'thumbs_up_count' => $pr['reactions']['totalCount'] ?? 0,
+                'linked_issues' => $this->linkedIssueNumbers($pr),
+            ]];
+        }
+
+        $response = $this->client->bulk(['body' => $body]);
+        if (! ($response['errors'] ?? false)) {
+            return;
+        }
+
+        $failures = [];
+        foreach ($response['items'] ?? [] as $item) {
+            $error = $item['update']['error'] ?? null;
+            if ($error !== null && ($error['type'] ?? null) !== 'document_missing_exception') {
+                $failures[] = "#{$item['update']['_id']}: ".($error['type'] ?? 'unknown').' '.($error['reason'] ?? '');
+            }
+        }
+
+        if ($failures !== []) {
+            throw new \RuntimeException(count($failures).' PR reaction update(s) failed: '.implode('; ', array_slice($failures, 0, 5)));
+        }
+    }
+
     protected function indexPullRequestTimeline(array $pullRequests): void
     {
         $indexName = self::getIndexWithPrefix(self::OPENSEARCH_GITHUB_PR_TIMELINE_INDEX);
@@ -171,8 +216,8 @@ class OpenSearchService
             if ($pr['state'] !== 'MERGED') {
                 continue;
             }
-            foreach ($pr['closingIssuesReferences']['nodes'] ?? [] as $issue) {
-                $body[] = ['update' => ['_index' => $issueIndex, '_id' => $issue['number']]];
+            foreach ($this->linkedIssueNumbers($pr) as $issueNumber) {
+                $body[] = ['update' => ['_index' => $issueIndex, '_id' => $issueNumber]];
                 $body[] = ['doc' => ['closed_by_merged_pr' => true], 'doc_as_upsert' => true];
             }
         }
@@ -204,7 +249,31 @@ class OpenSearchService
             'changed_files' => $pr['changedFiles'] ?? null,
             'comments_count' => $pr['comments']['totalCount'] ?? 0,
             'reviews_count' => $pr['reviews']['totalCount'] ?? 0,
+            'thumbs_up_count' => $pr['reactions']['totalCount'] ?? 0,
+            'linked_issues' => $this->linkedIssueNumbers($pr),
         ];
+    }
+
+    /**
+     * Numbers of the issues a PR closes, limited to the configured repo. A PR can
+     * close issues in other repos, whose numbers would collide with ours.
+     *
+     * @param  array<string, mixed>  $pr
+     * @return list<int>
+     */
+    protected function linkedIssueNumbers(array $pr): array
+    {
+        $repo = (string) config('github.repo');
+        $numbers = [];
+
+        foreach ($pr['closingIssuesReferences']['nodes'] ?? [] as $issue) {
+            $issueRepo = $issue['repository']['nameWithOwner'] ?? null;
+            if (is_string($issueRepo) && strcasecmp($issueRepo, $repo) === 0) {
+                $numbers[] = $issue['number'];
+            }
+        }
+
+        return $numbers;
     }
 
     public function indexIssues(array $issues): void

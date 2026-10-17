@@ -30,6 +30,9 @@ query($owner: String!, $name: String!, $cursor: String) {
         comments {
           totalCount
         }
+        reactions(content: THUMBS_UP) {
+          totalCount
+        }
         reviews(first: 50) {
           totalCount
           nodes {
@@ -49,6 +52,7 @@ query($owner: String!, $name: String!, $cursor: String) {
         closingIssuesReferences(first: 25) {
           nodes {
             number
+            repository { nameWithOwner }
           }
         }
         timelineItems(first: 100, itemTypes: [LABELED_EVENT, UNLABELED_EVENT, REVIEW_REQUESTED_EVENT, REVIEW_REQUEST_REMOVED_EVENT]) {

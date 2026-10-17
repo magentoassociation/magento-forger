@@ -86,23 +86,54 @@
         color: #c9ced4;
         padding: 8px 13px;
         border-radius: 6px;
-        margin: 0 1px;
     }
+    /* 8px apart so two filled items (current section beside a hovered or open one) never touch. */
+    .site-nav .navbar-nav { gap: 8px; }
+    /* :focus-visible, not :focus: a mouse click must not leave the fill behind. */
     .site-nav .navbar-nav .nav-link:hover,
-    .site-nav .navbar-nav .nav-link:focus {
+    .site-nav .navbar-nav .nav-link:focus-visible,
+    .site-nav .navbar-nav .dropdown-toggle.show {
         color: #fff;
         background: #23262b;
     }
-    .site-nav .navbar-nav .nav-link.active,
-    .site-nav .navbar-nav .nav-item.dropdown.show > .nav-link {
+    .site-nav .navbar-nav .nav-link.active {
         color: #fff;
         background: #2a2e34;
         font-weight: 600;
     }
 
-    /* Dropdown parents carry a ▾ glyph in the label (matches the account chip), not Bootstrap's border caret. */
+    /* Dropdown parents carry the SVG chevron (README "Dropdown caret"), not Bootstrap's border caret. */
     .site-nav .navbar-nav .dropdown-toggle::after { display: none; }
-    .site-nav .nav-caret { font-size: 10px; line-height: 1; opacity: .75; }
+    .site-nav .dropdown-toggle .caret { margin-left: 5px; vertical-align: 2px; }
+
+    /* Nav dropdown interiors (#29a). Orange is hover and focus only; the current
+       page is white and bold, with none of Bootstrap's .active fill. */
+    .site-nav .navbar-nav .dropdown-menu {
+        --bs-dropdown-spacer: 8px;
+        min-width: 210px;
+        padding: 6px;
+        background: #23262b;
+        border: 1px solid #33383f;
+        border-radius: 8px;
+        box-shadow: 0 12px 28px rgba(0, 0, 0, .35);
+    }
+    .site-nav .navbar-nav .dropdown-menu.show { display: flex; flex-direction: column; gap: 2px; }
+    .site-nav .dropdown-menu .dropdown-item {
+        padding: 8px 12px;
+        border-radius: 6px;
+        background: none;
+        font-family: 'Libre Franklin', system-ui, sans-serif;
+        font-weight: 500;
+        font-size: 14px;
+        color: #c9ced4;
+    }
+    .site-nav .dropdown-menu .dropdown-item.active { color: #fff; font-weight: 600; background: none; }
+    .site-nav .dropdown-menu .dropdown-item:focus { background: none; }
+    .site-nav .dropdown-menu .dropdown-item:hover,
+    .site-nav .dropdown-menu .dropdown-item:focus-visible { color: #f26322; background: none; }
+    /* One highlight at a time: the pointer wins over a keyboard-focused item. */
+    .site-nav .dropdown-menu:hover .dropdown-item:focus-visible:not(:hover) { color: #c9ced4; }
+    .site-nav .dropdown-menu:hover .dropdown-item.active:focus-visible:not(:hover) { color: #fff; }
 
     /* Right-hand group: utility links + login */
     .site-endgroup {
@@ -177,7 +208,8 @@
         text-overflow: ellipsis;
         white-space: nowrap;
     }
-    .acct-caret { font-size: 10px; color: #9aa3ae; line-height: 1; }
+    /* The chip's 9px gap less 4px leaves the caret's 5px from the name. */
+    .acct-chip .caret { flex: none; margin-left: -4px; color: #9aa3ae; }
 
     .acct-menu {
         width: 196px;
@@ -243,7 +275,7 @@
 
     /* Below lg the chip collapses to the avatar alone; stays in the bar */
     @media (max-width: 991.98px) {
-        .acct-name, .acct-caret { display: none; }
+        .acct-name, .acct-chip .caret { display: none; }
         .acct-chip { padding: 6px; }
     }
 
@@ -1044,30 +1076,48 @@
 
     /* Focus ring on every link/button across the homepage, not just the hero. */
     .hp-hero a:focus-visible, .hp-hero button:focus-visible,
-    .hp-section a:focus-visible, .hp-section button:focus-visible,
-    .hp-first a:focus-visible, .hp-first button:focus-visible {
+    .hp-section a:focus-visible, .hp-section button:focus-visible {
         outline: 2px solid #f26322;
         outline-offset: 2px;
     }
 
-    /* Sections below the hero */
+    /* Sections below the hero (README-homepage "Section layout"): white or a
+       full-bleed warm-grey band, and a 220px heading column beside the content.
+       The heading column holds the heading, description and optional button. */
     .hp-section { padding-left: 36px; padding-right: 36px; }
-    .hp-start { padding-top: 32px; }
-    .hp-area { padding-top: 26px; padding-bottom: 34px; }
-    .hp-area .hp-sub { margin-bottom: 14px; }
+    .hp-sec--band {
+        background: #faf9f7;
+        border-top: 1px solid #e6e7ea;
+        border-bottom: 1px solid #e6e7ea;
+    }
+    .hp-sec-inner {
+        display: grid;
+        grid-template-columns: 220px minmax(0, 1fr);
+        grid-template-rows: auto 1fr;
+        column-gap: 36px;
+        padding-top: 40px;
+        padding-bottom: 40px;
+    }
+    .hp-momentum > .hp-sec-inner { padding-bottom: 44px; }
+    .hp-sec-head { grid-column: 1; grid-row: 1; }
+    .hp-sec-btn { grid-column: 1; grid-row: 2; align-self: start; justify-self: start; margin-top: 16px; }
+    .hp-sec-body { grid-column: 2; grid-row: 1 / span 2; min-width: 0; }
     .hp-h2 {
-        margin: 0 0 4px;
+        margin: 0;
         font-family: 'Libre Franklin', system-ui, sans-serif;
         font-weight: 700;
-        font-size: 21px;
-        letter-spacing: -.024em;
+        font-size: 19px;
+        letter-spacing: -.022em;
+        line-height: 1.2;
         color: #15171b;
     }
     .hp-sub {
-        margin: 0 0 16px;
+        margin: 6px 0 0;
         font-family: 'Libre Franklin', system-ui, sans-serif;
-        font-size: 14.5px;
-        color: #3c4148;
+        font-size: 13.5px;
+        line-height: 1.55;
+        color: #5d636c;
+        text-wrap: pretty;
     }
 
     /* Ready to code row */
@@ -1129,6 +1179,8 @@
         text-decoration: none;
     }
     a.hp-cell:hover { background: #faf9f7; }
+    /* Cells stay white on the band; hover darkens so it still shows. */
+    .hp-sec--band a.hp-cell:hover { background: #f1eee9; }
     .hp-cell--empty { pointer-events: none; }
     .hp-cell-name {
         font-family: 'Libre Franklin', system-ui, sans-serif;
@@ -1145,17 +1197,73 @@
         white-space: nowrap;
     }
 
-    /* Momentum (spec README-homepage.md "Momentum") */
-    .hp-momentum { padding-top: 4px; padding-bottom: 40px; }
-    .hp-momentum-head { display: flex; align-items: flex-end; gap: 20px; margin-bottom: 16px; }
-    .hp-momentum-heading { flex: 1; min-width: 0; }
-    .hp-momentum-heading .hp-sub { margin: 0; }
-    .hp-momentum-head .hp-cta-primary { flex: none; }
+    /* Community-Picked PRs (#15a): outlined button in the heading column, top three as rows. */
+    .hp-cp-all {
+        padding: 10px 16px;
+        border: 1px solid #d5d8dc;
+        border-radius: 7px;
+        font-family: 'Libre Franklin', system-ui, sans-serif;
+        font-weight: 600;
+        font-size: 13.5px;
+        color: #15171b;
+        text-decoration: none;
+        white-space: nowrap;
+        transition: border-color 120ms ease-out;
+    }
+    .hp-cp-all:hover { border-color: #15171b; color: #15171b; }
+    .hp-cp-colhead,
+    .hp-cp-row { display: flex; gap: 16px; }
+    .hp-cp-colhead {
+        padding-bottom: 8px;
+        border-bottom: 1px solid #e6e7ea;
+        font-family: 'Martian Mono', ui-monospace, monospace;
+        font-size: 9px;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+        color: #6b7178;
+    }
+    .hp-cp-votes { width: 40px; flex: none; }
+    .hp-cp-row {
+        align-items: baseline;
+        padding: 11px 0;
+        border-bottom: 1px solid #f0f1f3;
+        color: #15171b;
+        text-decoration: none;
+        transition: background 120ms ease-out;
+    }
+    /* On the band, so hover is a step darker than the usual #faf9f7. */
+    .hp-cp-row:hover { background: #f1eee9; color: #15171b; }
+    .hp-cp-row .hp-cp-votes {
+        font-family: 'Martian Mono', ui-monospace, monospace;
+        font-weight: 700;
+        font-size: 15px;
+        font-variant-numeric: tabular-nums;
+    }
+    .hp-cp-pr { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+    .hp-cp-num {
+        flex: none;
+        font-family: 'Martian Mono', ui-monospace, monospace;
+        font-weight: 500;
+        font-size: 12px;
+        color: #ee6524;
+        text-decoration: underline;
+        text-underline-offset: 2px;
+    }
+    .hp-cp-title {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-family: 'Libre Franklin', system-ui, sans-serif;
+        font-weight: 600;
+        font-size: 14.5px;
+        line-height: 1.4;
+    }
+
+    /* Momentum: cards stacked, Pull requests first; side by side they're too narrow
+       in the content column for the month labels. */
     .hp-charts {
-        /* One equal column per rendered card (one or two). */
         display: grid;
-        grid-auto-flow: column;
-        grid-auto-columns: minmax(0, 1fr);
+        grid-template-columns: minmax(0, 1fr);
         gap: 16px;
     }
 
@@ -1278,32 +1386,8 @@
     /* 150px plot + 22px year-axis row Chart.js draws beneath it + 14px top headroom for the top y label. */
     .chart-card-canvas--alltime { height: 186px; margin-top: 20px; }
 
-    /* First time contributing */
-    .hp-first {
-        margin-top: 30px;
-        padding-top: 24px;
-        border-top: 1px solid #e6e7ea;
-        display: flex;
-        gap: 26px;
-    }
-    .hp-first-head { width: 200px; flex: none; }
-    .hp-h3 {
-        margin: 0;
-        font-family: 'Libre Franklin', system-ui, sans-serif;
-        font-weight: 700;
-        font-size: 17px;
-        letter-spacing: -.018em;
-        color: #15171b;
-    }
-    .hp-first-sub {
-        margin: 6px 0 0;
-        font-family: 'Libre Franklin', system-ui, sans-serif;
-        font-size: 13.5px;
-        line-height: 1.55;
-        color: #5d636c;
-    }
+    /* First time contributing: three steps across the content column. */
     .hp-steps {
-        flex: 1;
         display: flex;
         margin: 0;
         padding: 0;
@@ -1340,17 +1424,30 @@
         .hp-cta-primary { display: flex; }
         .hp-hero-right { width: 100%; align-self: stretch; }
         .hp-section { padding-left: 20px; padding-right: 20px; }
+        /* Sections stack: heading, content, then the button at full width. */
+        .hp-sec-inner { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; padding-top: 32px; padding-bottom: 32px; }
+        .hp-momentum > .hp-sec-inner { padding-bottom: 38px; }
+        .hp-sec-head { grid-row: 1; }
+        .hp-sec-body { grid-column: 1; grid-row: 2; margin-top: 16px; }
+        .hp-sec-btn { grid-row: 3; justify-self: stretch; text-align: center; }
         .hp-grid { grid-template-columns: minmax(0, 1fr); }
-        .hp-charts { grid-auto-flow: row; }
-        .hp-momentum { padding-bottom: 38px; }
-        .hp-momentum-head { flex-direction: column; align-items: stretch; gap: 16px; }
+        /* Community-Picked: number inline, title two lines. */
+        .hp-cp-all { padding: 11px 18px; }
+        .hp-cp-colhead, .hp-cp-row { gap: 12px; }
+        .hp-cp-votes { width: 34px; }
+        .hp-cp-pr {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .hp-cp-num { margin-right: 7px; }
+        .hp-cp-title { white-space: normal; }
         /* Below lg the card drops to the top three (+ the visitor's row). Head is child 1,
            so ranked rows sit at child 2–6; hide the 4th and 5th — but never the viewer's own
            highlighted row when they rank 4 or 5 (spec: the visitor's row is never dropped). */
         .hp-board-row:nth-child(n+5):not(.hp-board-row--you) { display: none; }
-        .hp-first { flex-direction: column; gap: 0; }
-        .hp-first-head { width: auto; }
-        .hp-steps { flex-direction: column; margin-top: 14px; }
+        .hp-steps { flex-direction: column; }
         .hp-step, .hp-step:nth-child(1), .hp-step:nth-child(2), .hp-step:nth-child(3) {
             padding: 14px 0 0;
             border-left: 0;

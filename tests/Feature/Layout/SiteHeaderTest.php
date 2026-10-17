@@ -62,11 +62,21 @@ class SiteHeaderTest extends TestCase
             ->assertDontSee('How does scoring work?');
     }
 
-    public function testNavDropdownsCarryCaretGlyph(): void
+    public function testNavDropdownsCarrySvgCaret(): void
+    {
+        $caret = '<svg class="caret" width="7" height="5" viewBox="0 0 12 8"';
+
+        $this->get(route('leaderboard.scoring'))
+            ->assertOk()
+            ->assertSeeInOrder(['dropdown-toggle', 'Issues', $caret, 'dropdown-toggle', 'PRs', $caret], false)
+            ->assertDontSee('▾');
+    }
+
+    public function testNavDropdownsAnnounceTheirMenu(): void
     {
         $this->get(route('leaderboard.scoring'))
             ->assertOk()
-            ->assertSeeInOrder(['dropdown-toggle', 'Issues', '<span class="nav-caret" aria-hidden="true">▾</span>'], false)
-            ->assertSeeInOrder(['dropdown-toggle', 'PRs', '<span class="nav-caret" aria-hidden="true">▾</span>'], false);
+            ->assertSee('id="dropdown-issues" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"', false)
+            ->assertSee('id="dropdown-prs" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"', false);
     }
 }

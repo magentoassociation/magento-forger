@@ -1,4 +1,5 @@
 <?php
+
 /*
  * @copyright Copyright (c) 2026 The Magento Association
  * @license https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
@@ -84,6 +85,24 @@ class ScheduleTest extends TestCase
 
         $this->assertSame('0 10 * * *', $event->expression);
         $this->assertSame('UTC', $event->timezone ?? config('app.timezone'));
+    }
+
+    public function testPrReactionsSyncRunsEveryFifteenMinutesWithoutOverlap(): void
+    {
+        $event = $this->scheduledEvent('sync:github:pr-reactions', static fn (): bool => true);
+
+        $this->assertSame('*/15 * * * *', $event->expression);
+        $this->assertTrue($event->withoutOverlapping);
+        $this->assertTrue($event->runInBackground);
+    }
+
+    public function testPrReactionsSyncKeepsRunningDuringTheFullPrSync(): void
+    {
+        $this->travelTo('2026-08-16 01:10:00');
+
+        $event = $this->scheduledEvent('sync:github:pr-reactions', static fn (): bool => true);
+
+        $this->assertTrue($event->filtersPass($this->app));
     }
 
     public function testBothComputesShareOneMutex(): void

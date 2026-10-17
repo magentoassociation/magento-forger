@@ -458,6 +458,20 @@ class ScoreLeaderboardControllerTest extends TestCase
             ->assertSee(route('leaderboard.detail', ['board' => 'maintainer', 'login' => 'idlemaintainer']));
     }
 
+    public function testMaintainerBoardHidesBotsOnTheRoster(): void
+    {
+        config(['leaderboard.bots.exact' => ['magento-github-admin-beta'], 'leaderboard.bots.prefixes' => ['engcom-']]);
+        RoleEligibility::create(['login' => 'idlemaintainer', 'role' => 'maintainer']);
+        RoleEligibility::create(['login' => 'magento-github-admin-beta', 'role' => 'maintainer']);
+        RoleEligibility::create(['login' => 'engcom-bot', 'role' => 'maintainer']);
+
+        $this->get(route('leaderboard.show', ['board' => 'maintainer']))
+            ->assertOk()
+            ->assertSee('idlemaintainer')
+            ->assertDontSee('magento-github-admin-beta')
+            ->assertDontSee('engcom-bot');
+    }
+
     public function testPublicMaintainerBoardHidesIdleMaintainers(): void
     {
         auth()->logout();

@@ -20,9 +20,7 @@ class LabelController extends Controller
         try {
             $nestedLabels = $query->execute();
         } catch (\Exception $e) {
-            if (! $this->isMissingIndex($e)) {
-                abort(500, 'Error fetching label data: '.$e->getMessage());
-            }
+            $this->abortUnlessMissingIndex($e, 'label');
             $nestedLabels = [];
             $dataMissing = true;
         }

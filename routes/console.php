@@ -10,6 +10,7 @@ use App\Console\Commands\ComputeLeaderboardScores;
 use App\Console\Commands\SyncGitHubEvents;
 use App\Console\Commands\SyncGitHubInteractions;
 use App\Console\Commands\SyncGitHubIssues;
+use App\Console\Commands\SyncGitHubPrReactions;
 use App\Console\Commands\SyncGitHubPRs;
 use App\Console\Commands\SyncGitHubTeams;
 use Illuminate\Support\Facades\Date;
@@ -85,6 +86,15 @@ Schedule::command(SyncGitHubPRs::class, ['--since' => '1 hour ago'])
     ->withoutOverlapping()
     ->runInBackground()
     ->description('Sync GitHub Pull Requests using GraphQL');
+
+// Adding a reaction does not bump a PR's updatedAt, so the incremental above
+// never sees new 👍 votes; this re-reads them on every open PR. It writes the
+// same values the full PR sync does, so it need not pause over that run.
+Schedule::command(SyncGitHubPrReactions::class)
+    ->everyFifteenMinutes()
+    ->withoutOverlapping()
+    ->runInBackground()
+    ->description('Refresh thumbs-up counts on open GitHub Pull Requests');
 
 // Sync Interactions
 Schedule::command(SyncGitHubInteractions::class)

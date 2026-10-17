@@ -22,9 +22,7 @@ class IssuesByMonthController extends Controller
         try {
             $issues = $query->execute(OpenSearchService::OPENSEARCH_GITHUB_ISSUES_INDEX);
         } catch (\Exception $e) {
-            if (! $this->isMissingIndex($e)) {
-                abort(500, 'Error fetching Issue data: '.$e->getMessage());
-            }
+            $this->abortUnlessMissingIndex($e, 'Issue');
             $issues = [];
             $dataMissing = true;
         }

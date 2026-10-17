@@ -13,6 +13,8 @@ class RouteLabelHelper
     private static array $customLabels = [
         'prs' => 'PRs',
         'leaderboard.index' => 'Leaderboard',
+        // Hyphenated names capitalise both parts (README "Capitalisation").
+        'prs.communityPicked' => 'Community-Picked',
     ];
 
     public static function formatLabel(string $routeName): string

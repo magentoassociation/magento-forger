@@ -11,6 +11,7 @@ namespace App\Http\Controllers;
 use App\DataTransferObjects\Search\Aggregation;
 use App\Queries\Dashboard\AgeOverTimeQuery;
 use App\Services\Search\QueryBuilder;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 abstract class Controller
 {
@@ -106,6 +107,25 @@ abstract class Controller
 
             return null;
         }
+    }
+
+    /**
+     * Reports and aborts with a generic 500 unless the failure is a missing index,
+     * which callers render as an empty page. The exception message is kept out of
+     * the response so cluster details don't leak.
+     *
+     * @param  string  $subject  What was being fetched, e.g. 'PR' or 'label'.
+     *
+     * @throws HttpException
+     */
+    protected function abortUnlessMissingIndex(\Exception $e, string $subject): void
+    {
+        if ($this->isMissingIndex($e)) {
+            return;
+        }
+
+        report($e);
+        abort(500, "Error fetching {$subject} data.");
     }
 
     protected function isMissingIndex(\Exception $e): bool
