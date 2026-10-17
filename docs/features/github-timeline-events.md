@@ -1,6 +1,6 @@
 # GitHub Timeline-Events Sync
 
-> **Status:** Implemented. The PR timeline sync (`github-pr-timeline`), issue `label { name }` capture, review latency / responsiveness (`ClaimRecordReader` + `ReviewLatencyAnalyzer`, including the `pr_claimed` stale-PR bonus), and label / triage scoring (`ScoredEventReader::labelAppliedEvents()`) are all built. This doc is now the design reference; remaining leaderboard work is tracked in [Leaderboard Rollout](leaderboard-rollout.md).
+> **Status:** Implemented. The PR timeline sync (`github-pr-timeline`), issue `label { name }` capture, review latency / responsiveness (`ClaimRecordReader` + `ReviewLatencyAnalyzer`, including the flat `pr_reviewed` "Reviewed a PR" bonus for reviewing a self-assigned PR), and label / triage scoring (`ScoredEventReader::labelAppliedEvents()`) are all built. This doc is now the design reference; remaining leaderboard work is tracked in [Leaderboard Rollout](leaderboard-rollout.md).
 
 ## Why
 

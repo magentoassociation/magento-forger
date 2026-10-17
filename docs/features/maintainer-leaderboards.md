@@ -4,7 +4,7 @@
 
 ## What actually ships
 
-The maintainer board is served by `ScoreLeaderboardController::show()` → `maintainerRows()` at `GET leaderboard/maintainer`, reading precomputed `leaderboard_entries` and rendering `resources/views/leaderboard/score.blade.php`. Weighted review/claim/triage scoring and latency stats are documented in [Weighted Scoring](leaderboard-scoring.md).
+The maintainer board is served by `ScoreLeaderboardController::show()` → `maintainerRows()` at `GET leaderboard/maintainer`, reading precomputed `leaderboard_entries` and rendering `resources/views/leaderboard/score.blade.php`. Weighted review and label scoring and latency stats are documented in [Weighted Scoring](leaderboard-scoring.md).
 
 ## Data source (`github-pr-reviews` index)
 

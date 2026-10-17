@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 /*
  * The label Adobe applies when a PR enters the review pool. Defined once here so
- * the claim-detection setting (pending_review_label) and the triage exclusion
+ * the time-to-claim setting (pending_review_label) and the triage exclusion
  * below can never drift apart.
  */
 $pendingReviewLabel = 'Progress: pending review';
@@ -22,7 +22,8 @@ return [
 
     /*
      * The label Adobe applies when a PR enters the review pool. Time a PR spends
-     * with this label before a maintainer self-assigns drives the pr_claimed bonus.
+     * with this label before a maintainer self-assigns is the time-to-claim stat;
+     * it does not affect the pr_reviewed bonus.
      */
     'pending_review_label' => $pendingReviewLabel,
 
@@ -60,7 +61,7 @@ return [
             'review_rejected' => 3,
             'review_commented' => 1,
             'approved_then_merged' => 6,   // bonus, multiplied by impact, when an approved PR merges
-            'pr_claimed' => 1,             // flat bonus for self-assigning (and then reviewing) a pending-review PR
+            'pr_reviewed' => 2,            // flat bonus for self-assigning a PR, then reviewing it
             'label_applied' => 0.5,        // triage: applying a label (deduped per actor/target/label)
             // todo: put back the old PR?
         ],

@@ -35,6 +35,25 @@ None at the moment.
   goes to the main board (`/leaderboard`) instead of toggling, since hover already opened the
   menu. Touch devices still toggle; Contributor is the main board.
 
+- **Claim wording** (`README-scoring-modal.md` 19a, `README-detail-page.md`,
+  `README-leaderboard-pages.md`). The specs say "Claimed a stale pending-review PR" / "Stale PR(s)
+  claimed" / "stale PRs claimed". Code says "Reviewed a PR" / "PR(s) reviewed" / "PRs reviewed"
+  (`Action.php`, `ScoreLeaderboardController.php`). Scoring has no staleness check: any PR a
+  maintainer self-assigns and then reviews earns the bonus.
+
+- **Comment-review wording** (`README-scoring-modal.md` 19a, `README-detail-page.md`,
+  `README-leaderboard-pages.md`). The specs say "Commented on a review" / "Review comment(s)" /
+  "review comments". Code says "Commented on a PR" / "PR comment(s)" / "PR comments"
+  (`Action.php`, `ScoreLeaderboardController.php`).
+
+- **Label wording** (`README-scoring-modal.md` 19a, `README-detail-page.md`,
+  `README-leaderboard-pages.md`). The specs say "Applied a triage label" / "Triage label(s)
+  applied" / "triage labels applied". Code drops "triage": "Applied a label" / "Label(s) applied"
+  / "labels applied" (`Action.php`, `ScoreLeaderboardController.php`).
+
+- **Label base points** (`README-scoring-modal.md` 19a). Spec lists "Applied a triage label" at
+  1. Config (`config/leaderboard.php`) has 0.5; the modal reads config, so it shows 0.5.
+
 ## Not covered
 
 - **Company board** (`score-company.blade.php`) — still old styling. Hidden from the menu; not

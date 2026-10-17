@@ -8,6 +8,8 @@ declare(strict_types=1);
 
 namespace App\DataTransferObjects\Leaderboard;
 
+use Illuminate\Support\Str;
+
 /**
  * Scored actions. Backed values match the keys in config('leaderboard.weights').
  * Using an enum means an invalid action can't be constructed — a typo is a
@@ -23,7 +25,7 @@ enum Action: string
     case REVIEW_REJECTED = 'review_rejected';
     case REVIEW_COMMENTED = 'review_commented';
     case APPROVED_THEN_MERGED = 'approved_then_merged';
-    case PR_CLAIMED = 'pr_claimed';
+    case PR_REVIEWED = 'pr_reviewed';
     case LABEL_APPLIED = 'label_applied';
 
     /**
@@ -38,10 +40,10 @@ enum Action: string
             self::ISSUE_RESOLVED_BY_MERGE => 'Issue resolved by a merged PR',
             self::REVIEW_APPROVED => 'Approved a PR',
             self::REVIEW_REJECTED => 'Requested changes on a PR',
-            self::REVIEW_COMMENTED => 'Commented on a review',
+            self::REVIEW_COMMENTED => 'Commented on a PR',
             self::APPROVED_THEN_MERGED => 'Approved a PR that later merged',
-            self::PR_CLAIMED => 'Claimed a stale pending-review PR',
-            self::LABEL_APPLIED => 'Applied a triage label',
+            self::PR_REVIEWED => 'Reviewed a PR',
+            self::LABEL_APPLIED => 'Applied a label',
         };
     }
 
@@ -50,7 +52,7 @@ enum Action: string
      */
     public static function labelFor(string $action): string
     {
-        return self::tryFrom($action)?->label() ?? \Illuminate\Support\Str::headline($action);
+        return self::tryFrom($action)?->label() ?? Str::headline($action);
     }
 
     /**
@@ -67,10 +69,10 @@ enum Action: string
             self::ISSUE_RESOLVED_BY_MERGE => 'issues resolved by a merged PR',
             self::REVIEW_APPROVED => 'PRs approved',
             self::REVIEW_REJECTED => 'changes requested',
-            self::REVIEW_COMMENTED => 'review comments',
+            self::REVIEW_COMMENTED => 'PR comments',
             self::APPROVED_THEN_MERGED => 'approved PRs that were merged',
-            self::PR_CLAIMED => 'stale PRs claimed',
-            self::LABEL_APPLIED => 'triage labels applied',
+            self::PR_REVIEWED => 'PRs reviewed',
+            self::LABEL_APPLIED => 'labels applied',
         };
     }
 
@@ -87,7 +89,7 @@ enum Action: string
         return [
             self::PR_OPENED, self::PR_MERGED, self::ISSUE_OPENED, self::ISSUE_RESOLVED_BY_MERGE,
             self::REVIEW_APPROVED, self::REVIEW_REJECTED, self::REVIEW_COMMENTED,
-            self::APPROVED_THEN_MERGED, self::PR_CLAIMED, self::LABEL_APPLIED,
+            self::APPROVED_THEN_MERGED, self::PR_REVIEWED, self::LABEL_APPLIED,
         ];
     }
 }

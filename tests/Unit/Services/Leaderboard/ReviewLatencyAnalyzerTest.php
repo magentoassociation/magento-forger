@@ -27,7 +27,7 @@ class ReviewLatencyAnalyzerTest extends TestCase
         ]);
 
         $event = $result['events'][0];
-        $this->assertSame(Action::PR_CLAIMED, $event->action);
+        $this->assertSame(Action::PR_REVIEWED, $event->action);
         $this->assertSame(Board::MAINTAINER, $event->board);
         $this->assertSame(1.0, $event->impact); // flat — no staleness scaling
         // Time-to-claim is still measured for the responsiveness stat.

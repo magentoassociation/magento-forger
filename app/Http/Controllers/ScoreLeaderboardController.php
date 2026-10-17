@@ -227,10 +227,10 @@ class ScoreLeaderboardController extends Controller
             'issue_resolved_by_merge' => 'closing an issue with a merged PR',
             'review_approved' => 'approving PRs',
             'review_rejected' => 'requesting changes on PRs',
-            'review_commented' => 'commenting on reviews',
+            'review_commented' => 'commenting on PRs',
             'approved_then_merged' => 'approving PRs that later merge',
-            'pr_claimed' => 'picking up long-pending PRs',
-            'label_applied' => 'applying triage labels',
+            'pr_reviewed' => 'reviewing PRs',
+            'label_applied' => 'applying labels',
         ];
 
         $scored = array_map(
@@ -327,10 +327,10 @@ class ScoreLeaderboardController extends Controller
         'issue_resolved_by_merge' => 'Issues resolved by a merged PR',
         'review_approved' => 'PRs approved',
         'review_rejected' => 'Changes requested',
-        'review_commented' => 'Review comments',
+        'review_commented' => 'PR comments',
         'approved_then_merged' => 'Approved PRs that were merged',
-        'pr_claimed' => 'Stale PRs claimed',
-        'label_applied' => 'Triage labels applied',
+        'pr_reviewed' => 'PRs reviewed',
+        'label_applied' => 'Labels applied',
     ];
 
     /**
@@ -345,10 +345,10 @@ class ScoreLeaderboardController extends Controller
         'issue_resolved_by_merge' => 'Issue resolved by a merged PR',
         'review_approved' => 'PR approved',
         'review_rejected' => 'Change requested',
-        'review_commented' => 'Review comment',
+        'review_commented' => 'PR comment',
         'approved_then_merged' => 'Approved PR that was merged',
-        'pr_claimed' => 'Stale PR claimed',
-        'label_applied' => 'Triage label applied',
+        'pr_reviewed' => 'PR reviewed',
+        'label_applied' => 'Label applied',
     ];
 
     /** Rows per group shown before the "Show all" control on the grouped view. */

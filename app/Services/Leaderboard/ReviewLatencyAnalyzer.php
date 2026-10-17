@@ -15,7 +15,7 @@ use App\DataTransferObjects\Leaderboard\ScoredEvent;
 
 /**
  * Pure analysis of review-claim timing. Produces:
- *  - `pr_claimed` scored events at a flat weight (no staleness scaling). Only
+ *  - `pr_reviewed` scored events at a flat weight (no staleness scaling). Only
  *    emitted when the maintainer actually reviewed the claimed PR — a claim
  *    without a follow-up review earns nothing.
  *  - per-maintainer responsiveness stats (median time-to-review, median
@@ -47,7 +47,7 @@ class ReviewLatencyAnalyzer
         foreach ($claims as $claim) {
             // A claim is only credited once the maintainer reviews it *after*
             // claiming it. No review — or one submitted before the claim — earns
-            // nothing, so self-assigning stale PRs (or back-dated reviews) can't
+            // nothing, so self-assigning without reviewing (or a back-dated review) can't
             // score. Signed diffs keep pre-claim reviews out rather than abs()
             // turning their negative latency into a positive score.
             if ($claim->firstReviewAt === null || $claim->firstReviewAt->lessThan($claim->claimedAt)) {
@@ -64,7 +64,7 @@ class ReviewLatencyAnalyzer
             $events[] = new ScoredEvent(
                 $claim->maintainer,
                 Board::MAINTAINER,
-                Action::PR_CLAIMED,
+                Action::PR_REVIEWED,
                 $claim->claimedAt,
                 1.0,
                 title: $claim->title ?? 'PR #'.$claim->prNumber,
