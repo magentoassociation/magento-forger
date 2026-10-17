@@ -47,7 +47,7 @@ A maintainer who also authors PRs accrues a Contributor Score *and* a Maintainer
 
 - **Priority labels** for impact weighting — ✅ available: both PR and issue documents already index a `labels` array (`toPullRequestDocument()` / `toIssueDocument()`), which the scorer reads for the `Priority: Px` / `Issue: Confirmed` multipliers. (`additions`/`deletions`/`changed_files` are still indexed but no longer used for scoring.)
 - **Author profile company** to seed org resolution — ✅ done: captured via `author { ... on User { company } }` on the PR and issue queries, persisted as `author_company` on both documents.
-- **(Deferred)** A timeline-events index to event-source label application (#9). Until then, maintainer scoring uses reviews only.
+- **Timeline label events** to event-source label application (#9) — ✅ done: issue label events from `github-events` and PR label events from `github-pr-timeline`, read by `ScoredEventReader::labelAppliedEvents()`.
 
 ## Scoring formula
 
@@ -74,7 +74,7 @@ Base weights live in **`config/leaderboard.php`** with a `version` integer (bump
 | Review rejected (6) | 3 |
 | Review commented (7) | 1 |
 | Approved-then-merged — approver bonus (8) | 6 |
-| Label applied — triage (9) | 1 |
+| Label applied — triage (9) | 0.5 |
 | Claimed & reviewed a pending-review PR (11) | 2 |
 
 **Impact weight** — from the issue/PR's **priority labels**, not lines of code. Applied to every issue/PR event (issue opened, PR opened, PR merged, issue-resolved-by-merge, and the approver's approved-then-merged bonus). The highest `Priority: Px` label on the item sets the multiplier; unlabeled work stays at `1.0` (so it still earns its base). Issues additionally carrying the confirmed label get an additive bonus, but only on `issue_opened` (rewarding the person who filed a bug a maintainer later confirmed). The sum is clamped to `[min, max]`.
@@ -223,7 +223,7 @@ This produces two different clocks:
 - **Time-to-claim** (`Progress: pending review` applied → self-assignment): how long the PR sat before this maintainer picked it up. This is recorded as the `median_time_to_claim_days` responsiveness stat but **does not scale the score** — `pr_claimed` earns a flat bonus. Anti-farming guards: the bonus is only credited once the maintainer reviews the PR, and only when that review is submitted **after** the claim (a pre-claim or back-dated review scores nothing — latencies are computed as signed diffs so a negative span can't be `abs()`-ed into points); and repeated self-assignments on the same PR (`ClaimRecordReader`) collapse to one claim per (PR, maintainer), keeping the earliest, so re-requesting review can't manufacture extra claim credit.
 - **Time-to-review** (self-assignment → first review submitted): the span a maintainer controls after claiming — stored as the `median_time_to_review_hours` responsiveness stat.
 
-These are computed from the `github-pr-timeline` index by `ClaimRecordReader` (assembling claim, pending-review-label, and first-review timings) and `ReviewLatencyAnalyzer` (the pure scoring + median math). Label-applied / "issues triaged" scoring (#9) remains deferred — it needs per-label event scoring, see [GitHub Timeline-Events Sync](github-timeline-events.md).
+These are computed from the `github-pr-timeline` index by `ClaimRecordReader` (assembling claim, pending-review-label, and first-review timings) and `ReviewLatencyAnalyzer` (the pure scoring + median math). Label-applied / triage scoring (#9) is scored separately by `ScoredEventReader::labelAppliedEvents()` (0.5 base points, deduped per actor/target/label), see [GitHub Timeline-Events Sync](github-timeline-events.md).
 
 Lapse detection is just a query: `last_contribution_at` older than a threshold (e.g. 90 days) among users with a meaningful prior score. This is the hook for the retention loop in phase 6 (nudges, "we miss you" surfacing).
 
