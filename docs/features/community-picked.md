@@ -69,7 +69,7 @@ The PR sync stores two fields on each PR document:
 | Field | Source |
 |-------|--------|
 | `thumbs_up_count` | `reactions(content: THUMBS_UP) { totalCount }` on the PR body |
-| `linked_issues` | issue numbers from `closingIssuesReferences` |
+| `linked_issues` | issue numbers from `closingIssuesReferences`, limited to `github.repo` (cross-repo references dropped) |
 
 Both are written by `sync:github:prs`, and refreshed on every open PR every 15 minutes by `sync:github:pr-reactions` (which also refreshes `is_draft`).
 

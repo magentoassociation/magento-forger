@@ -108,11 +108,11 @@ class OpenSearchService
 
         $body = [];
         foreach ($pullRequests as $pr) {
-            $body[] = ['update' => ['_index' => $indexName, '_id' => $pr['number']]];
+            $body[] = ['update' => ['_index' => $indexName, '_id' => $pr['number'], 'retry_on_conflict' => 3]];
             $body[] = ['doc' => [
                 'is_draft' => $pr['isDraft'],
                 'thumbs_up_count' => $pr['reactions']['totalCount'] ?? 0,
-                'linked_issues' => array_column($pr['closingIssuesReferences']['nodes'] ?? [], 'number'),
+                'linked_issues' => $this->linkedIssueNumbers($pr),
             ]];
         }
 
@@ -216,8 +216,8 @@ class OpenSearchService
             if ($pr['state'] !== 'MERGED') {
                 continue;
             }
-            foreach ($pr['closingIssuesReferences']['nodes'] ?? [] as $issue) {
-                $body[] = ['update' => ['_index' => $issueIndex, '_id' => $issue['number']]];
+            foreach ($this->linkedIssueNumbers($pr) as $issueNumber) {
+                $body[] = ['update' => ['_index' => $issueIndex, '_id' => $issueNumber]];
                 $body[] = ['doc' => ['closed_by_merged_pr' => true], 'doc_as_upsert' => true];
             }
         }
@@ -250,8 +250,30 @@ class OpenSearchService
             'comments_count' => $pr['comments']['totalCount'] ?? 0,
             'reviews_count' => $pr['reviews']['totalCount'] ?? 0,
             'thumbs_up_count' => $pr['reactions']['totalCount'] ?? 0,
-            'linked_issues' => array_column($pr['closingIssuesReferences']['nodes'] ?? [], 'number'),
+            'linked_issues' => $this->linkedIssueNumbers($pr),
         ];
+    }
+
+    /**
+     * Numbers of the issues a PR closes, limited to the configured repo. A PR can
+     * close issues in other repos, whose numbers would collide with ours.
+     *
+     * @param  array<string, mixed>  $pr
+     * @return list<int>
+     */
+    protected function linkedIssueNumbers(array $pr): array
+    {
+        $repo = (string) config('github.repo');
+        $numbers = [];
+
+        foreach ($pr['closingIssuesReferences']['nodes'] ?? [] as $issue) {
+            $issueRepo = $issue['repository']['nameWithOwner'] ?? null;
+            if (is_string($issueRepo) && strcasecmp($issueRepo, $repo) === 0) {
+                $numbers[] = $issue['number'];
+            }
+        }
+
+        return $numbers;
     }
 
     public function indexIssues(array $issues): void

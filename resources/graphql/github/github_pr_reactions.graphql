@@ -20,6 +20,7 @@ query($owner: String!, $name: String!, $cursor: String) {
         closingIssuesReferences(first: 25) {
           nodes {
             number
+            repository { nameWithOwner }
           }
         }
       }

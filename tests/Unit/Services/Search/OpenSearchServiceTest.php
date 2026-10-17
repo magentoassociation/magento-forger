@@ -167,6 +167,8 @@ class OpenSearchServiceTest extends TestCase
 
     public function testPullRequestDocumentIncludesThumbsUpCountAndLinkedIssues(): void
     {
+        config(['github.repo' => 'magento/magento2']);
+
         $doc = $this->buildDocument('toPullRequestDocument', [
             'number' => 12,
             'id' => 'PR_12',
@@ -181,7 +183,12 @@ class OpenSearchServiceTest extends TestCase
             'comments' => ['totalCount' => 0],
             'reviews' => ['totalCount' => 0],
             'reactions' => ['totalCount' => 8],
-            'closingIssuesReferences' => ['nodes' => [['number' => 101], ['number' => 102]]],
+            'closingIssuesReferences' => ['nodes' => [
+                ['number' => 101, 'repository' => ['nameWithOwner' => 'magento/magento2']],
+                ['number' => 102, 'repository' => ['nameWithOwner' => 'Magento/Magento2']],
+                ['number' => 103, 'repository' => ['nameWithOwner' => 'magento/other-repo']],
+                ['number' => 104],
+            ]],
         ]);
 
         $this->assertSame(8, $doc['thumbs_up_count']);
@@ -198,15 +205,19 @@ class OpenSearchServiceTest extends TestCase
             return ['errors' => false, 'items' => []];
         });
         $this->app->instance(Client::class, $client);
+        config(['github.repo' => 'magento/magento2']);
 
         (new OpenSearchService)->updatePullRequestReactions([[
             'number' => 39812,
             'isDraft' => true,
             'reactions' => ['totalCount' => 8],
-            'closingIssuesReferences' => ['nodes' => [['number' => 39790]]],
+            'closingIssuesReferences' => ['nodes' => [
+                ['number' => 39790, 'repository' => ['nameWithOwner' => 'magento/magento2']],
+                ['number' => 1, 'repository' => ['nameWithOwner' => 'magento/other-repo']],
+            ]],
         ]]);
 
-        $this->assertSame(['update' => ['_index' => OpenSearchService::getIndexWithPrefix('github-pull-requests'), '_id' => 39812]], $sent[0]);
+        $this->assertSame(['update' => ['_index' => OpenSearchService::getIndexWithPrefix('github-pull-requests'), '_id' => 39812, 'retry_on_conflict' => 3]], $sent[0]);
         $this->assertSame(['doc' => ['is_draft' => true, 'thumbs_up_count' => 8, 'linked_issues' => [39790]]], $sent[1]);
     }
 
