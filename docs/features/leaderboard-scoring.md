@@ -162,7 +162,7 @@ org_leaderboard_entries               # precomputed company scores
 
 - Big points require a **merge**, not just opening a PR (#3, #8).
 - Impact comes from **maintainer-applied priority labels**, capped at 5.5 → a contributor can't self-inflate their multiplier, and unprioritised work stays at 1×.
-- Bot exclusion reuses the existing list (`engcom-*`, `dependabot[bot]`, `github-actions[bot]`, `m2-assistant`), applied in the compute job.
+- Bot exclusion reuses the existing list (`engcom-*`, `dependabot[bot]`, `github-actions[bot]`, `m2-assistant`, `magento-github-admin-beta`), applied in the compute job.
 - Decay stops anyone (or any org) camping the top after going quiet.
 - **(Planned)** a per-login `excluded` flag (set in Filament, Drupal-style) to remove bad actors from all score boards — not built yet; only the bot list above is enforced today.
 - Guard `author == reviewer` so self-reviews earn nothing (all review actions, not just the approver bonus).

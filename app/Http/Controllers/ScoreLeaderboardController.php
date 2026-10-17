@@ -16,6 +16,7 @@ use App\Models\LeaderboardEntry;
 use App\Models\LeaderboardLineItem;
 use App\Models\OrgLeaderboardEntry;
 use App\Models\RoleEligibility;
+use App\Support\BotFilter;
 use App\Support\MonthlyWindow;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
@@ -653,7 +654,9 @@ class ScoreLeaderboardController extends Controller
      */
     private function maintainerRows(bool $includeZeros): Collection
     {
-        $roster = RoleEligibility::query()->where('role', 'maintainer')->get(['login', 'active']);
+        // Bot accounts can sit on the maintainer team; scoring already drops them.
+        $roster = RoleEligibility::query()->where('role', 'maintainer')->get(['login', 'active'])
+            ->reject(fn (RoleEligibility $member): bool => BotFilter::isBot($member->login));
 
         if ($roster->isEmpty()) {
             return LeaderboardEntry::query()
