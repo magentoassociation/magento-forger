@@ -60,7 +60,7 @@ return [
             'review_rejected' => 3,
             'review_commented' => 1,
             'approved_then_merged' => 6,   // bonus, multiplied by impact, when an approved PR merges
-            'pr_claimed' => 2,             // flat bonus for self-assigning (and then reviewing) a pending-review PR
+            'pr_claimed' => 1,             // flat bonus for self-assigning (and then reviewing) a pending-review PR
             'label_applied' => 0.5,        // triage: applying a label (deduped per actor/target/label)
             // todo: put back the old PR?
         ],

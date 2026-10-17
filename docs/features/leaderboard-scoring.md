@@ -75,7 +75,7 @@ Base weights live in **`config/leaderboard.php`** with a `version` integer (bump
 | Review commented (7) | 1 |
 | Approved-then-merged — approver bonus (8) | 6 |
 | Label applied — triage (9) | 0.5 |
-| Claimed & reviewed a pending-review PR (11) | 2 |
+| Claimed & reviewed a pending-review PR (11) | 1 |
 
 **Impact weight** — from the issue/PR's **priority labels**, not lines of code. Applied to every issue/PR event (issue opened, PR opened, PR merged, issue-resolved-by-merge, and the approver's approved-then-merged bonus). The highest `Priority: Px` label on the item sets the multiplier; unlabeled work stays at `1.0` (so it still earns its base). Issues additionally carrying the confirmed label get an additive bonus, but only on `issue_opened` (rewarding the person who filed a bug a maintainer later confirmed). The sum is clamped to `[min, max]`.
 

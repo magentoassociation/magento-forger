@@ -29,7 +29,11 @@ None at the moment.
 
 ## Kept on purpose
 
-None at the moment.
+- **Leaderboard is a nav dropdown** (`README-header.md`, *Nav dropdowns*). The spec has only
+  Issues ▾ and PRs ▾, and a click on a parent toggles its menu. Leaderboard ▾ holds Contributor,
+  Maintainer, Monthly and Highlights (`app/Menus/MainMenu.php`). On hover devices, clicking it
+  goes to the main board (`/leaderboard`) instead of toggling, since hover already opened the
+  menu. Touch devices still toggle; Contributor is the main board.
 
 ## Not covered
 

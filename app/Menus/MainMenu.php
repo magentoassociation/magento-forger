@@ -21,6 +21,21 @@ class MainMenu
     // Restore the pattern below to bring the menu back.
     private const MENU_ROUTE_PATTERN = '/^(home|leaderboard\.index|issues|prs|employment)(\.[\w]+)?$/';
 
+    /**
+     * Submenu links for routes that need parameters, which the route scan skips.
+     * `active` lists the route patterns the item is current on; `board` narrows it.
+     *
+     * @var array<string, list<array{label: string, route: string, params: array<string, string>, active: list<string>, board?: string}>>
+     */
+    private const PARAMETERIZED_CHILDREN = [
+        'leaderboard' => [
+            ['label' => 'Contributor', 'route' => 'leaderboard.show', 'params' => ['board' => 'contributor'], 'active' => ['leaderboard.show', 'leaderboard.detail'], 'board' => 'contributor'],
+            ['label' => 'Maintainer', 'route' => 'leaderboard.show', 'params' => ['board' => 'maintainer'], 'active' => ['leaderboard.show', 'leaderboard.detail'], 'board' => 'maintainer'],
+            ['label' => 'Monthly', 'route' => 'leaderboard.monthly.index', 'params' => ['board' => 'contributor'], 'active' => ['leaderboard.monthly*']],
+            ['label' => 'Highlights', 'route' => 'leaderboard.highlights', 'params' => [], 'active' => ['leaderboard.highlights']],
+        ],
+    ];
+
     public static function build(): Menu
     {
         $currentRoute = Route::currentRouteName();
@@ -41,52 +56,52 @@ class MainMenu
 
         foreach ($grouped as $mainItem => $subRoutes) {
             $landingRoute = $subRoutes->first(fn (string $name): bool => $name === $mainItem || $name === "{$mainItem}.index");
-            $childRoutes = $subRoutes->filter(fn (string $name): bool => $name !== $landingRoute);
+            $children = $subRoutes
+                ->filter(fn (string $name): bool => $name !== $landingRoute)
+                ->map(fn (string $name): array => [
+                    'label' => self::formatLabel($name),
+                    'url' => route($name),
+                    'active' => $name === $currentRoute,
+                ])
+                ->concat(array_map(self::parameterizedChild(...), self::PARAMETERIZED_CHILDREN[$mainItem] ?? []))
+                ->values();
 
-            if ($landingRoute && $childRoutes->isEmpty()) {
+            if ($landingRoute && $children->isEmpty()) {
                 $menu->add(
                     Link::toRoute($landingRoute, self::formatLabel($landingRoute))
                         ->addClass('nav-link')
                         ->addParentClass('nav-item')
                 );
-            } elseif ($childRoutes->isNotEmpty()) {
-                // Build dropdown submenu
-                $submenuItems = '';
-                foreach ($childRoutes as $child) {
-                    $label = self::formatLabel($child);
-                    $isActive = ($child === $currentRoute) ? ' active' : '';
-                    $submenuItems .= sprintf(
-                        '<li><a class="dropdown-item%s"%s href="%s">%s</a></li>',
-                        $isActive,
-                        $isActive ? ' aria-current="page"' : '',
-                        route($child),
-                        $label
-                    );
-                }
+            } elseif ($children->isNotEmpty()) {
+                $submenuItems = $children->map(fn (array $child): string => sprintf(
+                    '<li><a class="dropdown-item%s"%s href="%s">%s</a></li>',
+                    $child['active'] ? ' active' : '',
+                    $child['active'] ? ' aria-current="page"' : '',
+                    $child['url'],
+                    $child['label']
+                ))->implode('');
 
-                if (trim($submenuItems) !== '') {
-                    // Check if current route matches one of the children
-                    $isActive = $childRoutes->contains($currentRoute) ? ' active' : '';
-
-                    $dropdownHtml = sprintf(
-                        '<li class="nav-item dropdown">
-        <a class="nav-link dropdown-toggle%s" href="#" id="dropdown-%s" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                // A landing route makes the parent a real link: on hover devices a click
+                // follows it (the hover already opened the menu); elsewhere it toggles.
+                $dropdownHtml = sprintf(
+                    '<li class="nav-item dropdown">
+        <a class="nav-link dropdown-toggle%s" href="%s" id="dropdown-%s" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
             %s%s
         </a>
         <ul class="dropdown-menu" aria-labelledby="dropdown-%s">
             %s
         </ul>
     </li>',
-                        $isActive,     // %1$s
-                        $mainItem,             // %2$s
-                        self::formatLabel($mainItem),    // %3$s
-                        trim(view('components._caret')->render()),    // %4$s
-                        $mainItem,             // %5$s again for aria-labelledby
-                        $submenuItems          // %6$s
-                    );
+                    $children->contains('active', true) || request()->routeIs("{$mainItem}.*") ? ' active' : '',
+                    $landingRoute ? route($landingRoute) : '#',
+                    $mainItem,
+                    self::formatLabel($landingRoute ?? $mainItem),
+                    trim(view('components._caret')->render()),
+                    $mainItem,
+                    $submenuItems
+                );
 
-                    $menu->add(Html::raw(trim($dropdownHtml)));
-                }
+                $menu->add(Html::raw(trim($dropdownHtml)));
             }
         }
 
@@ -96,6 +111,18 @@ class MainMenu
                 $link->setAttribute('aria-current', 'page');
             }
         });
+    }
+
+    /**
+     * @param  array{label: string, route: string, params: array<string, string>, active: list<string>, board?: string}  $child
+     * @return array{label: string, url: string, active: bool}
+     */
+    private static function parameterizedChild(array $child): array
+    {
+        $active = request()->routeIs(...$child['active'])
+            && (! isset($child['board']) || request()->route('board') === $child['board']);
+
+        return ['label' => $child['label'], 'url' => route($child['route'], $child['params']), 'active' => $active];
     }
 
     private static function formatLabel(string $routeName): string
