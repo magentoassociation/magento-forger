@@ -27,7 +27,7 @@ Living checklist for the weighted contributor/maintainer leaderboard. Source-of-
 - **Scheduled `leaderboard:compute`** — wired in `routes/console.php`: an incremental run every 15 min (`10-59/15 * * * *`) plus a weekly full run (`weeklyOn(0, '04:00')`) on `ComputeLeaderboardScores`; relies on `schedule:run`.
 - **`approved_then_merged` maintainer bonus** — impact-weighted approver bonus when an approved PR merges; self-reviews skipped.
 - **Review latency / responsiveness** — `median_time_to_review_hours` / `median_time_to_claim_days` / `reviews_in_window`, plus the flat `pr_claimed` bonus (credited only when the claim is reviewed; time-to-claim is measured for the stat but no longer scales the points).
-- **Label / triage scoring** — `label_applied`, deduped per (actor, target, label); excluded labels via config.
+- **Label / triage scoring** — `label_applied` (0.5 base points), deduped per (actor, target, label); excluded labels via config.
 - **All-time `first_contribution_at`** — earliest issue/PR/review across all time (composite agg).
 - **Action enum** — scored actions are a backed `Action` enum; an invalid action can't be constructed (no silent zero-scores from typos).
 - **Comeback metric** — `returned_after_days` records the silence a returning contributor bridged (stat, not a score); `comeback_url`/`comeback_title` capture the PR/issue that ended the silence, linked on the Highlights card.
