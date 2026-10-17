@@ -11,6 +11,7 @@ namespace Tests\Feature\Http\Controllers;
 use App\Models\RoleEligibility;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Exceptions;
 use Mockery;
 use OpenSearch\Client;
 use RuntimeException;
@@ -386,6 +387,20 @@ class CommunityPickedControllerTest extends TestCase
         $response->assertOk();
         $response->assertSee('The pull-requests index is empty or missing.');
         $response->assertDontSee('No community pick candidates right now.');
+    }
+
+    public function testReportsOtherSearchFailuresWithoutLeakingDetails(): void
+    {
+        $exceptions = Exceptions::fake();
+        $client = Mockery::mock(Client::class);
+        $client->shouldReceive('search')->andThrow(new RuntimeException('secret-cluster-host:9200 refused'));
+        $this->app->instance(Client::class, $client);
+
+        $response = $this->get('/prs/community-picked');
+
+        $response->assertStatus(500);
+        $response->assertDontSee('secret-cluster-host');
+        $exceptions->assertReported(RuntimeException::class);
     }
 
     public function testIsLinkedFromPrsMenuOnly(): void

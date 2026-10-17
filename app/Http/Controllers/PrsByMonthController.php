@@ -22,9 +22,7 @@ class PrsByMonthController extends Controller
         try {
             $prs = $query->execute(OpenSearchService::OPENSEARCH_GITHUB_PULL_REQUESTS_INDEX);
         } catch (\Exception $e) {
-            if (! $this->isMissingIndex($e)) {
-                abort(500, 'Error fetching PR data: '.$e->getMessage());
-            }
+            $this->abortUnlessMissingIndex($e, 'PR');
             $prs = [];
             $dataMissing = true;
         }

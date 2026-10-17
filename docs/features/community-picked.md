@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Surface open PRs on the tracked repository that the community can vote to have merged into Magento 2. After each voting period, the top-voted PRs are prioritized for merging. This page is where voters browse and vote; it doesn't run the voting period or the selection. Replaces the hand-built GitHub search (`is:pr is:open sort:reactions-desc -label:"Release Line: 2.5" -label:"Project: Community Picked"`), ranking by 👍 only and excluding drafts.
+Surface open PRs on the tracked repository that the community can vote to have merged into Magento 2. After each voting period, the top-voted PRs are prioritized for merging. This page is where voters browse and vote; it doesn't run the voting period or the selection. Replaces the hand-built GitHub search (`is:pr is:open sort:reactions-desc -label:"Release Line: 2.5" -label:"Project: Community Picked"`) Like it, drafts are included; unlike it, ranking counts 👍 only.
 
 ## How it works
 
@@ -12,7 +12,7 @@ Only admins and active community-council members can see it (`view-community-pic
 
 `CommunityPickCandidatesQuery` reads the pull-requests index and returns Community Pick Candidates (see CONTEXT.md):
 
-- `is_open` true, `is_draft` not true, no `labels.keyword` in `github.community_picked.exclude_labels`
+- `is_open` true (drafts included), no `labels.keyword` in `github.community_picked.exclude_labels`
 - sorted by `?sort=`:
   - `votes` (default): `thumbs_up_count` desc, then `created_at` asc
   - `oldest`: `created_at` asc, then `thumbs_up_count` desc

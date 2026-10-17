@@ -43,9 +43,7 @@ class CommunityPickedController extends Controller
         try {
             $result = $query->execute($area, $component, $author, $rows, $sort, $title);
         } catch (\Exception $e) {
-            if (! $this->isMissingIndex($e)) {
-                abort(500, 'Error fetching PR data: '.$e->getMessage());
-            }
+            $this->abortUnlessMissingIndex($e, 'PR');
             $result = ['rows' => [], 'total' => 0, 'areaOptions' => [], 'componentOptions' => [], 'authorOptions' => []];
             $dataMissing = true;
         }

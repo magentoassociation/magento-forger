@@ -10,8 +10,10 @@ namespace Tests\Feature\Http\Controllers;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Exceptions;
 use Mockery;
 use OpenSearch\Client;
+use RuntimeException;
 use Tests\TestCase;
 
 class LabelControllerTest extends TestCase
@@ -86,6 +88,20 @@ class LabelControllerTest extends TestCase
             false,
         );
         $response->assertDontSee('github.com/magento/magento2/issues', false);
+    }
+
+    public function testReportsSearchFailureWithoutLeakingDetails(): void
+    {
+        $exceptions = Exceptions::fake();
+        $client = Mockery::mock(Client::class);
+        $client->shouldReceive('search')->andThrow(new RuntimeException('secret-cluster-host:9200 refused'));
+        $this->app->instance(Client::class, $client);
+
+        $response = $this->actingAs($this->createUser(true))->get(route('labels.listAllLabels'));
+
+        $response->assertStatus(500);
+        $response->assertDontSee('secret-cluster-host');
+        $exceptions->assertReported(RuntimeException::class);
     }
 
     private function createUser(bool $isAdmin): User

@@ -34,7 +34,7 @@ class CommunityPickCandidatesQueryTest extends TestCase
         parent::tearDown();
     }
 
-    public function testExcludesClosedDraftAndConfiguredLabels(): void
+    public function testExcludesClosedAndConfiguredLabelsButKeepsDrafts(): void
     {
         config(['github.community_picked.exclude_labels' => ['Release Line: 2.5', 'Project: Community Picked']]);
 
@@ -42,7 +42,7 @@ class CommunityPickCandidatesQueryTest extends TestCase
 
         $bool = $this->pageRequest['body']['query']['bool'];
         $this->assertContains(['term' => ['is_open' => true]], $bool['filter']);
-        $this->assertContains(['term' => ['is_draft' => true]], $bool['must_not']);
+        $this->assertStringNotContainsString('is_draft', json_encode($bool));
         $this->assertContains(
             ['terms' => ['labels.keyword' => ['Release Line: 2.5', 'Project: Community Picked']]],
             $bool['must_not'],
