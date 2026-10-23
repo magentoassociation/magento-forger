@@ -2,12 +2,12 @@
 
 ## Overview
 Restyles the Community-Picked PRs page (reached from the PRs menu) on the leaderboard template.
-Approved direction: **27b** at desktop, **27c** at 420px, and **27d** for the filtered state. The page lists open pull requests
+Approved direction: **27b** at desktop, **27c** at 420px, **27d** for the filtered state, and **32a**/**32c** for the monthly results. The page lists open pull requests
 ranked by GitHub 👍 votes, with filters for title, Area, Component and author.
 
 ## About the design files
 `../Leaderboard prototype.html`, one level up from this folder, is a design reference written in HTML, not
-production code. Reproduce it in the Laravel/Blade + Bootstrap codebase. Turn 27 holds all three frames.
+production code. Reproduce it in the Laravel/Blade + Bootstrap codebase. Turn 27 holds the list frames; turn 32 the monthly results.
 
 ## Fidelity
 **High-fidelity.** Type, colour, gutter, title block, control styling and row dividers follow
@@ -27,7 +27,46 @@ Standard site chrome per `README-header.md`, with **PRs ▾** as the active nav 
 
    The live page's "How community picking works" heading is removed; the title block already
    names the page and the paragraph explains it.
-3. **Control strip**, **count line**, **column heads**, **rows**, **pagination**, footer.
+3. **Monthly results** band (see below).
+4. **"Open for voting"** heading, then **control strip**, **count line**, **column heads**, **rows**, **pagination**, footer.
+
+## Monthly results (32a, 32c)
+Once a month the top-voted PRs are posted as a screenshot. The latest month sits in a band
+between the intro and the control strip.
+
+**Band**: `margin-top: 26px`, `padding: 22px 36px 26px`, full card width, background `#f5f4f1`
+(the homepage band colour, `README-homepage.md`).
+- Heading row, `display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 14px`:
+  - H2 "September 2026 results": the voting month, not the posting month. Libre Franklin 700,
+    20px, `letter-spacing: -.02em`.
+  - "Posted Oct 1, 2026": Martian Mono 9.5px uppercase, `letter-spacing: .06em`, `#6b7178`. The
+    date is a `<time>` whose `title` gives the full date.
+  - **Past results** select, `margin-left: auto`, outlined control on a `#fff` background with the
+    chevron. Lists every posted month, newest first; picking one opens the full view on that month.
+- **Preview**: a link, `display: block; height: 240px; overflow: hidden`, `1px solid #e6e7ea`,
+  `radius 8px`, background `#fff`, hover border `#15171b`. The screenshot fills the width
+  (`width: 100%; height: auto`), top-aligned. A 110px fade at the bottom,
+  `linear-gradient(rgba(255,255,255,0), #fff 78%)`. Centred 16px from the bottom, a dark
+  "View full results" label (`padding: 9px 18px`, `#15171b`, white 600 13.5px, `radius 7px`).
+  The whole preview opens the full view.
+- Alt text names the month: "September 2026 Community-Picked results: open PRs on GitHub sorted
+  by reactions".
+- With no results posted yet, the band is removed.
+
+**Open for voting**: H2 above the control strip, `padding-top: 26px`, same style as the band's H2,
+so results and list don't read as one table. The strip's `margin-top` becomes 14px.
+
+**Full view (32c)**: a modal on the scoring modal's backdrop and behaviour (Esc, backdrop click
+and the close button close it; focus is trapped and returns to the opener).
+- Panel `#fff`, `radius 10px`, `box-shadow: 0 20px 48px rgba(0,0,0,.35)`, `aria-labelledby` the H2.
+- Header, `padding: 18px 22px`, `border-bottom: 1px solid #e6e7ea`: the H2 and posted date stacked
+  (`gap: 4px`) on the left; on the right a month select (outlined, current month shown,
+  newest first) and a 34px close button (12px ×, `#3c4148`, hover background `#f0f1f3`,
+  `aria-label="Close"`).
+- Body, `padding: 18px 22px`, background `#faf9f7`, `max-height: 460px` (desktop) and scrolls.
+  The screenshot at full width, `1px solid #e6e7ea`, `radius 6px`.
+- Changing the month swaps the heading, date and image in place. Months with no posted results
+  are left out of the select.
 
 ## Control strip
 `margin-top: 22px`, `border-top: 1px solid #e6e7ea`, `padding: 16px 0 14px`,
@@ -126,6 +165,8 @@ after a filter applies and "50 more shown" after an append.
 
 ## Narrow widths (27c)
 Below roughly 700px:
+
+- Results band: gutter 20px; "Past results" wraps to its own row under the date, full width. Preview height 180px. The full view fills the screen with 12px margins.
 
 - Gutter 20px; H1 28px; header and footer per `README-header.md` (as in `#24a`).
 - Control strip becomes a two-column grid (`grid-template-columns: minmax(0,1fr) minmax(0,1fr)`,
