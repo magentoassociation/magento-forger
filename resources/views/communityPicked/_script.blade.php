@@ -5,6 +5,48 @@
      so a filtered view can be shared and survives Back. Without JavaScript, Enter
      submits the form and "Show 50 more" is a plain link. --}}
 <script>
+// Monthly results (#32c): the preview opens the full view on the latest month; "Past
+// results" opens it on the month picked; the month select swaps heading, date and image
+// in place. Bootstrap's modal handles Esc, backdrop click and the focus trap.
+(function () {
+    var modalEl = document.getElementById('cp-results-modal');
+    if (!modalEl || !window.bootstrap) { return; }
+
+    var monthSelect = modalEl.querySelector('.cpm-month');
+    var past = document.querySelector('.cp-past');
+    var opener = null;
+
+    function showMonth(value) {
+        monthSelect.value = value;
+        var data = monthSelect.selectedOptions[0].dataset;
+        var posted = modalEl.querySelector('.cp-posted');
+        var img = modalEl.querySelector('.cpm-body img');
+        modalEl.querySelector('.cp-h2').textContent = data.heading;
+        posted.textContent = data.posted;
+        posted.dateTime = data.postedIso;
+        posted.title = data.postedFull;
+        img.src = data.src;
+        img.alt = data.alt;
+    }
+
+    modalEl.addEventListener('show.bs.modal', function (e) {
+        if (e.relatedTarget) { showMonth(e.relatedTarget.dataset.month); }
+    });
+    monthSelect.addEventListener('change', function () { showMonth(monthSelect.value); });
+
+    past.addEventListener('change', function () {
+        if (!past.value) { return; }
+        showMonth(past.value);
+        past.value = '';
+        opener = past;
+        bootstrap.Modal.getOrCreateInstance(modalEl).show();
+    });
+    // Bootstrap returns focus only to a data-bs-toggle opener.
+    modalEl.addEventListener('hidden.bs.modal', function () {
+        if (opener) { opener.focus(); opener = null; }
+    });
+})();
+
 (function () {
     var form = document.querySelector('.cp-strip');
     var live = document.querySelector('.cp-live');

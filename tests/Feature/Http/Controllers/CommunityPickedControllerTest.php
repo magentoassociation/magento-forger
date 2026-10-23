@@ -1,5 +1,4 @@
 <?php
-
 /*
  * @copyright Copyright (c) 2026 The Magento Association
  * @license https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
@@ -8,10 +7,12 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Http\Controllers;
 
+use App\Models\CommunityPickedResult;
 use App\Models\RoleEligibility;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Exceptions;
+use Illuminate\Support\Facades\Storage;
 use Mockery;
 use OpenSearch\Client;
 use RuntimeException;
@@ -410,6 +411,55 @@ class CommunityPickedControllerTest extends TestCase
         $this->get('/prs/community-picked')
             ->assertSee('href="'.route('prs.communityPicked').'">Community-Picked</a>', false)
             ->assertDontSee('href="'.route('prs.communityPicked').'">Community-Picked PRs</a>', false);
+    }
+
+    public function testShowsLatestMonthlyResultsAndListsPastMonthsNewestFirst(): void
+    {
+        $this->bindClient([]);
+        CommunityPickedResult::factory()->create(['month' => '2026-08-01', 'posted_on' => '2026-09-01', 'image_path' => 'community-picked/aug.png']);
+        CommunityPickedResult::factory()->create(['month' => '2026-09-01', 'posted_on' => '2026-10-01', 'image_path' => 'community-picked/sep.png']);
+
+        $response = $this->get('/prs/community-picked');
+
+        $response->assertOk();
+        $response->assertSeeInOrder(['September 2026 results', 'Open for voting'], false);
+        $response->assertSee('<time class="cp-posted" datetime="2026-10-01" title="October 1, 2026">Posted Oct 1, 2026</time>', false);
+        $response->assertSee('alt="September 2026 Community-Picked results: open PRs on GitHub sorted by reactions"', false);
+        $response->assertSee('src="'.Storage::disk('public')->url('community-picked/sep.png').'"', false);
+        $response->assertSee('View full results');
+        $response->assertSeeInOrder(['<option value="">Past results</option>', '<option value="2026-09">September 2026</option>', '<option value="2026-08">August 2026</option>'], false);
+        $response->assertSee('data-src="'.Storage::disk('public')->url('community-picked/aug.png').'"', false);
+    }
+
+    public function testHidesDisabledMonths(): void
+    {
+        $this->bindClient([]);
+        CommunityPickedResult::factory()->create(['month' => '2026-08-01', 'posted_on' => '2026-09-01']);
+        CommunityPickedResult::factory()->create(['month' => '2026-09-01', 'posted_on' => '2026-10-01', 'enabled' => false]);
+
+        $response = $this->get('/prs/community-picked');
+
+        $response->assertSee('August 2026 results');
+        $response->assertDontSee('September 2026');
+    }
+
+    public function testOmitsTheResultsBandWhenEveryMonthIsDisabled(): void
+    {
+        $this->bindClient([]);
+        CommunityPickedResult::factory()->create(['enabled' => false]);
+
+        $this->get('/prs/community-picked')->assertDontSee('class="cp-band"', false);
+    }
+
+    public function testOmitsTheResultsBandUntilResultsArePosted(): void
+    {
+        $this->bindClient([]);
+
+        $response = $this->get('/prs/community-picked');
+
+        $response->assertDontSee('class="cp-band"', false);
+        $response->assertDontSee('id="cp-results-modal"', false);
+        $response->assertSee('Open for voting');
     }
 
     /**

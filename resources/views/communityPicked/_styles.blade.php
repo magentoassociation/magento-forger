@@ -2,13 +2,126 @@
     /* Community-picked PRs (#27b, #27c). Builds on the board styles in leaderboard._lb-styles. */
     .cp .lb-intro { margin: 0; }
 
+    /* Monthly results (#32a, #32c) */
+    .cp-h2 {
+        margin: 0;
+        font-family: var(--font-sans);
+        font-weight: 700;
+        font-size: 20px;
+        letter-spacing: -.02em;
+        color: #15171b;
+    }
+    .cp-posted {
+        font-family: var(--font-mono);
+        font-size: 9.5px;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+        color: #6b7178;
+    }
+    /* Bleeds through the 36px container gutter to the full card width. */
+    .cp-band {
+        margin: 26px -36px 0;
+        padding: 22px 36px 26px;
+        background: #f5f4f1;
+    }
+    .cp-band-head {
+        display: flex;
+        align-items: baseline;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-bottom: 14px;
+    }
+    .cp-past { margin-left: auto; }
+    .cp-preview {
+        position: relative;
+        display: block;
+        height: 240px;
+        overflow: hidden;
+        border: 1px solid #e6e7ea;
+        border-radius: 8px;
+        background: #fff;
+        transition: border-color 120ms ease-out;
+    }
+    .cp-preview:hover { border-color: #15171b; }
+    .cp-preview img { display: block; width: 100%; height: auto; }
+    .cp-preview::after {
+        content: '';
+        position: absolute;
+        inset: auto 0 0;
+        height: 110px;
+        background: linear-gradient(rgba(255, 255, 255, 0), #fff 78%);
+    }
+    .cp-preview-label {
+        position: absolute;
+        z-index: 1;
+        bottom: 16px;
+        left: 50%;
+        transform: translateX(-50%);
+        padding: 9px 18px;
+        border-radius: 7px;
+        background: #15171b;
+        font-weight: 600;
+        font-size: 13.5px;
+        color: #fff;
+        white-space: nowrap;
+    }
+    .cp-voting { padding-top: 26px; }
+
+    .cpm-dialog { max-width: 1000px; }
+    .cpm-panel {
+        border: 0;
+        border-radius: 10px;
+        overflow: hidden;
+        background: #fff;
+        box-shadow: 0 20px 48px rgba(0, 0, 0, .35);
+    }
+    .cpm-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 18px 22px;
+        border-bottom: 1px solid #e6e7ea;
+    }
+    .cpm-headtext {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        margin-right: auto;
+    }
+    .cpm-close {
+        flex: none;
+        width: 34px;
+        height: 34px;
+        border: 0;
+        border-radius: 7px;
+        background: transparent;
+        font-size: 12px;
+        line-height: 1;
+        color: #3c4148;
+        transition: background 120ms ease-out;
+    }
+    .cpm-close:hover { background: #f0f1f3; }
+    .cpm-body {
+        max-height: 460px;
+        overflow-y: auto;
+        padding: 18px 22px;
+        background: #faf9f7;
+    }
+    .cpm-body img {
+        display: block;
+        width: 100%;
+        height: auto;
+        border: 1px solid #e6e7ea;
+        border-radius: 6px;
+    }
+
     /* Control strip */
     .cp-strip {
         display: flex;
         align-items: center;
         gap: 10px;
         flex-wrap: wrap;
-        margin-top: 22px;
+        margin-top: 14px;
         padding: 16px 0 14px;
         border-top: 1px solid #e6e7ea;
     }
@@ -200,6 +313,8 @@
     .cp .cp-input:focus-visible,
     .cp .cp-select:focus-visible,
     .cp .cp-clear:focus-visible,
+    .cp .cp-preview:focus-visible,
+    .cp .cpm-close:focus-visible,
     .cp .cpr-num:focus-visible,
     .cp .cpr-issue:focus-visible,
     .cp .cpr-author:focus-visible {
@@ -210,6 +325,13 @@
     /* Narrow (#27c): two-column control grid, number inline with the title,
        author and age on a third line. */
     @media (max-width: 700px) {
+        .cp-band { margin-left: -20px; margin-right: -20px; padding-left: 20px; padding-right: 20px; }
+        .cp-past { flex-basis: 100%; max-width: none; margin-left: 0; }
+        .cp-preview { height: 180px; }
+        .cpm-dialog { max-width: none; height: calc(100% - 24px); margin: 12px; }
+        .cpm-panel { height: 100%; }
+        .cpm-body { max-height: none; flex: 1; }
+
         .cp-strip {
             display: grid;
             grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);

@@ -27,6 +27,64 @@
 
         <p class="lb-intro">Vote for the open pull requests you want merged into Magento 2: click a PR's number to open it on GitHub, then click 👍 on the PR description. After each voting period, the top-voted PRs are prioritized for merging. Vote counts refresh from GitHub every 15 minutes.</p>
 
+        @if ($monthlyResults->isNotEmpty())
+            {{-- Monthly results (#32a). Every option carries what the full view (#32c) swaps in. --}}
+            @php
+                $monthOptions = $monthlyResults->map(fn ($result): array => [
+                    'value' => $result->month->format('Y-m'),
+                    'heading' => $result->month->format('F Y').' results',
+                    'posted' => 'Posted '.$result->posted_on->format('M j, Y'),
+                    'postedIso' => $result->posted_on->toDateString(),
+                    'postedFull' => $result->posted_on->format('F j, Y'),
+                    'src' => $result->imageUrl(),
+                    'alt' => $result->month->format('F Y').' Community-Picked results: open PRs on GitHub sorted by reactions',
+                ]);
+                $latest = $monthOptions->first();
+            @endphp
+            <section class="cp-band" aria-labelledby="cp-results-heading">
+                <div class="cp-band-head">
+                    <h2 class="cp-h2" id="cp-results-heading">{{ $latest['heading'] }}</h2>
+                    <time class="cp-posted" datetime="{{ $latest['postedIso'] }}" title="{{ $latest['postedFull'] }}">{{ $latest['posted'] }}</time>
+                    <select class="cp-select cp-past" aria-label="Past results">
+                        <option value="">Past results</option>
+                        @foreach ($monthOptions as $option)
+                            <option value="{{ $option['value'] }}">{{ Str::before($option['heading'], ' results') }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <a class="cp-preview" href="{{ $latest['src'] }}" data-bs-toggle="modal" data-bs-target="#cp-results-modal" data-month="{{ $latest['value'] }}">
+                    <img src="{{ $latest['src'] }}" alt="{{ $latest['alt'] }}">
+                    <span class="cp-preview-label">View full results</span>
+                </a>
+            </section>
+
+            <div class="modal fade cpm" id="cp-results-modal" tabindex="-1" aria-labelledby="cp-results-modal-heading" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered cpm-dialog">
+                    <div class="modal-content cpm-panel">
+                        <div class="cpm-header">
+                            <div class="cpm-headtext">
+                                <h2 class="cp-h2" id="cp-results-modal-heading">{{ $latest['heading'] }}</h2>
+                                <time class="cp-posted" datetime="{{ $latest['postedIso'] }}" title="{{ $latest['postedFull'] }}">{{ $latest['posted'] }}</time>
+                            </div>
+                            <select class="cp-select cpm-month" aria-label="Month">
+                                @foreach ($monthOptions as $option)
+                                    <option value="{{ $option['value'] }}" data-heading="{{ $option['heading'] }}" data-posted="{{ $option['posted'] }}"
+                                            data-posted-iso="{{ $option['postedIso'] }}" data-posted-full="{{ $option['postedFull'] }}"
+                                            data-src="{{ $option['src'] }}" data-alt="{{ $option['alt'] }}">{{ Str::before($option['heading'], ' results') }}</option>
+                                @endforeach
+                            </select>
+                            <button type="button" class="cpm-close" data-bs-dismiss="modal" aria-label="Close">✕</button>
+                        </div>
+                        <div class="modal-body cpm-body">
+                            <img src="{{ $latest['src'] }}" alt="{{ $latest['alt'] }}" loading="lazy">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        @endif
+
+        <h2 class="cp-h2 cp-voting">Open for voting</h2>
+
         @unless ($dataMissing)
             {{-- No Filter button: selects apply on change, text fields on Enter or a typing pause (script below). --}}
             <form method="GET" action="{{ route('prs.communityPicked') }}" class="cp-strip" role="search">

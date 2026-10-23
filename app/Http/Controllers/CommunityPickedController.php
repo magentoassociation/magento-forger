@@ -1,5 +1,4 @@
 <?php
-
 /*
  * @copyright Copyright (c) 2026 The Magento Association
  * @license https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
@@ -8,6 +7,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Models\CommunityPickedResult;
 use App\Queries\Dashboard\CommunityPickCandidatesQuery;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -65,6 +65,7 @@ class CommunityPickedController extends Controller
             'componentOptions' => $result['componentOptions'],
             'authorOptions' => $result['authorOptions'],
             'dataMissing' => $dataMissing,
+            'monthlyResults' => CommunityPickedResult::query()->where('enabled', true)->orderByDesc('month')->get(),
         ]);
     }
 }
