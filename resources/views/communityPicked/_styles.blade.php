@@ -66,6 +66,11 @@
         white-space: nowrap;
     }
     .cp-voting { padding-top: 26px; }
+    .cp-voting-ends {
+        margin: 4px 0 0;
+        font-size: 12.5px;
+        color: #6b7178;
+    }
 
     .cpm-dialog { max-width: 1000px; }
     .cpm-panel {
@@ -88,6 +93,15 @@
         gap: 4px;
         margin-right: auto;
     }
+    .cpm-github {
+        font-size: 12.5px;
+        font-weight: 500;
+        color: #ee6524;
+        text-decoration: underline;
+        text-underline-offset: 2px;
+        transition: color 120ms ease-out;
+    }
+    .cpm-github:hover { color: #c74e16; }
     .cpm-close {
         flex: none;
         width: 34px;
@@ -315,6 +329,7 @@
     .cp .cp-clear:focus-visible,
     .cp .cp-preview:focus-visible,
     .cp .cpm-close:focus-visible,
+    .cp .cpm-github:focus-visible,
     .cp .cpr-num:focus-visible,
     .cp .cpr-issue:focus-visible,
     .cp .cpr-author:focus-visible {

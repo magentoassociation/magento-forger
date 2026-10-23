@@ -9,6 +9,7 @@ namespace Tests\Feature\Http\Controllers;
 
 use App\Models\CommunityPickedResult;
 use App\Models\RoleEligibility;
+use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Exceptions;
@@ -427,8 +428,43 @@ class CommunityPickedControllerTest extends TestCase
         $response->assertSee('alt="September 2026 Community-Picked results: open PRs on GitHub sorted by reactions"', false);
         $response->assertSee('src="'.Storage::disk('public')->url('community-picked/sep.png').'"', false);
         $response->assertSee('View full results');
+        $response->assertSee('href="https://github.com/magento/magento2/pulls?q=is%3Apr+state%3Aopen+label%3A%22Project%3A+Community+Picked%22" target="_blank" rel="noopener">Community-Picked PRs on GitHub</a>', false);
         $response->assertSeeInOrder(['<option value="">Past results</option>', '<option value="2026-09">September 2026</option>', '<option value="2026-08">August 2026</option>'], false);
         $response->assertSee('data-src="'.Storage::disk('public')->url('community-picked/aug.png').'"', false);
+    }
+
+    public function testShowsWhenVotingEnds(): void
+    {
+        $this->travelTo('2026-10-23');
+        $this->bindClient([]);
+        Setting::put(Setting::COMMUNITY_PICKED_VOTING_ENDS_ON, '2026-10-31');
+
+        $this->get('/prs/community-picked')->assertSeeInOrder([
+            'Open for voting</h2>',
+            '<p class="cp-voting-ends">Voting ends on <time datetime="2026-10-31">October 31, 2026</time>.</p>',
+            'class="cp-strip"',
+        ], false);
+    }
+
+    public function testShowsVotingEndsOnTheLastDay(): void
+    {
+        $this->travelTo('2026-10-31 18:00');
+        $this->bindClient([]);
+        Setting::put(Setting::COMMUNITY_PICKED_VOTING_ENDS_ON, '2026-10-31');
+
+        $this->get('/prs/community-picked')->assertSee('Voting ends on');
+    }
+
+    public function testHidesVotingEndsOncePastOrUnset(): void
+    {
+        $this->travelTo('2026-11-01');
+        $this->bindClient([]);
+
+        $this->get('/prs/community-picked')->assertDontSee('Voting ends on');
+
+        Setting::put(Setting::COMMUNITY_PICKED_VOTING_ENDS_ON, '2026-10-31');
+
+        $this->get('/prs/community-picked')->assertDontSee('Voting ends on');
     }
 
     public function testHidesDisabledMonths(): void

@@ -65,6 +65,7 @@
                             <div class="cpm-headtext">
                                 <h2 class="cp-h2" id="cp-results-modal-heading">{{ $latest['heading'] }}</h2>
                                 <time class="cp-posted" datetime="{{ $latest['postedIso'] }}" title="{{ $latest['postedFull'] }}">{{ $latest['posted'] }}</time>
+                                <a class="cpm-github" href="{{ $repoUrl }}/pulls?q={{ urlencode('is:pr state:open label:"Project: Community Picked"') }}" target="_blank" rel="noopener">Community-Picked PRs on GitHub</a>
                             </div>
                             <select class="cp-select cpm-month" aria-label="Month">
                                 @foreach ($monthOptions as $option)
@@ -84,6 +85,9 @@
         @endif
 
         <h2 class="cp-h2 cp-voting">Open for voting</h2>
+        @if ($votingEndsOn)
+            <p class="cp-voting-ends">Voting ends on <time datetime="{{ $votingEndsOn->toDateString() }}">{{ $votingEndsOn->format('F j, Y') }}</time>.</p>
+        @endif
 
         @unless ($dataMissing)
             {{-- No Filter button: selects apply on change, text fields on Enter or a typing pause (script below). --}}

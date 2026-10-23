@@ -8,8 +8,10 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Models\CommunityPickedResult;
+use App\Models\Setting;
 use App\Queries\Dashboard\CommunityPickCandidatesQuery;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
@@ -48,6 +50,9 @@ class CommunityPickedController extends Controller
             $dataMissing = true;
         }
 
+        $votingEndsOn = Setting::valueOf(Setting::COMMUNITY_PICKED_VOTING_ENDS_ON);
+        $votingEndsOn = $votingEndsOn ? Carbon::parse($votingEndsOn) : null;
+
         return view('communityPicked/index', [
             'candidates' => $result['rows'],
             'total' => $result['total'],
@@ -65,6 +70,8 @@ class CommunityPickedController extends Controller
             'componentOptions' => $result['componentOptions'],
             'authorOptions' => $result['authorOptions'],
             'dataMissing' => $dataMissing,
+            // A passed date is stale until an admin sets the next one; hide it.
+            'votingEndsOn' => $votingEndsOn?->endOfDay()->isPast() ? null : $votingEndsOn,
             'monthlyResults' => CommunityPickedResult::query()->where('enabled', true)->orderByDesc('month')->get(),
         ]);
     }
