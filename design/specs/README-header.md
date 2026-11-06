@@ -12,7 +12,7 @@ content below the header is unchanged, except on the homepage, which has its own
 (`README-homepage.md`) and omits the white page-title block.
 
 ## About the design files
-`../Leaderboard prototype.html`, one level up from this folder, is a design reference
+`../MageForger.html`, one level up from this folder, is a design reference
 written in HTML — a prototype of the
 intended look and behaviour, not production code to copy. Reproduce the spec below in the
 Laravel/Blade + Bootstrap codebase using its existing template conventions.

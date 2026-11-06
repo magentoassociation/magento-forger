@@ -50,17 +50,15 @@ are not listed.
   Pick your area and Community-Picked PRs, side headings in a 220px column on every section,
   19px headings, Momentum cards stacked. Not built.
 
-- **Community-Picked monthly results** (`README-community-picked.md`, *Monthly results*; `#32a`,
-  `#32c`). Results band, "Open for voting" heading and full-view modal. Not built; needs a place
-  to upload each month's screenshot with its month and posted date.
-
 ## Unsure
 
 None at the moment.
 
 ## Kept on purpose
 
-None at the moment.
+- **Community-Picked full view body padding below 700px** (`README-community-picked.md`, *Full
+  view*). Spec keeps the body at `24px 32px 32px`; code uses 20px so the screenshot lines up with
+  the stacked header's 20px padding.
 
 ## Not covered
 

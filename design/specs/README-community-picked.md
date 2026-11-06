@@ -6,7 +6,7 @@ Approved direction: **27b** at desktop, **27c** at 420px, **27d** for the filter
 ranked by GitHub 👍 votes, with filters for title, Area, Component and author.
 
 ## About the design files
-`../Leaderboard prototype.html`, one level up from this folder, is a design reference written in HTML, not
+`../MageForger.html`, one level up from this folder, is a design reference written in HTML, not
 production code. Reproduce it in the Laravel/Blade + Bootstrap codebase. Turn 27 holds the list frames; turn 32 the monthly results.
 
 ## Fidelity
@@ -21,14 +21,12 @@ Standard site chrome per `README-header.md`, with **PRs ▾** as the active nav 
 1. **Title block**: H1 "Community-Picked PRs", per *Page gutter and title block* in `README.md`.
 2. **Intro**: one paragraph, `padding: 24px 36px 0`, Libre Franklin 14.5px, `line-height: 1.65`,
    `#3c4148`, `max-width: 660px`. Copy, verbatim:
-   > Vote for the open pull requests you want merged into Magento 2: click a PR's number to open
-   > it on GitHub, then click 👍 on the PR description. After each voting period, the top-voted PRs
-   > are prioritized for merging. Vote counts refresh from GitHub every 15 minutes.
+   > Vote for the open pull requests you want merged into Magento 2. After each voting period, the
+   > top-voted PRs are prioritized for merging.
 
-   The live page's "How community picking works" heading is removed; the title block already
-   names the page and the paragraph explains it.
+   How to vote moves to the voting block (item 4).
 3. **Monthly results** band (see below).
-4. **"Open for voting"** heading, then **control strip**, **count line**, **column heads**, **rows**, **pagination**, footer.
+4. **Voting block** (see *Monthly results*), then **control strip**, **count line**, **column heads**, **rows**, **pagination**, footer.
 
 ## Monthly results (32a, 32c)
 Once a month the top-voted PRs are posted as a screenshot. The latest month sits in a band
@@ -53,20 +51,39 @@ between the intro and the control strip.
   by reactions".
 - With no results posted yet, the band is removed.
 
-**Open for voting**: H2 above the control strip, `padding-top: 26px`, same style as the band's H2,
-so results and list don't read as one table. The strip's `margin-top` becomes 14px.
+**Voting block**: sits between the band and the control strip, top to bottom:
+- H2 "Vote for PRs to be merged", `padding-top: 26px`, same style as the band's H2, so results
+  and list don't read as one table.
+- "Voting ends on November 30, 2026." Shown only when an end date is set. `margin-top: 4px`,
+  12.5px, `#6b7178`; the date is a `<time>`.
+- Instructions, in the intro's paragraph style with `margin-top: 16px`. Copy, verbatim:
+  > Click a PR's number to open it on GitHub, then click 👍 on the PR description.
+
+  Keep the space after 👍.
+- "Vote counts refresh from GitHub every 15 minutes." `margin-top: 4px`, 12.5px, `#6b7178`.
+- The control strip follows with `margin-top: 20px`.
 
 **Full view (32c)**: a modal on the scoring modal's backdrop and behaviour (Esc, backdrop click
 and the close button close it; focus is trapped and returns to the opener).
 - Panel `#fff`, `radius 10px`, `box-shadow: 0 20px 48px rgba(0,0,0,.35)`, `aria-labelledby` the H2.
-- Header, `padding: 18px 22px`, `border-bottom: 1px solid #e6e7ea`: the H2 and posted date stacked
-  (`gap: 4px`) on the left; on the right a month select (outlined, current month shown,
-  newest first) and a 34px close button (12px ×, `#3c4148`, hover background `#f0f1f3`,
-  `aria-label="Close"`).
-- Body, `padding: 18px 22px`, background `#faf9f7`, `max-height: 460px` (desktop) and scrolls.
+- Header, `display: flex; align-items: flex-start; gap: 16px; padding: 28px 32px 24px`,
+  `border-bottom: 1px solid #e6e7ea`.
+  - Left, stacked with `gap: 8px`:
+    - H2 "September 2026 results", Libre Franklin 700, 22px, `letter-spacing: -.022em`,
+      `line-height: 1.2`.
+    - One meta line, 13px `#6b7178`, `gap: 6px`, wraps: "Posted Oct 1, 2026" (sentence case, not
+      mono; a `<time>` with the full date in `title`), a "·" separator (`aria-hidden`), then the
+      link "Community-Picked PRs on GitHub" in `#3c4148`, underline `rgba(60,65,72,.35)` offset 2px,
+      hover `#ee6524`. Opens in a new tab. Not orange at rest.
+  - Right, `gap: 12px`, top-aligned with the H2: month select (outlined, current month shown,
+    newest first) and a 34px close button (12px SVG ×, `#3c4148`, hover background `#f0f1f3`,
+    `aria-label="Close"`). Use the SVG, not the ✕ character.
+- Body, `padding: 24px 32px 32px`, background `#faf9f7`, `max-height: 460px` (desktop) and scrolls.
   The screenshot at full width, `1px solid #e6e7ea`, `radius 6px`.
 - Changing the month swaps the heading, date and image in place. Months with no posted results
   are left out of the select.
+- Below 700px the header stacks: H2 and close on the first row, meta line, then the select full
+  width. Padding 20px.
 
 ## Control strip
 `margin-top: 22px`, `border-top: 1px solid #e6e7ea`, `padding: 16px 0 14px`,
@@ -166,6 +183,7 @@ after a filter applies and "50 more shown" after an append.
 ## Narrow widths (27c)
 Below roughly 700px:
 
+- Voting block: unchanged, gutter 20px.
 - Results band: gutter 20px; "Past results" wraps to its own row under the date, full width. Preview height 180px. The full view fills the screen with 12px margins.
 
 - Gutter 20px; H1 28px; header and footer per `README-header.md` (as in `#24a`).

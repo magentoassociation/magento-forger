@@ -2,7 +2,7 @@
 
 Two things in this folder.
 
-**`Leaderboard prototype.html`** — open it in any browser. No server, no build, works offline.
+**`MageForger.html`** — open it in any browser. No server, no build, works offline.
 It is the visual reference: every approved design, newest first, each with an id badge
 (`21a`, `19b`, `24d`). The specs cite those ids.
 

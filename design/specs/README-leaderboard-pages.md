@@ -23,7 +23,7 @@ row height for information that reads better as a column. The board now states i
 offers search and a jump-to-me control, and paginates.
 
 ## About the design files
-`../Leaderboard prototype.html`, one level up from this folder, is a design reference
+`../MageForger.html`, one level up from this folder, is a design reference
 written in HTML — a prototype of the intended look and behaviour, not production code to copy.
 Reproduce the spec below in the Laravel/Blade + Bootstrap codebase using its existing template
 conventions. Turn 21 holds all three boards.
