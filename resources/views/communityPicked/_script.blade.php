@@ -19,9 +19,9 @@
     function showMonth(value) {
         monthSelect.value = value;
         var data = monthSelect.selectedOptions[0].dataset;
-        var posted = modalEl.querySelector('.cp-posted');
+        var posted = modalEl.querySelector('.cpm-posted');
         var img = modalEl.querySelector('.cpm-body img');
-        modalEl.querySelector('.cp-h2').textContent = data.heading;
+        modalEl.querySelector('.cpm-h2').textContent = data.heading;
         posted.textContent = data.posted;
         posted.dateTime = data.postedIso;
         posted.title = data.postedFull;

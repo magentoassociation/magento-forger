@@ -1,6 +1,7 @@
 <style>
     /* Community-picked PRs (#27b, #27c). Builds on the board styles in leaderboard._lb-styles. */
     .cp .lb-intro { margin: 0; }
+    .cp .cp-howto { margin-top: 16px; }
 
     /* Monthly results (#32a, #32c) */
     .cp-h2 {
@@ -66,7 +67,8 @@
         white-space: nowrap;
     }
     .cp-voting { padding-top: 26px; }
-    .cp-voting-ends {
+    .cp-voting-ends,
+    .cp-refresh {
         margin: 4px 0 0;
         font-size: 12.5px;
         color: #6b7178;
@@ -82,35 +84,57 @@
     }
     .cpm-header {
         display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 18px 22px;
+        align-items: flex-start;
+        gap: 16px;
+        padding: 28px 32px 24px;
         border-bottom: 1px solid #e6e7ea;
     }
     .cpm-headtext {
         display: flex;
         flex-direction: column;
-        gap: 4px;
+        gap: 8px;
         margin-right: auto;
     }
+    .cpm-h2 {
+        margin: 0;
+        font-family: var(--font-sans);
+        font-weight: 700;
+        font-size: 22px;
+        letter-spacing: -.022em;
+        line-height: 1.2;
+        color: #15171b;
+    }
+    .cpm-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin: 0;
+        font-size: 13px;
+        color: #6b7178;
+    }
     .cpm-github {
-        font-size: 12.5px;
-        font-weight: 500;
-        color: #ee6524;
+        color: #3c4148;
         text-decoration: underline;
+        text-decoration-color: rgba(60, 65, 72, .35);
         text-underline-offset: 2px;
         transition: color 120ms ease-out;
     }
-    .cpm-github:hover { color: #c74e16; }
+    .cpm-github:hover { color: #ee6524; }
+    .cpm-actions {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
     .cpm-close {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
         flex: none;
         width: 34px;
         height: 34px;
         border: 0;
         border-radius: 7px;
         background: transparent;
-        font-size: 12px;
-        line-height: 1;
         color: #3c4148;
         transition: background 120ms ease-out;
     }
@@ -118,7 +142,7 @@
     .cpm-body {
         max-height: 460px;
         overflow-y: auto;
-        padding: 18px 22px;
+        padding: 24px 32px 32px;
         background: #faf9f7;
     }
     .cpm-body img {
@@ -135,7 +159,7 @@
         align-items: center;
         gap: 10px;
         flex-wrap: wrap;
-        margin-top: 14px;
+        margin-top: 20px;
         padding: 16px 0 14px;
         border-top: 1px solid #e6e7ea;
     }
@@ -345,7 +369,20 @@
         .cp-preview { height: 180px; }
         .cpm-dialog { max-width: none; height: calc(100% - 24px); margin: 12px; }
         .cpm-panel { height: 100%; }
-        .cpm-body { max-height: none; flex: 1; }
+        .cpm-body { max-height: none; flex: 1; padding: 20px; }
+        /* Header stacks: H2 + close, meta line, then the select full width. */
+        .cpm-header {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            grid-template-areas: "title close" "meta meta" "month month";
+            gap: 8px 12px;
+            padding: 20px;
+        }
+        .cpm-headtext, .cpm-actions { display: contents; }
+        .cpm-h2 { grid-area: title; }
+        .cpm-meta { grid-area: meta; }
+        .cpm-month { grid-area: month; width: 100%; max-width: none; }
+        .cpm-close { grid-area: close; }
 
         .cp-strip {
             display: grid;

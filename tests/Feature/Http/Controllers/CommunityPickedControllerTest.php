@@ -55,7 +55,8 @@ class CommunityPickedControllerTest extends TestCase
         $response->assertOk();
         $response->assertSee('<h1>Community-Picked PRs</h1>', false);
         $response->assertDontSee('How community picking works');
-        $response->assertSee('then click 👍 on the PR description. After each voting period');
+        $response->assertSee('then click 👍 on the PR description.');
+        $response->assertSee('<p class="cp-refresh">Vote counts refresh from GitHub every 15 minutes.</p>', false);
         $response->assertSee('Exclude orphan plugins from code generation');
         $response->assertSee('href="https://github.com/magento/magento2/pull/39812" target="_blank" rel="noopener"', false);
         $response->assertSee('<span class="cpr-votes">8<span class="visually-hidden"> votes</span></span>', false);
@@ -423,11 +424,19 @@ class CommunityPickedControllerTest extends TestCase
         $response = $this->get('/prs/community-picked');
 
         $response->assertOk();
-        $response->assertSeeInOrder(['September 2026 results', 'Open for voting'], false);
+        $response->assertSeeInOrder(['September 2026 results', 'Vote for PRs to be merged'], false);
         $response->assertSee('<time class="cp-posted" datetime="2026-10-01" title="October 1, 2026">Posted Oct 1, 2026</time>', false);
         $response->assertSee('alt="September 2026 Community-Picked results: open PRs on GitHub sorted by reactions"', false);
         $response->assertSee('src="'.Storage::disk('public')->url('community-picked/sep.png').'"', false);
         $response->assertSee('View full results');
+        $response->assertSeeInOrder([
+            '<h2 class="cpm-h2" id="cp-results-modal-heading">September 2026 results</h2>',
+            '<time class="cpm-posted" datetime="2026-10-01" title="October 1, 2026">Posted Oct 1, 2026</time>',
+            '<span aria-hidden="true">·</span>',
+            'Community-Picked PRs on GitHub',
+        ], false);
+        $response->assertSeeInOrder(['class="cpm-close"', '<svg width="12" height="12"'], false);
+        $response->assertDontSee('aria-label="Close">✕', false);
         $response->assertSee('href="https://github.com/magento/magento2/pulls?q=is%3Apr+state%3Aopen+label%3A%22Project%3A+Community+Picked%22" target="_blank" rel="noopener">Community-Picked PRs on GitHub</a>', false);
         $response->assertSeeInOrder(['<option value="">Past results</option>', '<option value="2026-09">September 2026</option>', '<option value="2026-08">August 2026</option>'], false);
         $response->assertSee('data-src="'.Storage::disk('public')->url('community-picked/aug.png').'"', false);
@@ -440,7 +449,7 @@ class CommunityPickedControllerTest extends TestCase
         Setting::put(Setting::COMMUNITY_PICKED_VOTING_ENDS_ON, '2026-10-31');
 
         $this->get('/prs/community-picked')->assertSeeInOrder([
-            'Open for voting</h2>',
+            'Vote for PRs to be merged</h2>',
             '<p class="cp-voting-ends">Voting ends on <time datetime="2026-10-31">October 31, 2026</time>.</p>',
             'class="cp-strip"',
         ], false);
@@ -495,7 +504,7 @@ class CommunityPickedControllerTest extends TestCase
 
         $response->assertDontSee('class="cp-band"', false);
         $response->assertDontSee('id="cp-results-modal"', false);
-        $response->assertSee('Open for voting');
+        $response->assertSee('Vote for PRs to be merged');
     }
 
     /**
