@@ -9,6 +9,7 @@ namespace Database\Factories;
 
 use App\Models\CommunityPickedResult;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Carbon;
 
 /**
  * @extends Factory<CommunityPickedResult>
@@ -22,12 +23,11 @@ class CommunityPickedResultFactory extends Factory
      */
     public function definition(): array
     {
-        $month = now()->subMonth()->startOfMonth();
-
+        // Closures run after overrides merge, so posted_on and image_path follow a supplied month.
         return [
-            'month' => $month,
-            'posted_on' => $month->copy()->addMonth(),
-            'image_path' => 'community-picked/'.$month->format('Y-m').'.png',
+            'month' => fn (): Carbon => now()->startOfMonth()->subMonths(fake()->unique()->numberBetween(1, 600)),
+            'posted_on' => fn (array $attributes): Carbon => Carbon::parse($attributes['month'])->addMonth(),
+            'image_path' => fn (array $attributes): string => 'community-picked/'.Carbon::parse($attributes['month'])->format('Y-m').'.png',
         ];
     }
 }
