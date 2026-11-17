@@ -1,6 +1,157 @@
 <style>
     /* Community-picked PRs (#27b, #27c). Builds on the board styles in leaderboard._lb-styles. */
     .cp .lb-intro { margin: 0; }
+    .cp .cp-howto { margin-top: 16px; }
+
+    /* Monthly results (#32a, #32c) */
+    .cp-h2 {
+        margin: 0;
+        font-family: var(--font-sans);
+        font-weight: 700;
+        font-size: 20px;
+        letter-spacing: -.02em;
+        color: #15171b;
+    }
+    .cp-posted {
+        font-family: var(--font-mono);
+        font-size: 9.5px;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+        color: #6b7178;
+    }
+    /* Bleeds through the 36px container gutter to the full card width. */
+    .cp-band {
+        margin: 26px -36px 0;
+        padding: 22px 36px 26px;
+        background: #f5f4f1;
+    }
+    .cp-band-head {
+        display: flex;
+        align-items: baseline;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-bottom: 14px;
+    }
+    .cp-past { margin-left: auto; }
+    .cp-preview {
+        position: relative;
+        display: block;
+        height: 240px;
+        overflow: hidden;
+        border: 1px solid #e6e7ea;
+        border-radius: 8px;
+        background: #fff;
+        transition: border-color 120ms ease-out;
+    }
+    .cp-preview:hover { border-color: #15171b; }
+    .cp-preview img { display: block; width: 100%; height: auto; }
+    .cp-preview::after {
+        content: '';
+        position: absolute;
+        inset: auto 0 0;
+        height: 110px;
+        background: linear-gradient(rgba(255, 255, 255, 0), #fff 78%);
+    }
+    .cp-preview-label {
+        position: absolute;
+        z-index: 1;
+        bottom: 16px;
+        left: 50%;
+        transform: translateX(-50%);
+        padding: 9px 18px;
+        border-radius: 7px;
+        background: #15171b;
+        font-weight: 600;
+        font-size: 13.5px;
+        color: #fff;
+        white-space: nowrap;
+    }
+    .cp-voting { padding-top: 26px; }
+    .cp-voting-ends,
+    .cp-refresh {
+        margin: 4px 0 0;
+        font-size: 12.5px;
+        color: #6b7178;
+    }
+
+    .cpm-dialog { max-width: 1000px; }
+    .cpm-panel {
+        border: 0;
+        border-radius: 10px;
+        overflow: hidden;
+        background: #fff;
+        box-shadow: 0 20px 48px rgba(0, 0, 0, .35);
+    }
+    .cpm-header {
+        display: flex;
+        align-items: flex-start;
+        gap: 16px;
+        padding: 28px 32px 24px;
+        border-bottom: 1px solid #e6e7ea;
+    }
+    .cpm-headtext {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-right: auto;
+    }
+    .cpm-h2 {
+        margin: 0;
+        font-family: var(--font-sans);
+        font-weight: 700;
+        font-size: 22px;
+        letter-spacing: -.022em;
+        line-height: 1.2;
+        color: #15171b;
+    }
+    .cpm-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin: 0;
+        font-size: 13px;
+        color: #6b7178;
+    }
+    .cpm-github {
+        color: #3c4148;
+        text-decoration: underline;
+        text-decoration-color: rgba(60, 65, 72, .35);
+        text-underline-offset: 2px;
+        transition: color 120ms ease-out;
+    }
+    .cpm-github:hover { color: #ee6524; }
+    .cpm-actions {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    .cpm-close {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex: none;
+        width: 34px;
+        height: 34px;
+        border: 0;
+        border-radius: 7px;
+        background: transparent;
+        color: #3c4148;
+        transition: background 120ms ease-out;
+    }
+    .cpm-close:hover { background: #f0f1f3; }
+    .cpm-body {
+        max-height: 460px;
+        overflow-y: auto;
+        padding: 24px 32px 32px;
+        background: #faf9f7;
+    }
+    .cpm-body img {
+        display: block;
+        width: 100%;
+        height: auto;
+        border: 1px solid #e6e7ea;
+        border-radius: 6px;
+    }
 
     /* Control strip */
     .cp-strip {
@@ -8,7 +159,7 @@
         align-items: center;
         gap: 10px;
         flex-wrap: wrap;
-        margin-top: 22px;
+        margin-top: 20px;
         padding: 16px 0 14px;
         border-top: 1px solid #e6e7ea;
     }
@@ -200,6 +351,9 @@
     .cp .cp-input:focus-visible,
     .cp .cp-select:focus-visible,
     .cp .cp-clear:focus-visible,
+    .cp .cp-preview:focus-visible,
+    .cp .cpm-close:focus-visible,
+    .cp .cpm-github:focus-visible,
     .cp .cpr-num:focus-visible,
     .cp .cpr-issue:focus-visible,
     .cp .cpr-author:focus-visible {
@@ -210,6 +364,26 @@
     /* Narrow (#27c): two-column control grid, number inline with the title,
        author and age on a third line. */
     @media (max-width: 700px) {
+        .cp-band { margin-left: -20px; margin-right: -20px; padding-left: 20px; padding-right: 20px; }
+        .cp-past { flex-basis: 100%; max-width: none; margin-left: 0; }
+        .cp-preview { height: 180px; }
+        .cpm-dialog { max-width: none; height: calc(100% - 24px); margin: 12px; }
+        .cpm-panel { height: 100%; }
+        .cpm-body { max-height: none; flex: 1; padding: 20px; }
+        /* Header stacks: H2 + close, meta line, then the select full width. */
+        .cpm-header {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            grid-template-areas: "title close" "meta meta" "month month";
+            gap: 8px 12px;
+            padding: 20px;
+        }
+        .cpm-headtext, .cpm-actions { display: contents; }
+        .cpm-h2 { grid-area: title; }
+        .cpm-meta { grid-area: meta; }
+        .cpm-month { grid-area: month; width: 100%; max-width: none; }
+        .cpm-close { grid-area: close; }
+
         .cp-strip {
             display: grid;
             grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);

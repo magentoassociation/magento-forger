@@ -3,7 +3,7 @@
 Companion to `README.md` (foundations) and `README-leaderboard-pages.md` (the boards this page
 is reached from).
 The **Design tokens** and **Type scale** sections of `README.md` apply unchanged.
-Implement option **`#18a`** in `../Leaderboard prototype.html`. Grouped is the default view;
+Implement option **`#18a`** in `../MageForger.html`. Grouped is the default view;
 the Grouped / List toggle switches to a flat list (`#18b`, see *List view*).
 
 ## What this page is for
@@ -424,7 +424,7 @@ Drawn at 420px in `#24b`. Below the Bootstrap `lg` breakpoint:
   is what the page shows, or the copy must stop claiming they reconcile.
 
 ## Files
-- `../Leaderboard prototype.html` — implement `#18a` (Grouped) and `#18b` (List).
+- `../MageForger.html` — implement `#18a` (Grouped) and `#18b` (List).
 - `reference-detail-current.png` — the detail page before the redesign.
 - Turn 17 — the maintainer detail page (`#17a` Grouped, `#17d` List) and the zero-score state on both boards
   (`#17b` maintainer, `#17c` contributor).

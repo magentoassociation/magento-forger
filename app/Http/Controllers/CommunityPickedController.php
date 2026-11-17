@@ -1,5 +1,4 @@
 <?php
-
 /*
  * @copyright Copyright (c) 2026 The Magento Association
  * @license https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
@@ -8,9 +7,11 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Models\CommunityPickedResult;
+use App\Models\Setting;
 use App\Queries\Dashboard\CommunityPickCandidatesQuery;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -18,9 +19,6 @@ class CommunityPickedController extends Controller
 {
     public function index(Request $request, CommunityPickCandidatesQuery $query): View
     {
-        // 404, not 403: the page isn't advertised to anyone who can't see it.
-        abort_unless(Gate::allows('view-community-picked'), 404);
-
         $filters = $request->validate([
             'rows' => ['nullable', 'integer', 'min:1', 'max:'.CommunityPickCandidatesQuery::MAX_ROWS],
             // bail: starts_with throws on an array (?area[]=x) instead of failing.
@@ -48,6 +46,9 @@ class CommunityPickedController extends Controller
             $dataMissing = true;
         }
 
+        $votingEndsOn = Setting::valueOf(Setting::COMMUNITY_PICKED_VOTING_ENDS_ON);
+        $votingEndsOn = $votingEndsOn ? Carbon::parse($votingEndsOn) : null;
+
         return view('communityPicked/index', [
             'candidates' => $result['rows'],
             'total' => $result['total'],
@@ -65,6 +66,9 @@ class CommunityPickedController extends Controller
             'componentOptions' => $result['componentOptions'],
             'authorOptions' => $result['authorOptions'],
             'dataMissing' => $dataMissing,
+            // A passed date is stale until an admin sets the next one; hide it.
+            'votingEndsOn' => $votingEndsOn?->endOfDay()->isPast() ? null : $votingEndsOn,
+            'monthlyResults' => CommunityPickedResult::query()->where('enabled', true)->orderByDesc('month')->get(),
         ]);
     }
 }

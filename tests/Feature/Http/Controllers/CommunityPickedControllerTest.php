@@ -1,5 +1,4 @@
 <?php
-
 /*
  * @copyright Copyright (c) 2026 The Magento Association
  * @license https://opensource.org/licenses/OSL-3.0 Open Software License (OSL 3.0)
@@ -8,10 +7,12 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Http\Controllers;
 
-use App\Models\RoleEligibility;
+use App\Models\CommunityPickedResult;
+use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Exceptions;
+use Illuminate\Support\Facades\Storage;
 use Mockery;
 use OpenSearch\Client;
 use RuntimeException;
@@ -53,7 +54,8 @@ class CommunityPickedControllerTest extends TestCase
         $response->assertOk();
         $response->assertSee('<h1>Community-Picked PRs</h1>', false);
         $response->assertDontSee('How community picking works');
-        $response->assertSee('then click 👍 on the PR description. After each voting period');
+        $response->assertSee('then click 👍 on the PR description.');
+        $response->assertSee('<p class="cp-refresh">Vote counts refresh from GitHub every 15 minutes.</p>', false);
         $response->assertSee('Exclude orphan plugins from code generation');
         $response->assertSee('href="https://github.com/magento/magento2/pull/39812" target="_blank" rel="noopener"', false);
         $response->assertSee('<span class="cpr-votes">8<span class="visually-hidden"> votes</span></span>', false);
@@ -66,53 +68,21 @@ class CommunityPickedControllerTest extends TestCase
         $response->assertSee('3 months ago');
     }
 
-    public function testIsHiddenFromGuests(): void
+    public function testIsShownToGuests(): void
     {
         $this->bindClient([]);
         auth()->logout();
 
-        $this->get(route('prs.communityPicked'))->assertNotFound();
-        $this->get(route('leaderboard.scoring'))
-            ->assertOk()
-            ->assertDontSee('href="'.route('prs.communityPicked').'"', false);
-    }
-
-    public function testIsHiddenFromSignedInUsersOutsideTheCouncil(): void
-    {
-        $this->bindClient([]);
-        $user = User::factory()->create();
-        RoleEligibility::query()->create(['login' => $user->github_username, 'role' => 'maintainer', 'active' => true]);
-
-        $this->actingAs($user)->get(route('prs.communityPicked'))->assertNotFound();
-        $this->actingAs($user)->get(route('leaderboard.scoring'))
-            ->assertDontSee('href="'.route('prs.communityPicked').'"', false);
-    }
-
-    public function testIsHiddenFromFormerCouncilMembers(): void
-    {
-        $this->bindClient([]);
-        $user = User::factory()->create();
-        RoleEligibility::query()->create(['login' => $user->github_username, 'role' => 'community-council', 'active' => false]);
-
-        $this->actingAs($user)->get(route('prs.communityPicked'))->assertNotFound();
-    }
-
-    public function testIsShownToActiveCouncilMembers(): void
-    {
-        $this->bindClient([]);
-        $user = User::factory()->create();
-        RoleEligibility::query()->create(['login' => $user->github_username, 'role' => 'community-council', 'active' => true]);
-
-        $this->actingAs($user)->get(route('prs.communityPicked'))
+        $this->get(route('prs.communityPicked'))
             ->assertOk()
             ->assertSee('href="'.route('prs.communityPicked').'">Community-Picked</a>', false);
     }
 
-    public function testIsShownToAdmins(): void
+    public function testIsShownToSignedInNonAdmins(): void
     {
         $this->bindClient([]);
 
-        $this->get(route('prs.communityPicked'))->assertOk();
+        $this->actingAs(User::factory()->create())->get(route('prs.communityPicked'))->assertOk();
     }
 
     public function testShowsFiftyMoreUpToTheTotal(): void
@@ -410,6 +380,98 @@ class CommunityPickedControllerTest extends TestCase
         $this->get('/prs/community-picked')
             ->assertSee('href="'.route('prs.communityPicked').'">Community-Picked</a>', false)
             ->assertDontSee('href="'.route('prs.communityPicked').'">Community-Picked PRs</a>', false);
+    }
+
+    public function testShowsLatestMonthlyResultsAndListsPastMonthsNewestFirst(): void
+    {
+        $this->bindClient([]);
+        CommunityPickedResult::factory()->create(['month' => '2026-08-01', 'posted_on' => '2026-09-01', 'image_path' => 'community-picked/aug.png']);
+        CommunityPickedResult::factory()->create(['month' => '2026-09-01', 'posted_on' => '2026-10-01', 'image_path' => 'community-picked/sep.png']);
+
+        $response = $this->get('/prs/community-picked');
+
+        $response->assertOk();
+        $response->assertSeeInOrder(['September 2026 results', 'Vote for PRs to be merged'], false);
+        $response->assertSee('<time class="cp-posted" datetime="2026-10-01" title="October 1, 2026">Posted Oct 1, 2026</time>', false);
+        $response->assertSee('alt="September 2026 Community-Picked results: open PRs on GitHub sorted by reactions"', false);
+        $response->assertSee('src="'.Storage::disk('public')->url('community-picked/sep.png').'"', false);
+        $response->assertSee('View full results');
+        $response->assertSeeInOrder([
+            '<h2 class="cpm-h2" id="cp-results-modal-heading">September 2026 results</h2>',
+            '<time class="cpm-posted" datetime="2026-10-01" title="October 1, 2026">Posted Oct 1, 2026</time>',
+            '<span aria-hidden="true">·</span>',
+            'Community-Picked PRs on GitHub',
+        ], false);
+        $response->assertSeeInOrder(['class="cpm-close"', '<svg width="12" height="12"'], false);
+        $response->assertDontSee('aria-label="Close">✕', false);
+        $response->assertSee('href="https://github.com/magento/magento2/pulls?q=is%3Apr+state%3Aopen+label%3A%22Project%3A+Community+Picked%22" target="_blank" rel="noopener">Community-Picked PRs on GitHub</a>', false);
+        $response->assertSeeInOrder(['<option value="">Past results</option>', '<option value="2026-09">September 2026</option>', '<option value="2026-08">August 2026</option>'], false);
+        $response->assertSee('data-src="'.Storage::disk('public')->url('community-picked/aug.png').'"', false);
+    }
+
+    public function testShowsWhenVotingEnds(): void
+    {
+        $this->travelTo('2026-10-23');
+        $this->bindClient([]);
+        Setting::put(Setting::COMMUNITY_PICKED_VOTING_ENDS_ON, '2026-10-31');
+
+        $this->get('/prs/community-picked')->assertSeeInOrder([
+            'Vote for PRs to be merged</h2>',
+            '<p class="cp-voting-ends">Voting ends on <time datetime="2026-10-31">October 31, 2026</time>.</p>',
+            'class="cp-strip"',
+        ], false);
+    }
+
+    public function testShowsVotingEndsOnTheLastDay(): void
+    {
+        $this->travelTo('2026-10-31 18:00');
+        $this->bindClient([]);
+        Setting::put(Setting::COMMUNITY_PICKED_VOTING_ENDS_ON, '2026-10-31');
+
+        $this->get('/prs/community-picked')->assertSee('Voting ends on');
+    }
+
+    public function testHidesVotingEndsOncePastOrUnset(): void
+    {
+        $this->travelTo('2026-11-01');
+        $this->bindClient([]);
+
+        $this->get('/prs/community-picked')->assertDontSee('Voting ends on');
+
+        Setting::put(Setting::COMMUNITY_PICKED_VOTING_ENDS_ON, '2026-10-31');
+
+        $this->get('/prs/community-picked')->assertDontSee('Voting ends on');
+    }
+
+    public function testHidesDisabledMonths(): void
+    {
+        $this->bindClient([]);
+        CommunityPickedResult::factory()->create(['month' => '2026-08-01', 'posted_on' => '2026-09-01']);
+        CommunityPickedResult::factory()->create(['month' => '2026-09-01', 'posted_on' => '2026-10-01', 'enabled' => false]);
+
+        $response = $this->get('/prs/community-picked');
+
+        $response->assertSee('August 2026 results');
+        $response->assertDontSee('September 2026');
+    }
+
+    public function testOmitsTheResultsBandWhenEveryMonthIsDisabled(): void
+    {
+        $this->bindClient([]);
+        CommunityPickedResult::factory()->create(['enabled' => false]);
+
+        $this->get('/prs/community-picked')->assertDontSee('class="cp-band"', false);
+    }
+
+    public function testOmitsTheResultsBandUntilResultsArePosted(): void
+    {
+        $this->bindClient([]);
+
+        $response = $this->get('/prs/community-picked');
+
+        $response->assertDontSee('class="cp-band"', false);
+        $response->assertDontSee('id="cp-results-modal"', false);
+        $response->assertSee('Vote for PRs to be merged');
     }
 
     /**

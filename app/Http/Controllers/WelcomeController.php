@@ -16,7 +16,6 @@ use App\Services\HomepageCountsService;
 use App\Services\Search\OpenSearchService;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Collection as SupportCollection;
-use Illuminate\Support\Facades\Gate;
 use Illuminate\View\View;
 
 class WelcomeController extends Controller
@@ -67,18 +66,13 @@ class WelcomeController extends Controller
     }
 
     /**
-     * The three most-voted Community Pick Candidates and the open count, for viewers
-     * who may see the Community-Picked PRs page. Null hides the section: no access,
-     * an empty index, or a failed query.
+     * The three most-voted Community Pick Candidates and the open count. Null hides
+     * the section: an empty index or a failed query.
      *
      * @return array{rows: list<array<string, mixed>>, total: int}|null Rows as CommunityPickCandidatesQuery returns them.
      */
     private function communityPicks(CommunityPickCandidatesQuery $query): ?array
     {
-        if (Gate::denies('view-community-picked')) {
-            return null;
-        }
-
         try {
             $result = $query->execute(rows: 3);
         } catch (\Exception) {

@@ -22,7 +22,7 @@ container width, leaving the right half of the page empty top to bottom.
 Page height drops from roughly 2,400px to a little over one screen.
 
 ## About the design files
-`../Leaderboard prototype.html`, one level up from this folder, is a design reference
+`../MageForger.html`, one level up from this folder, is a design reference
 written in HTML — a prototype of the intended look and behaviour, not production code to copy.
 Reproduce the spec below in the Laravel/Blade + Bootstrap codebase using its existing template
 conventions. Turn 20 holds this page.

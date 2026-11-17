@@ -8,7 +8,7 @@ and footer, the detail pages, the monthly views, and the scoring explanations.
 Approved type direction: **Libre Franklin (sans) + Martian Mono (mono)**, applied throughout.
 
 ## About the design files
-`../Leaderboard prototype.html`, one level up from this folder, is a **design reference
+`../MageForger.html`, one level up from this folder, is a **design reference
 written in HTML** — a prototype showing the intended look and behaviour. It is not production
 code to copy. The Forger is a Laravel/Blade + Bootstrap app; the task is to reproduce the
 specifications in this folder in that codebase, using its existing template and CSS conventions.
@@ -359,7 +359,7 @@ None to import. Avatars come from GitHub at runtime; no icons are used (the Deta
 the only icon-adjacent element, is gone). Fonts are Google Fonts / OFL.
 
 ## Files
-- `../Leaderboard prototype.html` — the design reference (lives beside this folder, not in it). Every option in it is approved; `#21a` is the current contributor board; hover or focus rank 1's score there to see the score tooltip.
+- `../MageForger.html` — the design reference (lives beside this folder, not in it). Every option in it is approved; `#21a` is the current contributor board; hover or focus rank 1's score there to see the score tooltip.
 - `reference-current-page.png` — screenshot of the page as it is today, for before/after.
 
 ## Summary of changes for a reviewer
