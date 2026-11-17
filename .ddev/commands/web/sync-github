@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+
+## Description: Sync GitHub data (full history by default, or a --since window), then recompute leaderboard scores
+## Usage: sync-github [--since "<n> <unit> ago"]
+## Example: ddev sync-github
+## Example: ddev sync-github --since "1 week ago"
+
+bash scripts/sync-github.sh "$@"

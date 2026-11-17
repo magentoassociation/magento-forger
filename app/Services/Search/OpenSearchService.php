@@ -263,13 +263,33 @@ class OpenSearchService
      */
     protected function linkedIssueNumbers(array $pr): array
     {
+        return $this->numbersInConfiguredRepo($pr['closingIssuesReferences']['nodes'] ?? []);
+    }
+
+    /**
+     * Numbers of the open PRs that will close an issue, limited to the configured repo.
+     *
+     * @param  array<string, mixed>  $issue
+     * @return list<int>
+     */
+    protected function closingPullRequestNumbers(array $issue): array
+    {
+        return $this->numbersInConfiguredRepo($issue['closedByPullRequestsReferences']['nodes'] ?? []);
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $nodes  Issue or PR nodes with number and repository.nameWithOwner
+     * @return list<int>
+     */
+    protected function numbersInConfiguredRepo(array $nodes): array
+    {
         $repo = (string) config('github.repo');
         $numbers = [];
 
-        foreach ($pr['closingIssuesReferences']['nodes'] ?? [] as $issue) {
-            $issueRepo = $issue['repository']['nameWithOwner'] ?? null;
-            if (is_string($issueRepo) && strcasecmp($issueRepo, $repo) === 0) {
-                $numbers[] = $issue['number'];
+        foreach ($nodes as $node) {
+            $nodeRepo = $node['repository']['nameWithOwner'] ?? null;
+            if (is_string($nodeRepo) && strcasecmp($nodeRepo, $repo) === 0) {
+                $numbers[] = $node['number'];
             }
         }
 
@@ -295,6 +315,7 @@ class OpenSearchService
 
     protected function toIssueDocument(array $issue): array
     {
+        $closingPrs = $this->closingPullRequestNumbers($issue);
         $doc = [
             'id' => $issue['number'],
             'graphql_id' => $issue['id'],
@@ -308,6 +329,9 @@ class OpenSearchService
             'closed_at' => $issue['closedAt'] ?? null,
             'author' => $issue['author']['login'] ?? null,
             'author_company' => $issue['author']['company'] ?? null,
+            'assignees' => array_column($issue['assignees']['nodes'] ?? [], 'login'),
+            'closing_prs' => $closingPrs,
+            'has_closing_pr' => $closingPrs !== [],
             'comments_count' => $issue['comments']['totalCount'] ?? 0,
         ];
 
