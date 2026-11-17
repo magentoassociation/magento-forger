@@ -23,7 +23,10 @@
     function load(url, append) {
         if (pending) { pending.abort(); }
         pending = new AbortController();
-        var componentBefore = form.elements.component.value;
+        // Selects whose options the server recomputes, with the names announced if it clears one.
+        var dependent = { area: 'Area', component: 'Component', progress: 'Progress', issue: 'Issue' };
+        var selectedBefore = {};
+        Object.keys(dependent).forEach(function (name) { selectedBefore[name] = form.elements[name].value; });
 
         return fetch(url, { signal: pending.signal, headers: { Accept: 'text/html' } })
             .then(function (response) {
@@ -53,8 +56,8 @@
                 }
 
                 results().replaceWith(document.adoptNode(next));
-                // Options depend on the area, and the server may clear a component that no longer fits it.
-                ['area', 'component'].forEach(function (name) {
+                // Options depend on the other filters, and the server clears a value that no longer fits.
+                ['area', 'component', 'progress', 'issue'].forEach(function (name) {
                     var fresh = doc.querySelector('.ip-filters select[name="' + name + '"]');
                     var field = form.elements[name];
                     field.innerHTML = fresh.innerHTML;
@@ -62,9 +65,11 @@
                     field.className = fresh.className;
                 });
 
-                var cleared = componentBefore !== '' && form.elements.component.value === '';
+                var cleared = Object.keys(dependent).filter(function (name) {
+                    return selectedBefore[name] !== '' && form.elements[name].value === '';
+                }).map(function (name) { return dependent[name] + ' cleared. '; }).join('');
                 var count = results().querySelector('.ip-count');
-                announce((cleared ? 'Component cleared. Choose a component for this area. ' : '') + (count ? count.textContent + '.' : ''));
+                announce(cleared + (count ? count.textContent + '.' : ''));
 
                 // Keep the filters in view: scroll back only when the list top has scrolled away.
                 if (form.getBoundingClientRect().top < 0) { form.scrollIntoView({ block: 'start' }); }

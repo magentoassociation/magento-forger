@@ -23,6 +23,9 @@ class IssuePickerController extends Controller
             // bail: starts_with throws on an array (?area[]=x) instead of failing.
             'area' => ['bail', 'nullable', 'string', 'max:255', 'starts_with:'.CommunityPickCandidatesQuery::AREA_PREFIX],
             'component' => ['bail', 'nullable', 'string', 'max:255', 'starts_with:'.CommunityPickCandidatesQuery::COMPONENT_PREFIX],
+            // Progress and Issue labels are matched by prefix ignoring case, as in the query.
+            'progress' => ['bail', 'nullable', 'string', 'max:255', 'regex:/^'.IssuePickerQuery::PROGRESS_PREFIX.'/i'],
+            'issue' => ['bail', 'nullable', 'string', 'max:255', 'regex:/^'.IssuePickerQuery::ISSUE_PREFIX.'/i'],
             'showAssigned' => ['nullable', 'in:1'],
             'showPr' => ['nullable', 'in:1'],
             'sort' => ['nullable', Rule::in(IssuePickerQuery::SORTS)],
@@ -36,10 +39,23 @@ class IssuePickerController extends Controller
         $dataMissing = false;
 
         try {
-            $result = $query->execute($area, $filters['component'] ?? null, $showAssigned, $showPr, $rows, $sort);
+            $result = $query->execute(
+                area: $area,
+                component: $filters['component'] ?? null,
+                showAssigned: $showAssigned,
+                showPr: $showPr,
+                rows: $rows,
+                sort: $sort,
+                progress: $filters['progress'] ?? null,
+                issueStatus: $filters['issue'] ?? null,
+            );
         } catch (\Exception $e) {
             $this->abortUnlessMissingIndex($e, 'issue');
-            $result = ['rows' => [], 'total' => 0, 'openTotal' => 0, 'areaOptions' => [], 'componentOptions' => [], 'component' => null];
+            $result = [
+                'rows' => [], 'total' => 0, 'openTotal' => 0,
+                'areaOptions' => [], 'componentOptions' => [], 'progressOptions' => [], 'issueOptions' => [],
+                'area' => null, 'component' => null, 'progress' => null, 'issueStatus' => null,
+            ];
             $dataMissing = true;
         }
 
@@ -52,13 +68,17 @@ class IssuePickerController extends Controller
                 ? min($rows + IssuePickerQuery::PER_PAGE, IssuePickerQuery::MAX_ROWS)
                 : null,
             // Not `component`: Blade reserves $component for component rendering.
-            'selectedArea' => $area,
+            'selectedArea' => $result['area'],
             'selectedComponent' => $result['component'],
+            'selectedProgress' => $result['progress'],
+            'selectedIssueStatus' => $result['issueStatus'],
             'showAssigned' => $showAssigned,
             'showPr' => $showPr,
             'sort' => $sort,
             'areaOptions' => $result['areaOptions'],
             'componentOptions' => $result['componentOptions'],
+            'progressOptions' => $result['progressOptions'],
+            'issueOptions' => $result['issueOptions'],
             'dataMissing' => $dataMissing,
         ]);
     }

@@ -12,12 +12,16 @@ use App\Services\Search\OpenSearchService;
 use OpenSearch\Client;
 
 /**
- * Issue picker: open issues narrowed by Area and Component label, with taken issues
- * (assigned, or with an open or merged PR that closes them) left out unless asked for.
+ * Issue picker: open issues narrowed by Area, Component, Progress and Issue label, with
+ * taken issues (assigned, or with an open or merged PR that closes them) left out unless
+ * asked for.
  *
- * Area options are every Area label on an open issue the Show chips leave in; Component
- * options are the Component labels on those issues that also carry the selected Area.
- * Both are sorted by name, ignoring case.
+ * All four label filters depend on each other: each option list comes from open issues
+ * the Include chips leave in that match every other label selection, so no option leads
+ * to an empty list. When selections conflict (a chip went off, or a shared link), the
+ * lowest-priority one is cleared: Issue, then Progress, Component, Area. Lists are sorted
+ * by name, ignoring case. Progress and Issue labels are the ones whose names start with
+ * "progress" or "issue", ignoring case.
  *
  * "Has a PR" reads two sources. Open PRs: the Linked Issues of open PRs in the PR index,
  * which the reactions sync refreshes every 15 minutes. Merged PRs: the issue's
@@ -43,14 +47,28 @@ class IssuePickerQuery
 
     public const SORTS = [self::SORT_OLDEST, self::SORT_NEWEST, self::SORT_COMMENTS];
 
+    /**
+     * Label-name prefixes for the Progress and Issue filters, matched ignoring case.
+     */
+    public const PROGRESS_PREFIX = 'progress';
+
+    public const ISSUE_PREFIX = 'issue';
+
+    /**
+     * Progress options follow the workflow, not the alphabet. Names after "Progress: ",
+     * matched ignoring case; any other Progress label comes after these, by name.
+     */
+    private const PROGRESS_ORDER = ['ready for grooming', 'ready for dev', 'dev in progress', 'pr created', 'pr in progress', 'done'];
+
     public function __construct(private readonly Client $client) {}
 
     /**
      * @return array{
      *     rows: list<array{number: int, title: string, url: string, areas: list<string>, components: list<string>,
-     *     created_at: string, comments_count: int}>,
+     *     status: list<string>, created_at: string, comments_count: int}>,
      *     total: int, openTotal: int, areaOptions: list<string>, componentOptions: list<string>,
-     *     component: ?string
+     *     progressOptions: list<string>, issueOptions: list<string>,
+     *     area: ?string, component: ?string, progress: ?string, issueStatus: ?string
      * }
      *
      * @throws \Exception When OpenSearch fails, including a missing index.
@@ -62,6 +80,8 @@ class IssuePickerQuery
         bool $showPr = false,
         int $rows = self::PER_PAGE,
         string $sort = self::SORT_OLDEST,
+        ?string $progress = null,
+        ?string $issueStatus = null,
     ): array {
         // Taken issues the Show chips leave out.
         $hidden = [];
@@ -76,16 +96,28 @@ class IssuePickerQuery
             }
         }
 
-        $facets = $this->facets($area, $hidden);
+        // Label selections in priority order: when they conflict, the last one gives way.
+        $selected = ['area' => $area, 'component' => $component, 'progress' => $progress, 'issueStatus' => $issueStatus];
 
-        // The component no longer fits the area (or never existed): drop it rather than
-        // show an empty list for a combination the dropdowns could not have produced.
-        if ($component !== null && ! $this->hasOption($facets['componentOptions'], $component)) {
-            $component = null;
+        // A selection not in its list (a chip went off, or a shared link combines labels no
+        // issue has) would give an empty list the dropdowns could not have produced. Each list
+        // depends on the other selections, so drop the lowest-priority unlisted one and
+        // recompute, until every selection is listed.
+        while (true) {
+            $facets = $this->facets($selected, $hidden);
+            $unlisted = array_filter(
+                $selected,
+                fn (?string $label, string $filter): bool => $label !== null && ! $this->hasOption($facets['options'][$filter], $label),
+                ARRAY_FILTER_USE_BOTH,
+            );
+            if ($unlisted === []) {
+                break;
+            }
+            $selected[array_key_last($unlisted)] = null;
         }
 
         $query = ['bool' => ['filter' => [['term' => ['is_open' => true]]]]];
-        foreach (array_filter([$area, $component]) as $label) {
+        foreach (array_filter($selected) as $label) {
             $query['bool']['filter'][] = $this->hasLabel($label);
         }
         if ($hidden !== []) {
@@ -107,22 +139,35 @@ class IssuePickerQuery
             'rows' => array_map(fn (array $hit): array => $this->toRow($hit['_source']), $response['hits']['hits'] ?? []),
             'total' => (int) ($response['hits']['total']['value'] ?? 0),
             'openTotal' => $facets['openTotal'],
-            'areaOptions' => $facets['areaOptions'],
-            'componentOptions' => $facets['componentOptions'],
-            'component' => $component,
+            'areaOptions' => $facets['options']['area'],
+            'componentOptions' => $facets['options']['component'],
+            'progressOptions' => $facets['options']['progress'],
+            'issueOptions' => $facets['options']['issueStatus'],
+            'area' => $selected['area'],
+            'component' => $selected['component'],
+            'progress' => $selected['progress'],
+            'issueStatus' => $selected['issueStatus'],
         ];
     }
 
     /**
-     * Open-issue total and the label options, sorted by name, in one search. Options come
-     * only from issues the Show chips leave in, so none of them leads to an empty list;
-     * the total counts every open issue.
+     * Open-issue total and the label options, sorted by name, in one search. Each list comes
+     * from issues the Include chips leave in that match every other label selection, so no
+     * option leads to an empty list; the total counts every open issue.
      *
+     * @param  array{area: ?string, component: ?string, progress: ?string, issueStatus: ?string}  $selected
      * @param  list<array<string, mixed>>  $hidden  Clauses matching the issues the chips leave out.
-     * @return array{openTotal: int, areaOptions: list<string>, componentOptions: list<string>}
+     * @return array{openTotal: int, options: array{area: list<string>, component: list<string>,
+     *     progress: list<string>, issueStatus: list<string>}}
      */
-    private function facets(?string $area, array $hidden): array
+    private function facets(array $selected, array $hidden): array
     {
+        $patterns = [
+            'area' => CommunityPickCandidatesQuery::AREA_PREFIX.'.*',
+            'component' => CommunityPickCandidatesQuery::COMPONENT_PREFIX.'.*',
+            'progress' => $this->prefixPattern(self::PROGRESS_PREFIX),
+            'issueStatus' => $this->prefixPattern(self::ISSUE_PREFIX),
+        ];
         $labels = static fn (string $pattern): array => [
             'terms' => [
                 'field' => 'labels.keyword',
@@ -141,13 +186,14 @@ class IssuePickerQuery
                 'aggs' => [
                     'shown' => [
                         'filter' => $hidden ? ['bool' => ['must_not' => $hidden]] : ['match_all' => (object) []],
-                        'aggs' => [
-                            'areas' => $labels(CommunityPickCandidatesQuery::AREA_PREFIX.'.*'),
-                            'components' => [
-                                'filter' => $area ? $this->hasLabel($area) : ['match_all' => (object) []],
-                                'aggs' => ['labels' => $labels(CommunityPickCandidatesQuery::COMPONENT_PREFIX.'.*')],
+                        // Each list is narrowed by every selection but its own.
+                        'aggs' => array_map(
+                            fn (string $filter): array => [
+                                'filter' => $this->hasLabels(array_values(array_diff_key($selected, [$filter => true]))),
+                                'aggs' => ['labels' => $labels($patterns[$filter])],
                             ],
-                        ],
+                            array_combine(array_keys($patterns), array_keys($patterns)),
+                        ),
                     ],
                 ],
             ],
@@ -161,11 +207,63 @@ class IssuePickerQuery
             return $labels;
         };
 
+        $options = array_map(
+            fn (string $filter): array => $keys($response['aggregations']['shown'][$filter]['labels']['buckets'] ?? []),
+            array_combine(array_keys($patterns), array_keys($patterns)),
+        );
+        $options['progress'] = $this->inWorkflowOrder($options['progress']);
+
         return [
             'openTotal' => (int) ($response['hits']['total']['value'] ?? 0),
-            'areaOptions' => $keys($response['aggregations']['shown']['areas']['buckets'] ?? []),
-            'componentOptions' => $keys($response['aggregations']['shown']['components']['labels']['buckets'] ?? []),
+            'options' => $options,
         ];
+    }
+
+    /**
+     * Sorts Progress labels by PROGRESS_ORDER; labels not in it keep their name order, after.
+     *
+     * @param  list<string>  $labels  Already sorted by name.
+     * @return list<string>
+     */
+    private function inWorkflowOrder(array $labels): array
+    {
+        $rank = static function (string $label): int {
+            $name = mb_strtolower(trim(str_contains($label, ':') ? substr($label, strpos($label, ':') + 1) : $label));
+            $position = array_search($name, self::PROGRESS_ORDER, true);
+
+            return $position === false ? PHP_INT_MAX : $position;
+        };
+        // usort is stable, so unranked labels stay in name order.
+        usort($labels, static fn (string $a, string $b): int => $rank($a) <=> $rank($b));
+
+        return $labels;
+    }
+
+    /**
+     * Terms "include" regex for labels starting with $prefix, ignoring case. OpenSearch's
+     * include regex has no case-insensitive flag, so each letter becomes a [Xx] class.
+     */
+    private function prefixPattern(string $prefix): string
+    {
+        $classes = array_map(
+            static fn (string $char): string => '['.mb_strtoupper($char).mb_strtolower($char).']',
+            mb_str_split($prefix),
+        );
+
+        return implode('', $classes).'.*';
+    }
+
+    /**
+     * Filter clause matching issues that carry every given label; match_all when none is set.
+     *
+     * @param  list<?string>  $labels
+     * @return array<string, mixed>
+     */
+    private function hasLabels(array $labels): array
+    {
+        $clauses = array_map($this->hasLabel(...), array_values(array_filter($labels)));
+
+        return $clauses === [] ? ['match_all' => (object) []] : ['bool' => ['filter' => $clauses]];
     }
 
     /**
@@ -222,7 +320,7 @@ class IssuePickerQuery
     /**
      * @param  array<string, mixed>  $source
      * @return array{number: int, title: string, url: string, areas: list<string>, components: list<string>,
-     *     created_at: string, comments_count: int}
+     *     status: list<string>, created_at: string, comments_count: int}
      */
     private function toRow(array $source): array
     {
@@ -232,12 +330,20 @@ class IssuePickerQuery
             array_filter($labels, static fn (string $label): bool => str_starts_with($label, $prefix)),
         ));
 
+        // Progress and Issue labels, kept whole ("Progress: ready for dev").
+        $status = array_values(array_filter(
+            $labels,
+            static fn (string $label): bool => stripos($label, self::PROGRESS_PREFIX) === 0 || stripos($label, self::ISSUE_PREFIX) === 0,
+        ));
+        sort($status, SORT_STRING | SORT_FLAG_CASE);
+
         return [
             'number' => (int) $source['id'],
             'title' => $source['title'],
             'url' => $source['url'],
             'areas' => $named(CommunityPickCandidatesQuery::AREA_PREFIX),
             'components' => $named(CommunityPickCandidatesQuery::COMPONENT_PREFIX),
+            'status' => $status,
             'created_at' => $source['created_at'],
             'comments_count' => (int) ($source['comments_count'] ?? 0),
         ];

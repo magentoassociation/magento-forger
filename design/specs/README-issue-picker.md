@@ -2,8 +2,8 @@
 
 ## Overview
 A page for finding an issue to work on. A contributor narrows the open issues by label (Area, then Component,
-as dependent dropdowns), then removes any issue that is already taken: assigned to someone, or already
-has a PR. The result is a short list of issues a person can open and claim.
+as dependent dropdowns, plus Progress and Issue status), then removes any issue that is already taken: assigned
+to someone, or already has a PR. The result is a short list of issues a person can open and claim.
 
 Reached from the Issues menu as **Pick an Issue** (AP title case, per `README.md`, *Capitalisation*: the article "an" stays lowercase), beside *By Month*. Route name `issues.pick`, path `/issues/pick`.
 
@@ -17,11 +17,16 @@ Each filter is specified against the data it reads, all from the `github-issues`
 | Open issues only | issue `is_open` |
 | Area label | issue `labels` |
 | Component label | issue `labels` |
+| Progress label | issue `labels` starting with "progress", ignoring case |
+| Issue label | issue `labels` starting with "issue", ignoring case |
 | Has a PR | `linked_issues` on open PR documents, plus `closed_by_merged_pr` on the issue (see *Has PR*) |
 | Assigned | issue `assignees` |
 | Sort: age, comment count | issue `created_at`, `comments_count` |
 
 There is no State control: the page lists open issues only.
+
+The issue and PR syncs fetch up to 50 labels per item (`labels(first: 50)`). It was 10, which dropped labels from
+issues that carry more (#27072 has 13).
 
 ## About the design files
 `../MageForger.html` is a design reference in HTML, not production code. The prototype is option `31b`, turn 31 in the `MageForger` canvas.
@@ -48,15 +53,22 @@ Libre Franklin 400, 14.5px, `line-height: 1.65`, colour `#3c4148`, `max-width: 6
 
 ## Filter panel
 
-One row under the intro, `margin-top: 18px`, no bordered box: `display: flex; flex-wrap: nowrap; align-items: center; gap: 10px;
-padding: 14px 0; border-bottom: 1px solid #e6e7ea`. In order: Area, Component, Sort, then the two chips (Include assigned,
-Include with PRs). All five controls sit on the same row at the page width. At narrow widths the row wraps (see *Narrow widths*).
+Two rows under the intro, `margin-top: 18px`, no bordered box: `padding: 14px 0; border-bottom: 1px solid #e6e7ea`.
+Each row is `display: flex; flex-wrap: nowrap; align-items: center; gap: 10px`, with `margin-top: 10px` between them.
 
-The dropdowns carry no visible label above them; the placeholder option names them ("Any area", "Any component").
-Each has a `<label>` that is visually hidden but read by screen readers (see *Accessibility*).
-Option text omits the "Area:" and "Component:" prefixes: "Catalog", "Product Grid". Options show no counts.
+- Row 1: Area, Component, Progress, Issue.
+- Row 2: Sort, then the two chips (Include assigned, Include with PRs).
 
-### Dropdowns (Area, Component, Sort)
+At narrow widths the rows wrap (see *Narrow widths*).
+
+The dropdowns carry no visible label above them; the placeholder option names them ("Any area", "Any component",
+"Any progress", "Any issue status"). Each has a `<label>` that is visually hidden but read by screen readers (see
+*Accessibility*). Option text omits the prefix up to ": " ("Catalog", "Product Grid", "Confirmed"). Options show no counts.
+Progress and Issue option text is AP title case (`README.md`, *Capitalisation*), whatever case GitHub uses:
+"ready for dev" → "Ready for Dev", "Format is not valid" → "Format Is Not Valid", "PR Created" stays "PR Created"
+(all-caps words are kept). Area and Component names stay as GitHub spells them.
+
+### Dropdowns (Area, Component, Progress, Issue, Sort)
 
 - Field: `width: 200px; padding: 9px 34px 9px 12px`, `1px solid #d5d8dc`, `border-radius: 7px`, Libre Franklin 500, 14px, `#15171b`,
   background `#ffffff`. Native `<select>` styled to match.
@@ -64,22 +76,27 @@ Option text omits the "Area:" and "Component:" prefixes: "Catalog", "Product Gri
 - Hover: `border-color: #15171b`. Focus: site focus ring.
 - While the placeholder option "Any area" / "Any component" is selected, the field text is `#9aa3ae`.
 - Options are sorted by name, ignoring case ("alpha" before "Zeta"), as on Community-Picked PRs.
-- Options come only from issues the list can show: open issues the Include chips leave in. An option never leads to an
-  empty list. Turning a chip on can add options back.
-
-**Area** — the first dropdown. Options: every label named `Area: …` on at least one open issue the chips leave in.
-"Any area" is the default. A shared link naming an area that is not in the list keeps it selected, at the top.
-
-**Component** — the second dropdown, **dependent on Area**.
-
-- With "Any area" selected, Component lists every label named `Component: …` on at least one open issue the chips leave in.
-- With an Area selected, Component lists only the `Component: …` labels on at least one of those issues that
-  also carries the selected Area label. This is the dependency rule. It uses the labels as they are, with no
+- **The four label dropdowns all depend on each other.** Each lists only the labels on open issues the Include chips
+  leave in that also match every *other* label selection. Picking an Area narrows Component, Progress and Issue;
+  picking a Progress value narrows Area, Component and Issue; and so on. So any combination picked from the lists has
+  at least one issue, and turning a chip on can add options back. The lists use the labels as they are, with no
   separate mapping file (confirmed).
-- When the chosen component is no longer in the list (Area changed, or a chip was turned off), Component is cleared.
-  If it is still in the list, it is kept.
-- If the selected Area has no components on those issues, Component shows "No components for this area"
-  in `#5d636c` and is disabled.
+- **Conflicts clear the lowest priority first.** If selections stop fitting together (a chip was turned off, or a shared
+  link combines labels no issue has), the lowest-priority one is cleared and the lists recomputed, until every
+  selection is listed. Priority: Area, then Component, then Progress, then Issue. A selection that still fits is kept.
+- With nothing to list, a dropdown shows its empty text in `#5d636c` and is disabled: "No areas", "No components for
+  this area" (or "No components" with no Area selected), "No progress labels", "No issue labels".
+
+**Area** — the first dropdown: labels named `Area: …`. "Any area" is the default.
+
+**Component** — the second: labels named `Component: …`.
+
+**Progress** and **Issue** — the third and fourth. Progress lists labels whose names start with "progress", Issue those
+starting with "issue", both ignoring case ("Progress: ready for dev", "Issue: Confirmed").
+
+Progress options follow the workflow, not the alphabet: Ready for Grooming, Ready for Dev, Dev in Progress, PR Created,
+PR in Progress, Done (matched ignoring case). Any other Progress label comes after these, by name. Issue options stay
+sorted by name.
 
 **Sort** — "Oldest first" (default), "Newest first", "Most comments" (ties: oldest first). It always has a value, so it has
 no placeholder option.
@@ -148,6 +165,11 @@ Column header row, Martian Mono 9px, uppercase, `letter-spacing: .06em`, `#6b717
 - **Issue** — the issue number, then the title, side by side with a 6px gap. Number: Martian Mono 500, 12px, `#ee6524`,
   underlined with a 2px offset; it turns `#c74e16` while the row is hovered. Title: Libre Franklin 600, 14px, `#15171b`.
   A long title wraps under itself, never under the number.
+  Under the title, aligned with it, the issue's Progress and Issue labels as pills, full name in AP title case (the word
+  after the colon starts the title: "Progress: Ready for Dev"), sorted ignoring case: `padding: 4px 8px`, `border-radius: 5px`, Libre Franklin 11.5px `#15171b`, `gap: 5px`,
+  `margin-top: 7px`. Background tells the two apart, using the Community-Picked pill pair: Issue labels `#e6e7ea`
+  (grey, the area pill), Progress labels `#fbddcb` (orange, the component pill). Shown at all widths; other labels are
+  not shown.
 - **Area** — Libre Franklin 14px, `#3c4148`, the label name without the "Area:" prefix. Several are comma-separated.
 - **Component** — Libre Franklin 14px, `#3c4148`, the label name without the "Component:" prefix. Several are comma-separated.
 - **Opened** — Martian Mono 11px, `#5d636c`, format "17 Aug 2026".
@@ -166,9 +188,10 @@ in-site claim.
 - Filters apply on change. There is no Apply button.
 - Changing any filter resets pagination to 25 rows. If the reader has scrolled past the filter panel, the page scrolls back
   so the panel is at the top; otherwise it does not move.
-- The entire filter state lives in the URL: `?area=Area%3A%20Catalog&component=…&sort=oldest&showAssigned=1&showPr=1`.
-  `sort` is always present; `area` and `component` only when set; `showAssigned` and `showPr` only when their chip is on.
-  A cleared component is dropped from the URL. "Show 25 more" adds `rows=50`, `rows=75`, and so on.
+- The entire filter state lives in the URL:
+  `?area=Area%3A%20Catalog&component=…&progress=Progress%3A%20ready%20for%20dev&issue=Issue%3A%20Confirmed&sort=oldest&showAssigned=1&showPr=1`.
+  `sort` is always present; `area`, `component`, `progress` and `issue` only when set; `showAssigned` and `showPr`
+  only when their chip is on. A cleared value is dropped from the URL. "Show 25 more" adds `rows=50`, `rows=75`, and so on.
   Reloads and shared links return the same list.
 - **Reset** — a text link, Libre Franklin 500, 13.5px, `#ee6524`, underlined, at the right end of the result-count line:
   "Reset filters".
@@ -192,7 +215,8 @@ Drawn at 420px as option `31c` in the `MageForger` canvas. Applies at 700px and 
 
 - The header is the site's mobile bar: hairline, brand mark and "Forger", the account chip as the avatar only, and the
   hamburger toggler.
-- The filter row wraps: Area, Component, and Sort take a row each at full width (10px vertical padding), then the chips share a row.
+- The filter rows wrap: Area, Component, Progress, Issue and Sort take a row each at full width (10px vertical
+  padding), then the chips share a row.
 - The result-count line wraps, with "Reset filters" staying on the right of it.
 - The table drops the Component and Opened columns; Issue, Area (110px), and Comments (76px) stay, and the Component name
   moves under the title, aligned with it, in Libre Franklin 12px `#3c4148`, `margin-top: 4px`.
@@ -218,14 +242,16 @@ Per `README-leaderboard-pages.md`, *Hover states*: 120ms ease-out, no size or po
 
 ## Accessibility
 
-- Each dropdown has a `<label>` ("Area", "Component", "Sort") that is visually hidden, so it is named without a visible label.
+- Each dropdown has a `<label>` ("Area", "Component", "Progress", "Issue", "Sort") that is visually hidden, so it is
+  named without a visible label.
 - Chips are real `<button type="button" aria-pressed="true|false">` elements. Their label states what the chip adds
   ("Include assigned"), so the on state reads "Include assigned, pressed". The tooltip text is the button's description.
-- When Component is cleared by a filter change, a polite live region announces: "Component cleared. Choose a component for this area."
+- When a filter change clears Area, Component, Progress or Issue, a polite live region announces it before the count:
+  "Area cleared." / "Component cleared." / "Progress cleared." / "Issue cleared.", one per cleared dropdown.
 - After each filter change the same live region announces the result count: "Showing 14 of 412 open issues."
   After "Show 25 more" it announces "25 more shown." and focus moves to the first new row.
-- Result rows are full links. The link's accessible name is the number and title (and, at narrow widths, the component
-  line under the title); the Area, Component, Opened and Comments cells are read in order.
+- Result rows are full links. The link's accessible name is the number, the title, the Progress/Issue pills, and (at
+  narrow widths) the component line under the title; the Area, Component, Opened and Comments cells are read in order.
 
 ## Out of scope
 

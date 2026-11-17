@@ -44,7 +44,7 @@ query($owner: String!, $name: String!, $cursor: String) {
             submittedAt
           }
         }
-        labels (first: 10) {
+        labels (first: 50) {
           nodes {
             name
           }

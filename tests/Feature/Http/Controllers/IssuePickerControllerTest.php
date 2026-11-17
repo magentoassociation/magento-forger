@@ -117,8 +117,8 @@ class IssuePickerControllerTest extends TestCase
         $response->assertSee('<option value="Area: Checkout" >Checkout</option>', false);
         $response->assertDontSee('Catalog · 42');
         $shown = $facetRequests[0]['body']['aggs']['shown']['aggs'];
-        $this->assertSame(['_key' => 'asc'], $shown['areas']['terms']['order']);
-        $this->assertSame(['_key' => 'asc'], $shown['components']['aggs']['labels']['terms']['order']);
+        $this->assertSame(['_key' => 'asc'], $shown['area']['aggs']['labels']['terms']['order']);
+        $this->assertSame(['_key' => 'asc'], $shown['component']['aggs']['labels']['terms']['order']);
         $this->assertContains(
             ['term' => ['labels.keyword' => ['value' => 'Area: Catalog', 'case_insensitive' => true]]],
             $requests[0]['body']['query']['bool']['filter'],
@@ -144,8 +144,8 @@ class IssuePickerControllerTest extends TestCase
             ->assertSee('<option value="Component: Product Grid" >Product Grid</option>', false);
 
         $this->assertSame(
-            ['term' => ['labels.keyword' => ['value' => 'Area: Catalog', 'case_insensitive' => true]]],
-            $facetRequests[0]['body']['aggs']['shown']['aggs']['components']['filter'],
+            ['bool' => ['filter' => [['term' => ['labels.keyword' => ['value' => 'Area: Catalog', 'case_insensitive' => true]]]]]],
+            $facetRequests[0]['body']['aggs']['shown']['aggs']['component']['filter'],
         );
     }
 
@@ -280,6 +280,177 @@ class IssuePickerControllerTest extends TestCase
             ->assertDontSee('class="ip-filters"', false);
     }
 
+    public function testRowsShowProgressAndIssueLabelsIgnoringCase(): void
+    {
+        $this->bindClient([$this->issue(41804, ['Area: Catalog', 'Progress: ready for dev', 'issue: Confirmed', 'Priority: P2'])]);
+
+        $response = $this->get(route('issues.pick'));
+
+        $response->assertSeeInOrder(['<span class="ipr-pill">Issue: Confirmed</span>', '<span class="ipr-pill ipr-pill--progress">Progress: Ready for Dev</span>'], false);
+        $response->assertDontSee('<span class="ipr-pill">Priority: P2</span>', false);
+        $response->assertDontSee('<span class="ipr-pill">Area: Catalog</span>', false);
+    }
+
+    public function testFiltersByProgressAndIssueLabels(): void
+    {
+        $requests = [];
+        $this->bindClient(
+            [],
+            requests: $requests,
+            progress: ['Progress: ready for dev' => 1],
+            issueLabels: ['Issue: Confirmed' => 1],
+        );
+
+        $response = $this->get(route('issues.pick', ['progress' => 'Progress: ready for dev', 'issue' => 'Issue: Confirmed']));
+
+        $response->assertSee('<option value="Progress: ready for dev" selected>Ready for Dev</option>', false);
+        $response->assertSee('<option value="Issue: Confirmed" selected>Confirmed</option>', false);
+        $filter = $requests[0]['body']['query']['bool']['filter'];
+        $this->assertContains(['term' => ['labels.keyword' => ['value' => 'Progress: ready for dev', 'case_insensitive' => true]]], $filter);
+        $this->assertContains(['term' => ['labels.keyword' => ['value' => 'Issue: Confirmed', 'case_insensitive' => true]]], $filter);
+    }
+
+    public function testEveryLabelListIsNarrowedByTheOtherSelections(): void
+    {
+        $facetRequests = [];
+        $this->bindClient(
+            [],
+            areas: ['Area: Catalog' => 1],
+            components: ['Component: Product Grid' => 1],
+            facetRequests: $facetRequests,
+            progress: ['Progress: ready for dev' => 1],
+            issueLabels: ['Issue: Confirmed' => 1],
+        );
+
+        $this->get(route('issues.pick', [
+            'area' => 'Area: Catalog',
+            'component' => 'Component: Product Grid',
+            'progress' => 'Progress: ready for dev',
+            'issue' => 'Issue: Confirmed',
+        ]));
+
+        $term = static fn (string $label): array => ['term' => ['labels.keyword' => ['value' => $label, 'case_insensitive' => true]]];
+        $narrowedBy = static fn (string ...$labels): array => ['bool' => ['filter' => array_map($term, $labels)]];
+        $aggs = $facetRequests[0]['body']['aggs']['shown']['aggs'];
+        // Each list is narrowed by every other selection, but not by its own.
+        $this->assertSame($narrowedBy('Component: Product Grid', 'Progress: ready for dev', 'Issue: Confirmed'), $aggs['area']['filter']);
+        $this->assertSame($narrowedBy('Area: Catalog', 'Progress: ready for dev', 'Issue: Confirmed'), $aggs['component']['filter']);
+        $this->assertSame($narrowedBy('Area: Catalog', 'Component: Product Grid', 'Issue: Confirmed'), $aggs['progress']['filter']);
+        $this->assertSame($narrowedBy('Area: Catalog', 'Component: Product Grid', 'Progress: ready for dev'), $aggs['issueStatus']['filter']);
+        // OpenSearch's include regex has no case flag, so the prefix is spelled per letter.
+        $this->assertSame('[Pp][Rr][Oo][Gg][Rr][Ee][Ss][Ss].*', $aggs['progress']['aggs']['labels']['terms']['include']);
+        $this->assertSame('[Ii][Ss][Ss][Uu][Ee].*', $aggs['issueStatus']['aggs']['labels']['terms']['include']);
+    }
+
+    public function testConflictingSelectionsClearTheLowestPriorityFirst(): void
+    {
+        // No issue has both Area: Catalog and Progress: ready for dev, so each hides the other
+        // from its list. Clearing both would lose the Area too; only Progress should go.
+        $hasFilter = static fn (array $agg, string $label): bool => str_contains(json_encode($agg['filter']), $label);
+        $resultQueries = [];
+        $client = Mockery::mock(Client::class);
+        $client->shouldReceive('search')->andReturnUsing(static function (array $params) use ($hasFilter, &$resultQueries): array {
+            if (str_ends_with($params['index'], 'github-pull-requests')) {
+                return ['aggregations' => ['linked_issues' => ['buckets' => []]]];
+            }
+            if (! isset($params['body']['aggs'])) {
+                $resultQueries[] = $params['body']['query'];
+
+                return ['hits' => ['total' => ['value' => 0], 'hits' => []]];
+            }
+            $aggs = $params['body']['aggs']['shown']['aggs'];
+            $list = static fn (array $labels): array => ['labels' => ['buckets' => array_map(static fn (string $l): array => ['key' => $l], $labels)]];
+
+            return [
+                'hits' => ['total' => ['value' => 10]],
+                'aggregations' => ['shown' => [
+                    'area' => $list($hasFilter($aggs['area'], 'ready for dev') ? ['Area: Checkout'] : ['Area: Catalog', 'Area: Checkout']),
+                    'component' => $list([]),
+                    'progress' => $list($hasFilter($aggs['progress'], 'Area: Catalog') ? ['Progress: done'] : ['Progress: done', 'Progress: ready for dev']),
+                    'issueStatus' => $list([]),
+                ]],
+            ];
+        });
+        $this->app->instance(Client::class, $client);
+
+        $response = $this->get(route('issues.pick', ['area' => 'Area: Catalog', 'progress' => 'Progress: ready for dev']));
+
+        $response->assertSee('<option value="Area: Catalog" selected>Catalog</option>', false);
+        $response->assertDontSee('value="Progress: ready for dev" selected', false);
+        $this->assertStringContainsString('Area: Catalog', json_encode($resultQueries[0]));
+        $this->assertStringNotContainsString('ready for dev', json_encode($resultQueries[0]));
+    }
+
+    public function testProgressOptionsFollowTheWorkflowOrder(): void
+    {
+        // As OpenSearch returns them: byte-wise, uppercase first.
+        $this->bindClient([], progress: [
+            'Progress: PR Created' => 1,
+            'Progress: PR in progress' => 1,
+            'Progress: dev in progress' => 1,
+            'Progress: done' => 1,
+            'Progress: on hold' => 1,
+            'Progress: ready for dev' => 1,
+            'Progress: ready for grooming' => 1,
+        ]);
+
+        $this->get(route('issues.pick'))->assertSeeInOrder([
+            '>Ready for Grooming</option>',
+            '>Ready for Dev</option>',
+            '>Dev in Progress</option>',
+            '>PR Created</option>',
+            '>PR in Progress</option>',
+            '>Done</option>',
+            // Not in the workflow list: after it, by name.
+            '>On Hold</option>',
+        ], false);
+    }
+
+    public function testProgressAndIssueOptionsAreApTitleCase(): void
+    {
+        $this->bindClient(
+            [],
+            progress: ['Progress: PR Created' => 1, 'Progress: ready for grooming' => 1],
+            issueLabels: ['Issue: Format is not valid' => 1, 'Issue: On Hold' => 1],
+        );
+
+        $this->get(route('issues.pick'))
+            ->assertSee('<option value="Progress: PR Created" >PR Created</option>', false)
+            ->assertSee('<option value="Progress: ready for grooming" >Ready for Grooming</option>', false)
+            ->assertSee('<option value="Issue: Format is not valid" >Format Is Not Valid</option>', false)
+            ->assertSee('<option value="Issue: On Hold" >On Hold</option>', false);
+    }
+
+    public function testClearsAProgressLabelThatIsNotInItsList(): void
+    {
+        $requests = [];
+        $this->bindClient([], requests: $requests, progress: ['Progress: ready for dev' => 1]);
+
+        $response = $this->get(route('issues.pick', ['progress' => 'Progress: done']));
+
+        $response->assertDontSee('value="Progress: done"', false);
+        $this->assertCount(1, $requests[0]['body']['query']['bool']['filter']);
+    }
+
+    public function testDisablesProgressAndIssueWhenTheyHaveNoOptions(): void
+    {
+        $this->bindClient([]);
+
+        $this->get(route('issues.pick'))
+            ->assertSee('No progress labels')
+            ->assertSee('No issue labels')
+            ->assertSee('name="progress" class="ip-select is-empty" disabled', false);
+    }
+
+    public function testRejectsProgressAndIssueValuesWithTheWrongPrefix(): void
+    {
+        $this->bindClient([]);
+
+        $this->get(route('issues.pick', ['progress' => 'Area: Catalog']))->assertRedirect();
+        $this->get(route('issues.pick', ['issue' => 'Priority: P1']))->assertRedirect();
+        $this->get(route('issues.pick', ['progress' => 'progress: ready for dev']))->assertSessionHasNoErrors();
+    }
+
     /**
      * @param  list<string>  $labels
      * @return array<string, mixed>
@@ -303,6 +474,8 @@ class IssuePickerControllerTest extends TestCase
      * @param  array<string, int>  $components  Component label => bucket doc_count (ignored likewise).
      * @param  list<int>  $openPrIssues  Issues an open PR closes.
      * @param  list<array<string, mixed>>  $facetRequests  Receives each facet search.
+     * @param  array<string, int>  $progress  Progress label => bucket doc_count (ignored).
+     * @param  array<string, int>  $issueLabels  Issue label => bucket doc_count (ignored).
      */
     private function bindClient(
         array $sources,
@@ -313,6 +486,8 @@ class IssuePickerControllerTest extends TestCase
         array $components = [],
         array $openPrIssues = [],
         array &$facetRequests = [],
+        array $progress = [],
+        array $issueLabels = [],
     ): void {
         $buckets = static fn (array $counts): array => ['buckets' => array_map(
             static fn ($key, int $count): array => ['key' => $key, 'doc_count' => $count],
@@ -322,7 +497,7 @@ class IssuePickerControllerTest extends TestCase
 
         $client = Mockery::mock(Client::class);
         $client->shouldReceive('search')->andReturnUsing(static function (array $params) use (
-            $sources, $total, $openTotal, &$requests, $areas, $components, $openPrIssues, &$facetRequests, $buckets
+            $sources, $total, $openTotal, &$requests, $areas, $components, $openPrIssues, &$facetRequests, $buckets, $progress, $issueLabels
         ): array {
             if (str_ends_with($params['index'], 'github-pull-requests')) {
                 return ['aggregations' => ['linked_issues' => $buckets(array_fill_keys($openPrIssues, 1))]];
@@ -334,8 +509,10 @@ class IssuePickerControllerTest extends TestCase
                 return [
                     'hits' => ['total' => ['value' => $openTotal]],
                     'aggregations' => ['shown' => [
-                        'areas' => $buckets($areas),
-                        'components' => ['labels' => $buckets($components)],
+                        'area' => ['labels' => $buckets($areas)],
+                        'component' => ['labels' => $buckets($components)],
+                        'progress' => ['labels' => $buckets($progress)],
+                        'issueStatus' => ['labels' => $buckets($issueLabels)],
                     ]],
                 ];
             }

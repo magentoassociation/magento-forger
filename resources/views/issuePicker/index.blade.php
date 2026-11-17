@@ -1,14 +1,18 @@
 @use('App\Queries\Dashboard\IssuePickerQuery')
+@use('App\Support\ApTitleCase')
 @use('Illuminate\Support\Str')
 @extends('layouts.app')
 
 @section('content')
     @php
-        // A shared link may name an area no open issue carries; keep it selectable.
-        $areaChoices = $selectedArea && ! in_array(mb_strtolower($selectedArea), array_map('mb_strtolower', $areaOptions), true)
-            ? [$selectedArea, ...$areaOptions]
-            : $areaOptions;
-        $noComponents = $selectedArea && $componentOptions === [];
+        // The four label filters depend on each other; the query clears any selection not in its list.
+        // `title` sets option text in AP title case (Progress and Issue); Area and Component keep GitHub's spelling.
+        $labelFilters = [
+            'area' => ['label' => 'Area', 'any' => 'Any area', 'none' => 'No areas', 'options' => $areaOptions, 'selected' => $selectedArea, 'title' => false],
+            'component' => ['label' => 'Component', 'any' => 'Any component', 'none' => $selectedArea ? 'No components for this area' : 'No components', 'options' => $componentOptions, 'selected' => $selectedComponent, 'title' => false],
+            'progress' => ['label' => 'Progress', 'any' => 'Any progress', 'none' => 'No progress labels', 'options' => $progressOptions, 'selected' => $selectedProgress, 'title' => true],
+            'issue' => ['label' => 'Issue', 'any' => 'Any issue status', 'none' => 'No issue labels', 'options' => $issueOptions, 'selected' => $selectedIssueStatus, 'title' => true],
+        ];
         $sorts = [IssuePickerQuery::SORT_OLDEST => 'Oldest first', IssuePickerQuery::SORT_NEWEST => 'Newest first', IssuePickerQuery::SORT_COMMENTS => 'Most comments'];
         $chips = [
             'showAssigned' => ['label' => 'Include assigned', 'tip' => 'Include issues that are already assigned', 'on' => $showAssigned],
@@ -31,26 +35,23 @@
         @unless ($dataMissing)
             {{-- No Apply button: the script applies each change. Labels are visually hidden; the placeholder options name the dropdowns. --}}
             <form method="GET" action="{{ route('issues.pick') }}" class="ip-filters" role="search" aria-label="Filter issues">
-                <label class="visually-hidden" for="ip-area">Area</label>
-                <select id="ip-area" name="area" @class(['ip-select', 'is-empty' => ! $selectedArea])>
-                    <option value="">Any area</option>
-                    @foreach ($areaChoices as $label)
-                        <option value="{{ $label }}" @selected(mb_strtolower($label) === mb_strtolower((string) $selectedArea))>{{ Str::after($label, ': ') }}</option>
-                    @endforeach
-                </select>
+              <div class="ip-row">
+                @foreach ($labelFilters as $name => $filter)
+                    <label class="visually-hidden" for="ip-{{ $name }}">{{ $filter['label'] }}</label>
+                    <select id="ip-{{ $name }}" name="{{ $name }}" @class(['ip-select', 'is-empty' => ! $filter['selected']]) @disabled($filter['options'] === [])>
+                        @if ($filter['options'] === [])
+                            <option value="">{{ $filter['none'] }}</option>
+                        @else
+                            <option value="">{{ $filter['any'] }}</option>
+                            @foreach ($filter['options'] as $label)
+                                <option value="{{ $label }}" @selected(mb_strtolower($label) === mb_strtolower((string) $filter['selected']))>{{ $filter['title'] ? ApTitleCase::apply(Str::after($label, ': ')) : Str::after($label, ': ') }}</option>
+                            @endforeach
+                        @endif
+                    </select>
+                @endforeach
+              </div>
 
-                <label class="visually-hidden" for="ip-component">Component</label>
-                <select id="ip-component" name="component" @class(['ip-select', 'is-empty' => ! $selectedComponent]) @disabled($noComponents)>
-                    @if ($noComponents)
-                        <option value="">No components for this area</option>
-                    @else
-                        <option value="">Any component</option>
-                        @foreach ($componentOptions as $label)
-                            <option value="{{ $label }}" @selected(mb_strtolower($label) === mb_strtolower((string) $selectedComponent))>{{ Str::after($label, ': ') }}</option>
-                        @endforeach
-                    @endif
-                </select>
-
+              <div class="ip-row">
                 <label class="visually-hidden" for="ip-sort">Sort</label>
                 <select id="ip-sort" name="sort" class="ip-select">
                     @foreach ($sorts as $value => $label)
@@ -66,6 +67,7 @@
                         {{ $chip['label'] }}
                     </button>
                 @endforeach
+              </div>
 
                 {{-- Without JavaScript, Enter on a select submits the form. --}}
                 <button type="submit" hidden>Apply</button>
@@ -108,6 +110,13 @@
                                                 <span class="ipr-title">{{ $issue['title'] }}</span>
                                                 @if ($issue['components'])
                                                     <span class="ipr-sub">{{ implode(', ', $issue['components']) }}</span>
+                                                @endif
+                                                @if ($issue['status'])
+                                                    <span class="ipr-pills">
+                                                        @foreach ($issue['status'] as $label)
+                                                            <span @class(['ipr-pill', 'ipr-pill--progress' => stripos($label, IssuePickerQuery::PROGRESS_PREFIX) === 0])>{{ ApTitleCase::apply($label) }}</span>
+                                                        @endforeach
+                                                    </span>
                                                 @endif
                                             </span>
                                         </a>

@@ -2,16 +2,19 @@
     /* Issue picker (README-issue-picker, #31b, #31c). Builds on the board styles in leaderboard._lb-styles. */
     .ip .lb-intro { margin: 0; }
 
-    /* Filter panel: one row, no box. */
+    /* Filter panel, no box. Row 1: the four label dropdowns. Row 2: Sort and the chips. */
     .ip-filters {
-        display: flex;
-        flex-wrap: nowrap;
-        align-items: center;
-        gap: 10px;
         margin-top: 18px;
         padding: 14px 0;
         border-bottom: 1px solid #e6e7ea;
     }
+    .ip-row {
+        display: flex;
+        flex-wrap: nowrap;
+        align-items: center;
+        gap: 10px;
+    }
+    .ip-row + .ip-row { margin-top: 10px; }
     /* Chevron per README "Dropdown caret": 7×5px, #6b7178 on light controls. */
     .ip-select {
         width: 200px;
@@ -150,6 +153,17 @@
     }
     /* Component under the title, narrow widths only. */
     .ipr-sub { display: none; margin-top: 4px; font-size: 12px; color: #3c4148; }
+    /* Progress and Issue labels, in the Community-Picked pill pair: Issue grey (area pill), Progress orange (component pill). */
+    .ipr-pills { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; }
+    .ipr-pill {
+        padding: 4px 8px;
+        border-radius: 5px;
+        background: #e6e7ea;
+        font-size: 11.5px;
+        line-height: 1.2;
+        color: #15171b;
+    }
+    .ipr-pill--progress { background: #fbddcb; }
 
     .ip .ip-select:focus-visible,
     .ip .ip-chip:focus-visible,
@@ -164,7 +178,7 @@
 
     /* Narrow (#31c): dropdowns a row each, chips share a row; Component and Opened columns drop. */
     @media (max-width: 700px) {
-        .ip-filters { flex-wrap: wrap; }
+        .ip-row { flex-wrap: wrap; }
         .ip-select { flex-basis: 100%; width: 100%; padding-top: 10px; padding-bottom: 10px; }
         .ip-col-component,
         .ip-col-opened { display: none; }
