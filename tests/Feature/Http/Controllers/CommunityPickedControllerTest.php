@@ -8,7 +8,6 @@ declare(strict_types=1);
 namespace Tests\Feature\Http\Controllers;
 
 use App\Models\CommunityPickedResult;
-use App\Models\RoleEligibility;
 use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -69,53 +68,21 @@ class CommunityPickedControllerTest extends TestCase
         $response->assertSee('3 months ago');
     }
 
-    public function testIsHiddenFromGuests(): void
+    public function testIsShownToGuests(): void
     {
         $this->bindClient([]);
         auth()->logout();
 
-        $this->get(route('prs.communityPicked'))->assertNotFound();
-        $this->get(route('leaderboard.scoring'))
-            ->assertOk()
-            ->assertDontSee('href="'.route('prs.communityPicked').'"', false);
-    }
-
-    public function testIsHiddenFromSignedInUsersOutsideTheCouncil(): void
-    {
-        $this->bindClient([]);
-        $user = User::factory()->create();
-        RoleEligibility::query()->create(['login' => $user->github_username, 'role' => 'maintainer', 'active' => true]);
-
-        $this->actingAs($user)->get(route('prs.communityPicked'))->assertNotFound();
-        $this->actingAs($user)->get(route('leaderboard.scoring'))
-            ->assertDontSee('href="'.route('prs.communityPicked').'"', false);
-    }
-
-    public function testIsHiddenFromFormerCouncilMembers(): void
-    {
-        $this->bindClient([]);
-        $user = User::factory()->create();
-        RoleEligibility::query()->create(['login' => $user->github_username, 'role' => 'community-council', 'active' => false]);
-
-        $this->actingAs($user)->get(route('prs.communityPicked'))->assertNotFound();
-    }
-
-    public function testIsShownToActiveCouncilMembers(): void
-    {
-        $this->bindClient([]);
-        $user = User::factory()->create();
-        RoleEligibility::query()->create(['login' => $user->github_username, 'role' => 'community-council', 'active' => true]);
-
-        $this->actingAs($user)->get(route('prs.communityPicked'))
+        $this->get(route('prs.communityPicked'))
             ->assertOk()
             ->assertSee('href="'.route('prs.communityPicked').'">Community-Picked</a>', false);
     }
 
-    public function testIsShownToAdmins(): void
+    public function testIsShownToSignedInNonAdmins(): void
     {
         $this->bindClient([]);
 
-        $this->get(route('prs.communityPicked'))->assertOk();
+        $this->actingAs(User::factory()->create())->get(route('prs.communityPicked'))->assertOk();
     }
 
     public function testShowsFiftyMoreUpToTheTotal(): void

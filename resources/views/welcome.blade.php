@@ -205,7 +205,7 @@
         </div>
     </section>
 
-    {{-- Community-Picked PRs — only for viewers who may see that page (null otherwise). --}}
+    {{-- Community-Picked PRs — null when the index is empty or the query fails. --}}
     @if ($communityPicks)
         <section class="hp-sec hp-sec--band hp-cp" aria-labelledby="hp-cp-title">
             <div class="container hp-section hp-sec-inner">

@@ -93,16 +93,6 @@ class User extends Authenticatable implements FilamentUser
     }
 
     /**
-     * Whether this user may see Community-Picked PRs: admins and active community
-     * council members. Council membership is read live, not from is_admin alone,
-     * though admins keep access whatever their council status.
-     */
-    public function canViewCommunityPicked(): bool
-    {
-        return $this->is_admin || $this->hasActiveRole(['community-council']);
-    }
-
-    /**
      * @param  list<string>  $roles
      */
     private function hasActiveRole(array $roles): bool
