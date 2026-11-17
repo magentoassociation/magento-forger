@@ -48,10 +48,7 @@ column, the control strip, search, jump-to-my-rank, pagination,
 focus rings and hover states — exists only in `README-leaderboard-pages.md` and the turn 21–25
 prototype cards.
 
-**Scope note for whoever picks this up.** The current site implements the `#6a` generation. The
-whole turn 21–25 layer is unbuilt, and it is the larger half of this handoff: it is a decision
-about how much to take on, not a list of fixes to a shipped page. Build the foundation from this
-document, then the boards from `README-leaderboard-pages.md`.
+**Scope note for whoever picks this up.** The redesign is largely built on `main` (checked against the code on 2026-11-17). The board controls, search, jump to my rank, pagination, homepage sections, self-hosted fonts, hover navigation, and Community-Picked styling match these specs by token and markup. What remains is verification: a visual diff of each page against `../MageForger.html`. `OUT-OF-SYNC.md` lists what is still open.
 
 ## Fidelity
 **High-fidelity** for typography, colour and spacing — the values in these specs are exact and

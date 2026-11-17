@@ -1,15 +1,16 @@
 # Out of sync — spec vs code
 
-Where the live site differs from the design specs in `design/specs/`. Last checked **2026-10-16**,
-against `main` and `feature/community-picked`. Only current
-differences are listed; anything fixed is deleted, not kept as history.
+Where the live site differs from the design specs in `design/specs/`. Last checked **2026-11-17**
+against `main`, by reading the code: CSS values, markup, routes, menus and tests. Compared to the live
+site numerically (computed sizes, weights, padding) on 2026-11-17 for the contributor, maintainer and monthly boards, Highlights, by-month, how-scores, the scoring modal, the homepage, the header and Community-Picked PRs. All values checked match the spec; the only open item is below. Only current differences are listed; anything fixed is deleted, not
+kept as history.
 
 ## How to read this
 
 | Heading | Meaning |
 |---|---|
 | **To do** | Code doesn't match the spec and should, eventually. |
-| **Unsure** | Code may not match the spec; needs a decision before code changes. |
+| **Unsure** | Code may not match the spec; needs a decision before code changes, or a visual check. |
 | **Kept on purpose** | Code differs from the spec deliberately. Decided; no action. |
 | **Not covered** | Parts of the site no spec describes. Not drift. |
 
@@ -21,38 +22,19 @@ are not listed.
 
 ## To do
 
-- **Merge `feature/community-picked`.** It carries the Community-Picked PRs page
-  (`README-community-picked.md`, `#27b` `#27c` `#27d`) and the SVG dropdown chevron
-  (*Dropdown caret*, `README.md`). Both match the spec on the branch except the pills and search field: `.cpr-comp` should be Libre
-  Franklin 11.5px (not Martian Mono 10px) on `#fbddcb` (not `#f7f5f2`); `.cpr-area` should be filled
-  `#e6e7ea` with no border, `padding: 4px 8px`, `#15171b` text (not outlined `#d5d8dc`, `#3c4148`). The search field drops its ⌕ icon
-  (`.lb-search-ico`) and its left padding goes to 12px.
-  Placeholder becomes "PR title or #" (was "Title words or PR #"). `main` still has neither.
-
-- **Nav dropdowns open on hover** (`README-header.md`, *Nav dropdowns*). Issues ▾ and PRs ▾
-  open on click today. They render from `app/Menus` via `$mainMenu` in `layouts/app.blade.php`.
-  Menu interiors (`#29a`): the current item's solid orange `.active` fill stays put instead of
-  the highlight following the pointer, and a click leaves the orange focus ring on the parent.
-  Restyle per *Menu interiors*. Nav items sit `gap: 8px` apart (was 2px); filled neighbours
-  touched.
-
-- **"Community-Picked" capitalisation** (`README.md`, *Capitalisation*). Page H1 becomes
-  "Community-Picked PRs" (`header.blade.php` `$formattedLabel`);
-  the PRs menu item becomes "Community-Picked" (was "Community Picked", `app/Menus`).
-
-- **Remove the footer link to Community-Picked PRs** (`footer.blade.php`). The Forger column
-  lists one link per section (`README-header.md`, footer); the page sits inside Pull Requests.
-
-- **Homepage: Community-Picked PRs section** (`README-homepage.md`, `#15a`, `#24d`). New, between
-  the first-timer block and Momentum: top three PRs by votes, "See all and vote" button. Not built.
-
-- **Homepage section layout** (`README-homepage.md`, *Section layout*; `#15a`, `#24d`). Bands on
-  Pick your area and Community-Picked PRs, side headings in a 220px column on every section,
-  19px headings, Momentum cards stacked. Not built.
+None found by code inspection on 2026-11-17. Items from the 2026-10-16 list that are now in code:
+the Community-Picked feature (page, footer, menu, homepage band), the nav dropdown hover and
+spacing, the dropdown caret, the Community-Picked pill and search styling, the "Community-Picked"
+capitalisation, the homepage section layout (220px heading column, 19px headings), the board
+control strip, search, jump to my rank and pagination, and self-hosted fonts.
 
 ## Unsure
 
-None at the moment.
+- **Header dropdown hover and the focus ring** were checked in code, not by eye.
+- **`feature/community-picked`.** `main` already contains its work (controller, view, footer
+  and menu changes). Confirm the branch has nothing left to merge, then delete it.
+
+---
 
 ## Kept on purpose
 
