@@ -387,7 +387,8 @@ flex-wrap: wrap`:
 - Then the CTA, after the line and right-aligned (`margin-left: auto`): the site's orange button —
   `padding: 10px 17px`, `border-radius: 7px`,
   background `#f26322`, ink `#15171b`, Libre Franklin 700, 14px, hover `#ff7433`.
-  Contributor: "Find an issue to work on →" (same destination as the homepage CTA).
+  Contributor: "Find an issue to work on →" (same destination as the homepage CTA: the Issue picker,
+  `README-issue-picker.md`).
   Maintainer: "Find a PR to review →".
 
 ### Below the panel

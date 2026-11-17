@@ -26,9 +26,9 @@
         $boardName = (isset($boards, $board) && isset($boards[$board])) ? $boards[$board] : null;
         $formattedLabel = $boardName ? $boardName . ' Contributions' : 'Contributions';
     } elseif ($currentRouteName === 'issues.byMonth') {
-        $formattedLabel = 'Issues By Month';
+        $formattedLabel = 'Issues by Month';
     } elseif ($currentRouteName === 'prs.byMonth') {
-        $formattedLabel = 'PRs By Month';
+        $formattedLabel = 'PRs by Month';
     } elseif ($currentRouteName === 'prs.communityPicked') {
         $formattedLabel = 'Community-Picked PRs';
     }

@@ -127,7 +127,8 @@ The first two sentences are the live page's copy verbatim; the third replaces th
 recognized" card. Keep the paragraph to three sentences — the `max-width: 420px` measure is what
 lets the board card sit beside it.
 
-**CTA** — one button, `margin-top: 26px`: "Find an issue to work on →". `padding: 12px 20px`,
+**CTA** — one button, `margin-top: 26px`: "Find an issue to work on →". It links to the Issue picker
+(`README-issue-picker.md`, `/issues/pick`). `padding: 12px 20px`,
 `border-radius: 7px`, background `#f26322`, ink `#15171b`, Libre Franklin 700, 14.5px. Hover:
 background `#ff7433`.
 
@@ -363,7 +364,7 @@ display: flex; flex-direction: column`. Body `padding: 18px 20px 14px`:
    padding-left: 34px` so each column sits under its pair, past the y gutter. Three-letter month,
    Martian Mono 400, 8.5px, uppercase, `.04em`, `#6b7178`, centred, `margin-top: 6px`.
 
-**Footer** — the whole row is a link to that dataset's By Month page (PRs By Month / Issues By
+**Footer** — the whole row is a link to that dataset's By Month page (PRs by Month / Issues by
 Month). `margin-top: auto; display: flex; align-items: baseline; gap: 6px; padding: 11px 20px;
 border-top: 1px solid #e6e7ea; background: #faf9f7`; 12.5px, `#5d636c`, hover `#15171b`.
 - "**15,094** opened since Dec 2014" — the all-time opened count in 700 `#15171b`; the month is

@@ -189,6 +189,15 @@ class CommunityPickedControllerTest extends TestCase
         $response->assertDontSee('<option value="Area: Test framework"', false);
     }
 
+    public function testSortsLabelOptionsIgnoringCase(): void
+    {
+        $this->bindClient([], prLabels: ['Area: Zeta', 'Area: alpha', 'Component: Yak', 'Component: bee']);
+
+        $this->get('/prs/community-picked')
+            ->assertSeeInOrder(['>alpha</option>', '>Zeta</option>'], false)
+            ->assertSeeInOrder(['>bee</option>', '>Yak</option>'], false);
+    }
+
     public function testClearFiltersIsHiddenWithNothingToClear(): void
     {
         $this->bindClient([$this->candidate(1)]);

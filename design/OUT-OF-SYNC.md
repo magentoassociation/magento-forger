@@ -2,7 +2,8 @@
 
 Where the live site differs from the design specs in `design/specs/`. Last checked **2026-11-17**
 against `main`, by reading the code: CSS values, markup, routes, menus and tests. Compared to the live
-site numerically (computed sizes, weights, padding) on 2026-11-17 for the contributor, maintainer and monthly boards, Highlights, by-month, how-scores, the scoring modal, the homepage, the header and Community-Picked PRs. All values checked match the spec; the only open item is below. Only current differences are listed; anything fixed is deleted, not
+site numerically (computed sizes, weights, padding) on 2026-11-17 for the contributor, maintainer and monthly boards, Highlights, by-month, how-scores, the scoring modal, the homepage, the header and Community-Picked PRs. All values checked match the spec. The issue picker (`/issues/pick`, built 2026-11-17) was checked
+in code and tests only, not on the live site. Only current differences are listed; anything fixed is deleted, not
 kept as history.
 
 ## How to read this
@@ -33,6 +34,11 @@ control strip, search, jump to my rank and pagination, and self-hosted fonts.
 - **Header dropdown hover and the focus ring** were checked in code, not by eye.
 - **`feature/community-picked`.** `main` already contains its work (controller, view, footer
   and menu changes). Confirm the branch has nothing left to merge, then delete it.
+- **Issue picker, by eye** (`README-issue-picker.md`). The spec was updated on 2026-11-17 to match
+  the code, but nothing has been compared on the live site yet: the 420px layout (`#31c`), the
+  stretched row link and its focus ring, the column widths, and the 28px H1 (inherited from the
+  board styles at 560px and below).
+- **`README.md` index still marks the issue picker "(proposed)".** It is built and in the Issues menu.
 
 ---
 
@@ -46,5 +52,7 @@ control strip, search, jump to my rank and pagination, and self-hosted fonts.
 
 - **Company board** (`score-company.blade.php`) — still old styling. Hidden from the menu; not
   one of the three redesigned boards. Pages: `/leaderboard/company`.
+- **Issues menu contents.** `README-header.md`, *Out of scope*, names the PRs menu items but not
+  the Issues menu's. It now holds "By Month" and "Pick an Issue", in route order.
 - **Universe bar** (`universe-bar.blade.php`) — its own grey colour scheme. It's an embed for
   other sites (`/api/universe-bar`), outside the redesign. Pages: none on this site.
