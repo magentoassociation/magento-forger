@@ -67,15 +67,16 @@ class IssuePickerControllerTest extends TestCase
 
         $this->get(route('issues.pick'))
             ->assertOk()
-            ->assertSee('data-param="showAssigned" aria-pressed="false"', false)
-            ->assertSee('data-param="showPr" aria-pressed="false"', false)
+            ->assertSee('data-param="showAssigned" aria-pressed="false" title="Include issues that are already assigned"', false)
+            ->assertSee('data-param="showPr" aria-pressed="false" title="Include issues that already have a PR"', false)
+            ->assertSeeInOrder(['Include assigned', 'Include with PRs'])
             ->assertSee('<input type="hidden" name="showAssigned" value="1" disabled>', false);
 
         $mustNot = $requests[0]['body']['query']['bool']['must_not'];
         $this->assertContains(['exists' => ['field' => 'assignees']], $mustNot);
         $this->assertContains(['term' => ['closed_by_merged_pr' => true]], $mustNot);
         $this->assertContains(['ids' => ['values' => ['101', '102']]], $mustNot);
-        // Stale after a PR opens or closes, since that doesn't bump the issue's updatedAt.
+        // Stale once a closing PR opens, since that doesn't bump the issue's updatedAt.
         $this->assertNotContains(['term' => ['has_closing_pr' => true]], $mustNot);
     }
 
@@ -254,7 +255,7 @@ class IssuePickerControllerTest extends TestCase
         $this->get(route('issues.pick'))
             ->assertSee('Showing 0 of 412 open issues')
             ->assertSee('No open issues match these filters.')
-            ->assertSee('Try turning on a Show filter, or choose a different area.')
+            ->assertSee('Try turning on an Include filter, or choose a different area.')
             ->assertDontSee('<table', false);
     }
 

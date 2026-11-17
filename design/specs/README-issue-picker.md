@@ -49,8 +49,8 @@ Libre Franklin 400, 14.5px, `line-height: 1.65`, colour `#3c4148`, `max-width: 6
 ## Filter panel
 
 One row under the intro, `margin-top: 18px`, no bordered box: `display: flex; flex-wrap: nowrap; align-items: center; gap: 10px;
-padding: 14px 0; border-bottom: 1px solid #e6e7ea`. In order: Area, Component, Sort, then the two chips (Show assigned,
-Show with a PR). All five controls sit on the same row at the page width. At narrow widths the row wraps (see *Narrow widths*).
+padding: 14px 0; border-bottom: 1px solid #e6e7ea`. In order: Area, Component, Sort, then the two chips (Include assigned,
+Include with PRs). All five controls sit on the same row at the page width. At narrow widths the row wraps (see *Narrow widths*).
 
 The dropdowns carry no visible label above them; the placeholder option names them ("Any area", "Any component").
 Each has a `<label>` that is visually hidden but read by screen readers (see *Accessibility*).
@@ -64,7 +64,7 @@ Option text omits the "Area:" and "Component:" prefixes: "Catalog", "Product Gri
 - Hover: `border-color: #15171b`. Focus: site focus ring.
 - While the placeholder option "Any area" / "Any component" is selected, the field text is `#9aa3ae`.
 - Options are sorted by name, ignoring case ("alpha" before "Zeta"), as on Community-Picked PRs.
-- Options come only from issues the list can show: open issues the Show chips leave in. An option never leads to an
+- Options come only from issues the list can show: open issues the Include chips leave in. An option never leads to an
   empty list. Turning a chip on can add options back.
 
 **Area** — the first dropdown. Options: every label named `Area: …` on at least one open issue the chips leave in.
@@ -94,12 +94,15 @@ On the same row as the dropdowns. Each toggle is a two-state chip:
 
 The chips each **add back** a kind of taken issue. Both are off by default, so taken issues stay out of the list:
 
-| Chip | When on, adds back |
-|---|---|
-| Show assigned | issues with any assignee |
-| Show with a PR | issues with a PR that closes them (see *Has PR*) |
+| Chip | Tooltip | When on, adds back |
+|---|---|---|
+| Include assigned | "Include issues that are already assigned" | issues with any assignee |
+| Include with PRs | "Include issues that already have a PR" | issues with a PR that closes them (see *Has PR*) |
 
-The default state: **Show assigned** off, **Show with a PR** off, so assigned issues and issues with a PR are hidden.
+The tooltip is the browser's native one (the button's `title`): it shows on pointer hover and screen readers read it as
+the button's description. It does not show on keyboard focus or touch.
+
+The default state: **Include assigned** off, **Include with PRs** off, so assigned issues and issues with a PR are hidden.
 A reader who wants to see taken work turns a chip on.
 
 
@@ -115,9 +118,10 @@ Sources, and why:
 - **Open PRs** — the `linked_issues` of open PRs in the PR index. The reactions sync re-reads every open PR every
   15 minutes, so a new or closed PR shows within about 15 minutes.
 - **Merged PRs** — `closed_by_merged_pr` on the issue, set by the PR sync.
-- **Not used: the issue's own `has_closing_pr`.** Opening or closing a PR does not change the issue's `updatedAt` on
-  GitHub (checked 2026-11-17 on #41875 and #41870), so the incremental issue sync does not re-read the issue and the
-  field goes stale in both directions until the weekly full sync.
+- **Not used: the issue's own `has_closing_pr`.** Opening a PR that closes an issue does not change the issue's
+  `updatedAt` on GitHub (checked 2026-11-17 on #41875 and #41870), so the incremental issue sync does not re-read the
+  issue and a new PR is missed until the weekly full sync. Closing a PR unmerged probably behaves the same, leaving
+  the issue hidden; that case has not been checked.
 
 ## Results
 
@@ -175,7 +179,7 @@ in-site claim.
 - **Results found**: as above.
 - **No results**: the result-count line stays; the table is replaced by one block, `padding: 40px 0 44px`, `border-bottom: 1px solid #f0f1f3`:
   - Line 1, Libre Franklin 500, 15px, `#15171b`: "No open issues match these filters."
-  - Line 2, Libre Franklin 14px, `line-height: 1.6`, `#5d636c`, `margin-top: 6px`: "Try turning on a Show filter, or choose a different area." The
+  - Line 2, Libre Franklin 14px, `line-height: 1.6`, `#5d636c`, `margin-top: 6px`: "Try turning on an Include filter, or choose a different area." The
     "Reset filters" link is repeated here in `#ee6524`.
 - **Index missing** (dev only): the site's standard data-missing notice, with no filter panel or count.
 - **Taken-issue preview** — not built. Was optional and off by default: a count line beneath the result count,
@@ -216,7 +220,7 @@ Per `README-leaderboard-pages.md`, *Hover states*: 120ms ease-out, no size or po
 
 - Each dropdown has a `<label>` ("Area", "Component", "Sort") that is visually hidden, so it is named without a visible label.
 - Chips are real `<button type="button" aria-pressed="true|false">` elements. Their label states what the chip adds
-  ("Show assigned"), so the on state reads "Show assigned, pressed".
+  ("Include assigned"), so the on state reads "Include assigned, pressed". The tooltip text is the button's description.
 - When Component is cleared by a filter change, a polite live region announces: "Component cleared. Choose a component for this area."
 - After each filter change the same live region announces the result count: "Showing 14 of 412 open issues."
   After "Show 25 more" it announces "25 more shown." and focus moves to the first new row.

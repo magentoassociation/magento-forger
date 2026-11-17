@@ -22,8 +22,9 @@ use OpenSearch\Client;
  * "Has a PR" reads two sources. Open PRs: the Linked Issues of open PRs in the PR index,
  * which the reactions sync refreshes every 15 minutes. Merged PRs: the issue's
  * closed_by_merged_pr. A PR closed without merging is in neither, so its issue stays.
- * The issue's own has_closing_pr is deliberately not used: opening or closing a PR does
- * not bump the issue's updatedAt, so the incremental issue sync leaves it stale both ways.
+ * The issue's own has_closing_pr is deliberately not used: opening a closing PR does not
+ * bump the issue's updatedAt (checked on GitHub), so the incremental issue sync misses new
+ * PRs; closing one unmerged likely leaves it stale the other way too (not checked).
  */
 class IssuePickerQuery
 {

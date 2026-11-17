@@ -10,7 +10,10 @@
             : $areaOptions;
         $noComponents = $selectedArea && $componentOptions === [];
         $sorts = [IssuePickerQuery::SORT_OLDEST => 'Oldest first', IssuePickerQuery::SORT_NEWEST => 'Newest first', IssuePickerQuery::SORT_COMMENTS => 'Most comments'];
-        $chips = ['showAssigned' => ['label' => 'Show assigned', 'on' => $showAssigned], 'showPr' => ['label' => 'Show with a PR', 'on' => $showPr]];
+        $chips = [
+            'showAssigned' => ['label' => 'Include assigned', 'tip' => 'Include issues that are already assigned', 'on' => $showAssigned],
+            'showPr' => ['label' => 'Include with PRs', 'tip' => 'Include issues that already have a PR', 'on' => $showPr],
+        ];
         $countText = 'Showing '.number_format($total).' of '.number_format($openTotal).' open issues';
         $shown = count($issues);
     @endphp
@@ -58,7 +61,7 @@
                 @foreach ($chips as $name => $chip)
                     {{-- The hidden input carries the chip into the URL; it is disabled (left out) while the chip is off. --}}
                     <input type="hidden" name="{{ $name }}" value="1" @disabled(! $chip['on'])>
-                    <button type="button" class="ip-chip" data-param="{{ $name }}" aria-pressed="{{ $chip['on'] ? 'true' : 'false' }}">
+                    <button type="button" class="ip-chip" data-param="{{ $name }}" aria-pressed="{{ $chip['on'] ? 'true' : 'false' }}" title="{{ $chip['tip'] }}">
                         <svg class="ip-check" width="11" height="9" viewBox="0 0 11 9" aria-hidden="true" focusable="false"><path d="M1 4.5 4 7.5 10 1.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
                         {{ $chip['label'] }}
                     </button>
@@ -79,7 +82,7 @@
                 @if ($shown === 0)
                     <div class="lb-empty">
                         <p class="lb-empty-1">No open issues match these filters.</p>
-                        <p class="lb-empty-2">Try turning on a Show filter, or choose a different area. <a class="ip-reset" href="{{ route('issues.pick') }}">Reset filters</a></p>
+                        <p class="lb-empty-2">Try turning on an Include filter, or choose a different area. <a class="ip-reset" href="{{ route('issues.pick') }}">Reset filters</a></p>
                     </div>
                 @else
                     <table class="ip-table">
