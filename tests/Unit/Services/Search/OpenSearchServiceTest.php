@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Services\Search;
 
 use App\Services\Search\OpenSearchService;
+use Illuminate\Support\Facades\Log;
 use Mockery;
 use OpenSearch\Client;
 use ReflectionClass;
@@ -259,6 +260,65 @@ class OpenSearchServiceTest extends TestCase
         $this->app->instance(Client::class, $client);
 
         (new OpenSearchService)->updatePullRequestReactions([]);
+    }
+
+    public function testIndexIssuesLogsRejectedItems(): void
+    {
+        $this->bindBulkResponse([
+            'errors' => true,
+            'items' => [
+                ['update' => ['_id' => '5', 'status' => 200]],
+                ['update' => ['_id' => '6', 'status' => 400, 'error' => ['type' => 'mapper_parsing_exception', 'reason' => 'failed to parse field [closed_at]']]],
+            ],
+        ]);
+        Log::spy();
+
+        (new OpenSearchService)->indexIssues([$this->issueNode(5), $this->issueNode(6)]);
+
+        Log::shouldHaveReceived('error')->once()->with(
+            '1 OpenSearch bulk item(s) rejected in '.OpenSearchService::getIndexWithPrefix('github-issues'),
+            ['failures' => ['#6: mapper_parsing_exception failed to parse field [closed_at]']],
+        );
+    }
+
+    public function testIndexIssuesLogsNothingWhenEveryItemSucceeds(): void
+    {
+        $this->bindBulkResponse(['errors' => false, 'items' => [['update' => ['_id' => '5', 'status' => 200]]]]);
+        Log::spy();
+
+        (new OpenSearchService)->indexIssues([$this->issueNode(5)]);
+
+        Log::shouldNotHaveReceived('error');
+    }
+
+    /**
+     * @return array{
+     *     number: int,
+     *     id: string,
+     *     title: string,
+     *     url: string,
+     *     state: string,
+     *     labels: array{nodes: list<array{name: string}>},
+     *     createdAt: string,
+     *     updatedAt: string,
+     *     author: array{login: string},
+     *     comments: array{totalCount: int}
+     * }
+     */
+    private function issueNode(int $number): array
+    {
+        return [
+            'number' => $number,
+            'id' => "I_{$number}",
+            'title' => 'Issue',
+            'url' => "https://github.com/magento/magento2/issues/{$number}",
+            'state' => 'OPEN',
+            'labels' => ['nodes' => []],
+            'createdAt' => '2026-01-01T00:00:00Z',
+            'updatedAt' => '2026-01-02T00:00:00Z',
+            'author' => ['login' => 'kim'],
+            'comments' => ['totalCount' => 0],
+        ];
     }
 
     /**
