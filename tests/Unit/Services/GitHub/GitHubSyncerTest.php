@@ -17,10 +17,15 @@ class GitHubSyncerTest extends TestCase
 {
     private GitHubSyncer $syncer;
 
+    /** @var list<int> Backoff delays the syncer asked for, in seconds. */
+    private array $sleeps = [];
+
     protected function setUp(): void
     {
         parent::setUp();
-        $this->syncer = new GitHubSyncer;
+        $this->syncer = new GitHubSyncer(sleep: function (int $seconds): void {
+            $this->sleeps[] = $seconds;
+        });
     }
 
     private function makePage(array $nodes, bool $hasNextPage, ?string $endCursor = null): array
@@ -167,26 +172,20 @@ class GitHubSyncerTest extends TestCase
         $this->assertSame([[1, 'c1'], [2, null]], $pageCallbacks);
     }
 
-    public function testOnErrorCallbackCalledAndLoopContinues(): void
+    public function testPageFailingEveryAttemptCallsOnErrorOnceAndStops(): void
     {
-        $pages = [
-            $this->makePage([$this->makeNode('2024-03-01')], true, 'c1'),
-            null,
-            $this->makePage([$this->makeNode('2024-01-01')], false),
-        ];
-
-        $pageIndex = 0;
+        $fetches = [];
         $errors = [];
         $indexCalls = 0;
 
         $result = $this->syncer->sync(
-            fetchPage: function ($cursor) use (&$pages, &$pageIndex) {
-                $page = $pages[$pageIndex++];
-                if ($page === null) {
+            fetchPage: function (?string $cursor) use (&$fetches) {
+                $fetches[] = $cursor;
+                if ($cursor === 'c1') {
                     throw new RuntimeException('fetch failed');
                 }
 
-                return $page;
+                return $this->makePage([$this->makeNode('2024-03-01')], true, 'c1');
             },
             index: function () use (&$indexCalls) {
                 $indexCalls++;
@@ -196,8 +195,67 @@ class GitHubSyncerTest extends TestCase
             },
         );
 
+        $this->assertSame([null, 'c1', 'c1', 'c1'], $fetches);
+        $this->assertSame([30, 60], $this->sleeps);
         $this->assertSame([['fetch failed', 2]], $errors);
         $this->assertSame(1, $indexCalls);
+        $this->assertSame(1, $result['pages']);
+    }
+
+    public function testTransientPageFailureIsRetriedAndSyncContinues(): void
+    {
+        $responses = [
+            $this->makePage([$this->makeNode('2024-03-01')], true, 'c1'),
+            new RuntimeException('502 Bad Gateway'),
+            $this->makePage([$this->makeNode('2024-02-01')], true, 'c2'),
+            $this->makePage([$this->makeNode('2024-01-01')], false),
+        ];
+        $indexCalls = 0;
+        $errors = 0;
+
+        $result = $this->syncer->sync(
+            fetchPage: function () use (&$responses) {
+                $next = array_shift($responses);
+                if ($next instanceof \Throwable) {
+                    throw $next;
+                }
+
+                return $next;
+            },
+            index: function () use (&$indexCalls) {
+                $indexCalls++;
+            },
+            onError: function () use (&$errors) {
+                $errors++;
+            },
+        );
+
+        $this->assertSame(0, $errors);
+        $this->assertSame([30], $this->sleeps);
+        $this->assertSame(3, $indexCalls);
+        $this->assertSame(3, $result['pages']);
+    }
+
+    public function testFailedIndexWriteIsRetriedWithTheSamePage(): void
+    {
+        $fetches = [];
+        $indexAttempts = 0;
+
+        $result = $this->syncer->sync(
+            fetchPage: function (?string $cursor) use (&$fetches) {
+                $fetches[] = $cursor;
+
+                return $this->makePage([$this->makeNode('2024-01-01')], false);
+            },
+            index: function () use (&$indexAttempts) {
+                if (++$indexAttempts === 1) {
+                    throw new RuntimeException('OpenSearch unavailable');
+                }
+            },
+        );
+
+        $this->assertSame([null, null], $fetches);
+        $this->assertSame(2, $indexAttempts);
         $this->assertSame(1, $result['pages']);
     }
 
