@@ -407,7 +407,16 @@ class OpenSearchService
     /**
      * One "#id: type reason" line per rejected bulk item, skipping the given error types.
      *
-     * @param  array<string, mixed>  $response
+     * @param  array{
+     *     errors?: bool,
+     *     items?: list<array<string, array{
+     *         _id: string|int,
+     *         status?: int,
+     *         error?: array{type?: string, reason?: string, ...},
+     *         ...
+     *     }>>,
+     *     ...
+     * }  $response  Bulk API response; each item is keyed by its action (index, update, …).
      * @param  list<string>  $ignoredTypes
      * @return list<string>
      */

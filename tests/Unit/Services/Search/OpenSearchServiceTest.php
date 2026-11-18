@@ -292,7 +292,18 @@ class OpenSearchServiceTest extends TestCase
     }
 
     /**
-     * @return array<string, mixed>
+     * @return array{
+     *     number: int,
+     *     id: string,
+     *     title: string,
+     *     url: string,
+     *     state: string,
+     *     labels: array{nodes: list<array{name: string}>},
+     *     createdAt: string,
+     *     updatedAt: string,
+     *     author: array{login: string},
+     *     comments: array{totalCount: int}
+     * }
      */
     private function issueNode(int $number): array
     {
