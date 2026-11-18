@@ -25,6 +25,24 @@ tasks:
     - deploy:cleanup
     - forger:cleanup-local
 
+  # Push a rebuilt .env (rotated DB/Redis/OpenSearch passwords, APP_KEY, tokens)
+  # to the live release without cutting a new one. Renders from the same source
+  # as a deploy: GitHub secrets in Actions, .env.deploy locally. It does not change
+  # any password at the service itself; see docs/features/deployment.md for the order.
+  forger:env:
+    - env:create
+    - forger:env:upload
+    - artisan:config:cache
+    - artisan:queue:restart
+    - jetrails:reload:php-fpm
+    - artisan:check-connections
+
+  forger:env:upload:
+    - upload:
+        src: .env.production
+        dest: "{{deploy_path}}/shared/.env"
+    - run_locally: "rm -f .env.production"
+
   forger:build:
     - run_locally: "composer install --no-dev --optimize-autoloader"
     - run_locally: "npm install"
@@ -50,6 +68,7 @@ tasks:
     - jetrails:reload:php-fpm
     - artisan:schedule-monitor:sync
     - varnish:purge
+    - artisan:check-connections
 
   artifact:create:
     - run_locally: 'tar --exclude=".idea" --exclude=".vscode" --exclude=".secrets" --exclude=".git" --exclude=".ddev" --exclude=".env" --exclude=".env.example" --exclude=".env.deploy" --exclude="node_modules" --exclude="bootstrap/cache/*" --exclude="storage/logs/*" --exclude="storage/framework/cache/*" --exclude="storage/framework/sessions/*" --exclude="storage/framework/views/*" --exclude=".gitignore" --exclude=".gitattributes" --exclude="README.md" --exclude="phpunit.xml" --exclude="tests" -czf /tmp/{{application}}-{{release_name}}.tar.gz .'
@@ -64,6 +83,10 @@ tasks:
 
   artisan:schedule-monitor:sync:
     - run: '{{bin/php}} {{release_path}}/artisan schedule-monitor:sync'
+
+  # Fails the run if the live .env cannot reach the database, Redis or OpenSearch.
+  artisan:check-connections:
+    - run: '{{bin/php}} {{current_path}}/artisan app:check-connections'
 
   env:create:
     - run_locally: |
