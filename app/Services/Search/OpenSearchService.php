@@ -83,7 +83,7 @@ class OpenSearchService
             $body[] = $this->toPullRequestDocument($pr);
         }
 
-        $this->client->bulk(['body' => $body]);
+        $this->bulk($body, $indexName);
         $this->flagIssuesClosedByMergedPRs($pullRequests);
         $this->indexPullRequestReviews($pullRequests);
         $this->indexPullRequestTimeline($pullRequests);
@@ -117,17 +117,7 @@ class OpenSearchService
         }
 
         $response = $this->client->bulk(['body' => $body]);
-        if (! ($response['errors'] ?? false)) {
-            return;
-        }
-
-        $failures = [];
-        foreach ($response['items'] ?? [] as $item) {
-            $error = $item['update']['error'] ?? null;
-            if ($error !== null && ($error['type'] ?? null) !== 'document_missing_exception') {
-                $failures[] = "#{$item['update']['_id']}: ".($error['type'] ?? 'unknown').' '.($error['reason'] ?? '');
-            }
-        }
+        $failures = $this->bulkFailures($response, ['document_missing_exception']);
 
         if ($failures !== []) {
             throw new \RuntimeException(count($failures).' PR reaction update(s) failed: '.implode('; ', array_slice($failures, 0, 5)));
@@ -147,7 +137,7 @@ class OpenSearchService
         }
 
         if (! empty($body)) {
-            $this->client->bulk(['body' => $body]);
+            $this->bulk($body, $indexName);
         }
     }
 
@@ -203,7 +193,7 @@ class OpenSearchService
         }
 
         if (! empty($body)) {
-            $this->client->bulk(['body' => $body]);
+            $this->bulk($body, $indexName);
         }
     }
 
@@ -223,7 +213,7 @@ class OpenSearchService
         }
 
         if (! empty($body)) {
-            $this->client->bulk(['body' => $body]);
+            $this->bulk($body, $issueIndex);
         }
     }
 
@@ -290,7 +280,7 @@ class OpenSearchService
             $body[] = ['doc' => $this->toIssueDocument($issue), 'doc_as_upsert' => true];
         }
 
-        $this->client->bulk(['body' => $body]);
+        $this->bulk($body, $indexName);
     }
 
     protected function toIssueDocument(array $issue): array
@@ -351,7 +341,7 @@ class OpenSearchService
         }
 
         try {
-            $this->client->bulk(['body' => $body]);
+            $this->bulk($body, $indexName);
         } catch (\Throwable $e) {
             Log::error('Failed to bulk index documents to OpenSearch', [
                 'index' => $indexName,
@@ -393,5 +383,49 @@ class OpenSearchService
         }
 
         return $prefix.$index;
+    }
+
+    /**
+     * Send a bulk request and log any items OpenSearch rejected. Bulk reports item
+     * failures in its response instead of throwing, so unchecked they vanish. Logged
+     * rather than thrown so one bad document does not end a sync and drop every page
+     * after it.
+     *
+     * @param  list<array<string, mixed>>  $body
+     */
+    private function bulk(array $body, string $index): void
+    {
+        $failures = $this->bulkFailures($this->client->bulk(['body' => $body]));
+
+        if ($failures !== []) {
+            Log::error(count($failures)." OpenSearch bulk item(s) rejected in {$index}", [
+                'failures' => array_slice($failures, 0, 5),
+            ]);
+        }
+    }
+
+    /**
+     * One "#id: type reason" line per rejected bulk item, skipping the given error types.
+     *
+     * @param  array<string, mixed>  $response
+     * @param  list<string>  $ignoredTypes
+     * @return list<string>
+     */
+    private function bulkFailures(array $response, array $ignoredTypes = []): array
+    {
+        if (! ($response['errors'] ?? false)) {
+            return [];
+        }
+
+        $failures = [];
+        foreach ($response['items'] ?? [] as $item) {
+            $result = reset($item) ?: [];
+            $error = $result['error'] ?? null;
+            if ($error !== null && ! in_array($error['type'] ?? null, $ignoredTypes, true)) {
+                $failures[] = "#{$result['_id']}: ".($error['type'] ?? 'unknown').' '.($error['reason'] ?? '');
+            }
+        }
+
+        return $failures;
     }
 }
