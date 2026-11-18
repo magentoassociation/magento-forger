@@ -3,6 +3,14 @@ name: Build and Deploy
 ## disabled on push for now till able to whitelist GHAs
 on:
   workflow_dispatch:
+    inputs:
+      task:
+        description: 'forger:deploy = full release; forger:env = push .env only (after rotating secrets)'
+        type: choice
+        options:
+          - forger:deploy
+          - forger:env
+        default: forger:deploy
 #  push:
 #    branches:
 #      - main
@@ -77,13 +85,14 @@ jobs:
 
       - name: Deploy application
         run: |
-          ./deploy.sh
+          ./deploy.sh "${{ inputs.task || 'forger:deploy' }}"
         env:
           GITHUB_ACTIONS: true
           APP_ENV: production
           APP_NAME: ${{ vars.APP_NAME }}
           APP_URL: ${{ vars.APP_URL }}
           APP_KEY: ${{ secrets.APP_KEY }}
+          APP_PREVIOUS_KEYS: ${{ secrets.APP_PREVIOUS_KEYS }}
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_PORT: ${{ secrets.SSH_PORT }}
           SSH_USER: ${{ secrets.SSH_USER }}
