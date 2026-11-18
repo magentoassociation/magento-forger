@@ -41,7 +41,9 @@ jobs:
         run: composer install --no-dev --optimize-autoloader
 
       - name: Install Deployer
-        run: composer global require deployer/deployer
+        # Pinned to 7.x: deploy.yaml targets it, and 8.x runs a recursive setfacl
+        # over storage that fails on files php-fpm owns (uploads, livewire-tmp).
+        run: composer global require "deployer/deployer:^7.5"
 
       - name: Install sshpass & envsubst
         run: sudo apt-get update && sudo apt-get install -y sshpass gettext-base rsync

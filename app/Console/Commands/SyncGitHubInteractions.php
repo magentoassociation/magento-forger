@@ -86,14 +86,15 @@ class SyncGitHubInteractions extends Command implements Isolatable
 
         $this->reportCursorResume($cursor);
 
-        $pagesProcessed = 0;
+        // Keyed by cursor so a retried page (same cursor) counts once against --max-pages.
+        $fetchedCursors = [];
         $errorOccurred = false;
 
         $result = $syncer->sync(
-            fetchPage: function (?string $c) use ($gitHubIssueService, $owner, $name, $maxPages, &$pagesProcessed) {
-                $pagesProcessed++;
+            fetchPage: function (?string $c) use ($gitHubIssueService, $owner, $name, $maxPages, &$fetchedCursors) {
                 $response = $gitHubIssueService->fetchIssuesWithInteractions($owner, $name, $c);
-                if ($maxPages !== null && $pagesProcessed >= $maxPages) {
+                $fetchedCursors[$c ?? ''] = true;
+                if ($maxPages !== null && count($fetchedCursors) >= $maxPages) {
                     $response['pageInfo']['hasNextPage'] = false;
                 }
 
