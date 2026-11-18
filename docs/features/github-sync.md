@@ -14,7 +14,7 @@ Two Artisan commands — `sync:github:issues` and `sync:github:prs` — share a 
 4. Stops early when the last node's `updatedAt` is older than the `--since` cutoff (incremental mode).
 5. Drops any node whose `createdAt` is before `github.history_start` (default 2014-12-01, when the repo began merging outside PRs). Applies to all four item syncs (issues, PRs, events, interactions), so an old issue's events and interactions are skipped with it. Pages are ordered by `updatedAt`, so this filters per node; it never ends the sync early.
 
-`GitHubSyncer` is callback-based: callers inject `fetchPage`, `index`, `onPage`, `onNode`, and `onError` closures, plus an optional `createdSince` floor. Errors per page are logged and skipped — the sync continues rather than aborting.
+`GitHubSyncer` is callback-based: callers inject `fetchPage`, `index`, `onPage`, `onNode`, and `onError` closures, plus an optional `createdSince` floor. A page that throws (fetch or index) is retried up to 3 times with 30s/60s backoff, on top of the HTTP client's own retries. If every attempt fails, `onError` is called and the sync stops — without that page's `endCursor` there is no next page.
 
 Both commands implement `Isolatable` so Laravel prevents concurrent runs of the same command.
 

@@ -87,6 +87,27 @@ class SyncGitHubInteractionsTest extends TestCase
             ->expectsOutputToContain('Resuming from cursor: Y3Vyc29yOnYyOpKt');
     }
 
+    public function testRetriedPageCountsOnceAgainstMaxPages(): void
+    {
+        $this->mock(GitHubInteractionService::class);
+        $this->mock(OpenSearchService::class)->shouldIgnoreMissing();
+        $fetched = [];
+        $this->mock(GitHubIssueService::class)
+            ->shouldReceive('fetchIssuesWithInteractions')
+            ->andReturnUsing(function (string $owner, string $name, ?string $cursor) use (&$fetched): array {
+                $fetched[] = $cursor;
+                if ($cursor === 'c1' && count(array_keys($fetched, 'c1', true)) === 1) {
+                    throw new RuntimeException('502 Bad Gateway');
+                }
+
+                return ['nodes' => [], 'pageInfo' => ['endCursor' => 'c'.(count(array_unique($fetched))), 'hasNextPage' => true]];
+            });
+
+        $this->artisan('sync:github:interactions', ['--max-pages' => '3'])->assertExitCode(0);
+
+        $this->assertSame([null, 'c1', 'c1', 'c2'], $fetched);
+    }
+
     public function testCutoffReachedShowsStoppingMessage(): void
     {
         $this->mock(GitHubInteractionService::class);
