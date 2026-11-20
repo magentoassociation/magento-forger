@@ -356,5 +356,52 @@ class OpenSearchServiceTest extends TestCase
 
         $this->assertSame('kim', $doc['author']);
         $this->assertSame('Adobe', $doc['author_company']);
+        $this->assertSame([], $doc['assignees']);
+        $this->assertSame([], $doc['closing_prs']);
+        $this->assertFalse($doc['has_closing_pr']);
+    }
+
+    public function testIssueDocumentIncludesClosingPrsFromConfiguredRepoOnly(): void
+    {
+        config(['github.repo' => 'magento/magento2']);
+
+        $doc = $this->buildDocument('toIssueDocument', [
+            'number' => 7,
+            'id' => 'I_7',
+            'title' => 'Fixed soon',
+            'url' => 'https://github.com/magento/magento2/issues/7',
+            'state' => 'OPEN',
+            'labels' => ['nodes' => []],
+            'createdAt' => '2026-01-01T00:00:00Z',
+            'updatedAt' => '2026-01-02T00:00:00Z',
+            'author' => ['login' => 'kim'],
+            'comments' => ['totalCount' => 0],
+            'closedByPullRequestsReferences' => ['nodes' => [
+                ['number' => 201, 'repository' => ['nameWithOwner' => 'magento/magento2']],
+                ['number' => 202, 'repository' => ['nameWithOwner' => 'magento/other-repo']],
+            ]],
+        ]);
+
+        $this->assertSame([201], $doc['closing_prs']);
+        $this->assertTrue($doc['has_closing_pr']);
+    }
+
+    public function testIssueDocumentIncludesAssigneeLogins(): void
+    {
+        $doc = $this->buildDocument('toIssueDocument', [
+            'number' => 6,
+            'id' => 'I_6',
+            'title' => 'Assigned thing',
+            'url' => 'https://github.com/magento/magento2/issues/6',
+            'state' => 'OPEN',
+            'labels' => ['nodes' => []],
+            'createdAt' => '2026-01-01T00:00:00Z',
+            'updatedAt' => '2026-01-02T00:00:00Z',
+            'author' => ['login' => 'kim'],
+            'comments' => ['totalCount' => 0],
+            'assignees' => ['nodes' => [['login' => 'ana'], ['login' => 'raj']]],
+        ]);
+
+        $this->assertSame(['ana', 'raj'], $doc['assignees']);
     }
 }

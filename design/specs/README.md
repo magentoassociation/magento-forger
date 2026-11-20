@@ -31,6 +31,8 @@ contributor board, `#19b` the contributor scoring modal, and so on.
 | `README-highlights.md` | New contributor spotlight, Comebacks, Rising, Recently active | `#8b` |
 | `README-issues-prs-by-month.md` | Both by-month timelines, colour thresholds, month picker | `#14b` `#24e` |
 | `README-community-picked.md` | Community-Picked PRs: vote-ranked list, filters, two-line rows | `#27b` `#27c` `#27d` |
+| `README-issues-prs-stats.md` | Issue Stats and PR Stats: period controls, opened vs closed, time to close or merge (proposed) | `#30a` `#30b` (canvas: `MageForger`, turn 30) |
+| `README-issue-picker.md` | Issue picker: Area and Component dependent filters, hide-taken chips, result list (proposed) | `#31b` `#31c` (canvas: `MageForger`, turn 31) |
 
 Three rules are stated once and apply everywhere: **capitalisation** (below), **focus rings**
 and **hover states** (both in `README-leaderboard-pages.md`).
@@ -205,8 +207,19 @@ load. The depth and the month are reflected in the URL (`?rows=`, and the month 
 
 Title case is for strings that name a destination — the page H1s and the tab and nav labels
 that point at them: "Contributor Leaderboard", "Maintainer Leaderboard", "Monthly Leaderboard",
-"Issues By Month", "PRs By Month", "Leaderboard Highlights", "Community-Picked PRs". In a
-hyphenated name both parts are capitalised. If it is a page and something links to it by name, it is title case. A link that spells
+"Issues by Month", "PRs by Month", "Leaderboard Highlights", "Community-Picked PRs", "Pick an
+Issue". In a hyphenated name both parts are capitalised.
+
+Title case follows **AP style** ([AP title capitalization rules](https://titlecapitalize.com/ap-title-capitalization-rules/)):
+
+- Capitalise the first and last word, whatever they are.
+- Capitalise nouns, pronouns, verbs, adjectives and adverbs, however short ("Is", "Its", "New").
+- Capitalise prepositions and conjunctions of four letters or more ("With", "From", "About", "Into").
+- Lowercase the articles "a", "an", "the", and prepositions and conjunctions of three letters or
+  fewer ("by", "of", "to", "in", "for", "and", "or", "on", "at"), unless first or last.
+
+So "Issues by Month" and "Pick an Issue", but the short nav label "By Month" keeps its capital
+because "By" is the first word. If it is a page and something links to it by name, it is title case. A link that spells
 out the full name must match the H1 exactly. Tab, nav and footer labels may use a short form of
 the name — "Contributor", "Highlights", "Leaderboard", "Pull Requests", "Community-Picked" —
 and stay title case.

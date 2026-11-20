@@ -25,7 +25,20 @@ query($owner: String!, $name: String!, $cursor: String) {
         comments {
           totalCount
         }
-        labels (first: 10) {
+        assignees (first: 10) {
+          nodes {
+            login
+          }
+        }
+        closedByPullRequestsReferences (first: 10) {
+          nodes {
+            number
+            repository {
+              nameWithOwner
+            }
+          }
+        }
+        labels (first: 50) {
           nodes {
               name
           }

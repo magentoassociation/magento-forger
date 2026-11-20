@@ -1,4 +1,4 @@
-# Handoff: Issues By Month / PRs By Month
+# Handoff: Issues by Month / PRs by Month
 
 ## Overview
 Replaces the grid of month tiles on both pages with a single bar timeline of the whole backlog,
@@ -39,7 +39,7 @@ actually useful, for picking a month in the current year.
 
 Five blocks, top to bottom, all inside the page content container:
 
-1. **Page title block** — unchanged, per `README-header.md`. H1 "Issues By Month" / "PRs By Month".
+1. **Page title block** — unchanged, per `README-header.md`. H1 "Issues by Month" / "PRs by Month".
 2. **Intro copy** — full content width.
 3. **Timeline** — as many years as fit the width, one bar per month, scrollable back to the oldest year with anything open.
 4. **Month picker** — the current year as tiles.
@@ -150,7 +150,7 @@ Nothing that leads to an empty list is clickable.
 ### 4. Opened and closed, all time
 
 The full-history chart that used to sit on the homepage. Inside the page content container,
-after the month picker: `margin-top: 36px; padding-bottom: 34px`. Shows the page's own dataset only (PRs on PRs By Month, issues on Issues By Month).
+after the month picker: `margin-top: 36px; padding-bottom: 34px`. Shows the page's own dataset only (PRs on PRs by Month, issues on Issues by Month).
 
 - Heading "Opened and closed, all time" — Libre Franklin 700, 17px, `-.02em`, `margin: 0 0 4px`.
 - Sub "All issues opened and closed since the first month, by quarter." (PRs page: "All PRs …")
@@ -210,7 +210,7 @@ The thresholds are absolute, not relative to the page, so the same count means t
 both pages and across years. If PR volumes drift far from these ranges, re-derive the thresholds
 once and apply the same set to both pages.
 
-**Verified against real PR data (Sep 2026).** Across PRs By Month for 2024, 2025 and 2026 to date — 33 months,
+**Verified against real PR data (Sep 2026).** Across PRs by Month for 2024, 2025 and 2026 to date — 33 months,
 range 6 to 107 — the buckets fill 8 / 14 / 7 / 2 / 2 from palest to hottest. Every step is used
 and none holds half the data, so the scale stands as written. Expect 2025 to render nearly
 uniformly pale (6–21, mostly low teens), 2024 a step warmer, and 2026 to climb into the top two

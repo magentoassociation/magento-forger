@@ -15,6 +15,7 @@ class RouteLabelHelper
         'leaderboard.index' => 'Leaderboard',
         // Hyphenated names capitalise both parts (README "Capitalisation").
         'prs.communityPicked' => 'Community-Picked',
+        'issues.pick' => 'Pick an Issue',
     ];
 
     public static function formatLabel(string $routeName): string

@@ -67,6 +67,16 @@ class ByMonthAllTimeChartTest extends TestCase
         $this->assertNotEmpty(array_filter($queried, static fn (string $i): bool => str_contains($i, $index)));
     }
 
+    public function testH1sFollowApTitleCase(): void
+    {
+        $queried = [];
+        $this->bindClient($this->allTimeAggregation(), $queried);
+
+        // AP: prepositions of three letters or fewer stay lowercase unless first or last.
+        $this->get(route('issues.byMonth'))->assertSee('<h1>Issues by Month</h1>', false);
+        $this->get(route('prs.byMonth'))->assertSee('<h1>PRs by Month</h1>', false);
+    }
+
     #[DataProvider('pages')]
     public function testPageHidesAllTimeChartWhenSearchFails(string $route): void
     {

@@ -29,6 +29,7 @@ Route::get('leaderboard/{board}/user/{login}', [Controllers\ScoreLeaderboardCont
 
 // old routes
 Route::get('issues/by-month', [Controllers\IssuesByMonthController::class, 'index'])->name('issues.byMonth');
+Route::get('issues/pick', [Controllers\IssuePickerController::class, 'index'])->name('issues.pick');
 Route::get('prs/by-month', [Controllers\PrsByMonthController::class, 'index'])->name('prs.byMonth');
 Route::get('prs/community-picked', [Controllers\CommunityPickedController::class, 'index'])->name('prs.communityPicked');
 Route::get('labels/allLabels', [Controllers\LabelController::class, 'listAllLabels'])->name('labels.listAllLabels');

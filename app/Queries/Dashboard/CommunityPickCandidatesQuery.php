@@ -53,9 +53,7 @@ class CommunityPickCandidatesQuery
      */
     private array $spellings = [];
 
-    public function __construct(private readonly Client $client)
-    {
-    }
+    public function __construct(private readonly Client $client) {}
 
     /**
      * @return array{
@@ -121,7 +119,7 @@ class CommunityPickCandidatesQuery
                     'created_at',
                     'thumbs_up_count',
                     'linked_issues',
-                    'labels'
+                    'labels',
                 ],
                 'query' => $query,
                 'sort' => $this->sortClauses($sort),
@@ -130,10 +128,10 @@ class CommunityPickCandidatesQuery
 
         return [
             'rows' => array_map(
-                fn(array $hit): array => $this->toRow($hit['_source'], $issueLabels),
+                fn (array $hit): array => $this->toRow($hit['_source'], $issueLabels),
                 $response['hits']['hits'] ?? []
             ),
-            'total' => (int)($response['hits']['total']['value'] ?? 0),
+            'total' => (int) ($response['hits']['total']['value'] ?? 0),
             'areaOptions' => $this->withPrefix($this->labelOptions($areaFacets, $issueLabels), self::AREA_PREFIX),
             'componentOptions' => $this->withPrefix(
                 $this->labelOptions($componentFacets, $issueLabels),
@@ -161,8 +159,8 @@ class CommunityPickCandidatesQuery
     }
 
     /**
-     * @param array<string, mixed> $candidates
-     * @param array<string, array<string, mixed>> $clauses Filter clauses keyed by filter name.
+     * @param  array<string, mixed>  $candidates
+     * @param  array<string, array<string, mixed>>  $clauses  Filter clauses keyed by filter name.
      * @return array<string, mixed>
      */
     private function narrow(array $candidates, array $clauses): array
@@ -179,15 +177,15 @@ class CommunityPickCandidatesQuery
      * Narrowed facets' Linked Issues are a subset of every candidate's, so $issueLabels
      * already covers them.
      *
-     * @param array{linkedIssues: list<int>, prLabels: list<string>, authors: list<string>} $facets
-     * @param array<int, list<string>> $issueLabels
+     * @param  array{linkedIssues: list<int>, prLabels: list<string>, authors: list<string>}  $facets
+     * @param  array<int, list<string>>  $issueLabels
      * @return list<string>
      */
     private function labelOptions(array $facets, array $issueLabels): array
     {
         $options = array_merge(
             $facets['prLabels'],
-            ...array_map(static fn(int $issue): array => $issueLabels[$issue] ?? [], $facets['linkedIssues'])
+            ...array_map(static fn (int $issue): array => $issueLabels[$issue] ?? [], $facets['linkedIssues'])
         );
 
         return $this->uniqueSorted($options);
@@ -204,14 +202,14 @@ class CommunityPickCandidatesQuery
                 'must_not' => [
                     ['terms' => ['labels.keyword' => config('github.community_picked.exclude_labels', [])]],
                 ],
-            ]
+            ],
         ];
     }
 
     /**
      * Linked Issue numbers, the PRs' own Area/Component labels, and authors across the given PRs.
      *
-     * @param array<string, mixed> $candidates
+     * @param  array<string, mixed>  $candidates
      * @return array{linkedIssues: list<int>, prLabels: list<string>, authors: list<string>}
      */
     private function candidateFacets(array $candidates): array
@@ -227,15 +225,15 @@ class CommunityPickCandidatesQuery
                         'terms' => [
                             'field' => 'labels.keyword',
                             'size' => 1000,
-                            'include' => self::FILTER_LABEL_PATTERN
-                        ]
+                            'include' => self::FILTER_LABEL_PATTERN,
+                        ],
                     ],
                     'authors' => ['terms' => ['field' => 'author.keyword', 'size' => 10000]],
                 ],
             ],
         ]);
 
-        $keys = static fn(string $agg): array => array_column($response['aggregations'][$agg]['buckets'] ?? [], 'key');
+        $keys = static fn (string $agg): array => array_column($response['aggregations'][$agg]['buckets'] ?? [], 'key');
 
         return [
             'linkedIssues' => array_map('intval', $keys('linked_issues')),
@@ -247,7 +245,7 @@ class CommunityPickCandidatesQuery
     /**
      * Area/Component labels of each given issue, keyed by issue number.
      *
-     * @param list<int> $issueNumbers
+     * @param  list<int>  $issueNumbers
      * @return array<int, list<string>>
      */
     private function issueLabels(array $issueNumbers): array
@@ -268,7 +266,7 @@ class CommunityPickCandidatesQuery
 
         $labels = [];
         foreach ($response['hits']['hits'] ?? [] as $hit) {
-            $labels[(int)$hit['_id']] = $this->uniqueSorted($this->filterLabels($hit['_source']['labels'] ?? []));
+            $labels[(int) $hit['_id']] = $this->uniqueSorted($this->filterLabels($hit['_source']['labels'] ?? []));
         }
 
         return $labels;
@@ -277,7 +275,7 @@ class CommunityPickCandidatesQuery
     /**
      * A PR matches when it carries the label itself or any of its Linked Issues does.
      *
-     * @param array<int, list<string>> $issueLabels
+     * @param  array<int, list<string>>  $issueLabels
      * @return array<string, mixed>
      */
     private function matchesEffectiveLabel(string $label, array $issueLabels): array
@@ -286,7 +284,7 @@ class CommunityPickCandidatesQuery
 
         $label = $this->spelling($label);
         $issues =
-            array_keys(array_filter($issueLabels, static fn(array $labels): bool => in_array($label, $labels, true)));
+            array_keys(array_filter($issueLabels, static fn (array $labels): bool => in_array($label, $labels, true)));
         if ($issues !== []) {
             $should[] = ['terms' => ['linked_issues' => $issues]];
         }
@@ -305,21 +303,21 @@ class CommunityPickCandidatesQuery
         $titleMatch = ['match_bool_prefix' => ['title' => ['query' => $title, 'operator' => 'and']]];
 
         // 18 digits keeps the term inside a long.
-        if (!preg_match('/^#?(\d{1,18})$/', trim($title), $number)) {
+        if (! preg_match('/^#?(\d{1,18})$/', trim($title), $number)) {
             return $titleMatch;
         }
 
         return [
             'bool' => [
-                'should' => [['term' => ['id' => (int)$number[1]]], $titleMatch],
-                'minimum_should_match' => 1
-            ]
+                'should' => [['term' => ['id' => (int) $number[1]]], $titleMatch],
+                'minimum_should_match' => 1,
+            ],
         ];
     }
 
     /**
-     * @param array<string, mixed> $source
-     * @param array<int, list<string>> $issueLabels
+     * @param  array<string, mixed>  $source
+     * @param  array<int, list<string>>  $issueLabels
      * @return array{number: int, title: string, url: string, author: ?string, created_at: string, thumbs_up_count:
      *     int, linked_issues: list<int>, labels: list<string>}
      */
@@ -329,30 +327,30 @@ class CommunityPickCandidatesQuery
 
         $labels = $this->uniqueSorted(array_merge(
             $this->filterLabels($source['labels'] ?? []),
-            ...array_map(static fn(int $issue): array => $issueLabels[$issue] ?? [], $linkedIssues)
+            ...array_map(static fn (int $issue): array => $issueLabels[$issue] ?? [], $linkedIssues)
         ));
 
         return [
-            'number' => (int)$source['id'],
+            'number' => (int) $source['id'],
             'title' => $source['title'],
             'url' => $source['url'],
             'author' => $source['author'] ?? null,
             'created_at' => $source['created_at'],
-            'thumbs_up_count' => (int)($source['thumbs_up_count'] ?? 0),
+            'thumbs_up_count' => (int) ($source['thumbs_up_count'] ?? 0),
             'linked_issues' => $linkedIssues,
             'labels' => $labels,
         ];
     }
 
     /**
-     * @param list<string> $labels
+     * @param  list<string>  $labels
      * @return list<string>
      */
     private function filterLabels(array $labels): array
     {
         return array_values(array_filter(
             $labels,
-            static fn(string $label): bool => preg_match('/^' . self::FILTER_LABEL_PATTERN . '$/', $label) === 1,
+            static fn (string $label): bool => preg_match('/^'.self::FILTER_LABEL_PATTERN.'$/', $label) === 1,
         ));
     }
 
@@ -365,7 +363,7 @@ class CommunityPickCandidatesQuery
     private function labelSpellings(): array
     {
         $response = $this->client->search([
-            'index' => $this->pullRequestIndex() . ',' . OpenSearchService::getIndexWithPrefix(OpenSearchService::OPENSEARCH_GITHUB_ISSUES_INDEX),
+            'index' => $this->pullRequestIndex().','.OpenSearchService::getIndexWithPrefix(OpenSearchService::OPENSEARCH_GITHUB_ISSUES_INDEX),
             'body' => [
                 'size' => 0,
                 'aggs' => [
@@ -373,10 +371,10 @@ class CommunityPickCandidatesQuery
                         'terms' => [
                             'field' => 'labels.keyword',
                             'size' => 1000,
-                            'include' => self::FILTER_LABEL_PATTERN
+                            'include' => self::FILTER_LABEL_PATTERN,
                         ],
                         'aggs' => ['updated' => ['max' => ['field' => 'updated_at']]],
-                    ]
+                    ],
                 ],
             ],
         ]);
@@ -384,11 +382,11 @@ class CommunityPickCandidatesQuery
         $latest = [];
         $spellings = [];
         foreach ($response['aggregations']['spellings']['buckets'] ?? [] as $bucket) {
-            $key = mb_strtolower((string)$bucket['key']);
-            $updated = (float)($bucket['updated']['value'] ?? 0);
-            if (!isset($latest[$key]) || $updated > $latest[$key]) {
+            $key = mb_strtolower((string) $bucket['key']);
+            $updated = (float) ($bucket['updated']['value'] ?? 0);
+            if (! isset($latest[$key]) || $updated > $latest[$key]) {
                 $latest[$key] = $updated;
-                $spellings[$key] = (string)$bucket['key'];
+                $spellings[$key] = (string) $bucket['key'];
             }
         }
 
@@ -401,9 +399,9 @@ class CommunityPickCandidatesQuery
     }
 
     /**
-     * Labels in their current spelling, one per case-insensitive name, sorted.
+     * Labels in their current spelling, one per case-insensitive name, sorted ignoring case.
      *
-     * @param list<string> $labels
+     * @param  list<string>  $labels
      * @return list<string>
      */
     private function uniqueSorted(array $labels): array
@@ -413,18 +411,18 @@ class CommunityPickCandidatesQuery
             $unique[mb_strtolower($label)] ??= $this->spelling($label);
         }
         $unique = array_values($unique);
-        sort($unique);
+        sort($unique, SORT_STRING | SORT_FLAG_CASE);
 
         return $unique;
     }
 
     /**
-     * @param list<string> $labels
+     * @param  list<string>  $labels
      * @return list<string>
      */
     private function withPrefix(array $labels, string $prefix): array
     {
-        return array_values(array_filter($labels, static fn(string $label): bool => str_starts_with($label, $prefix)));
+        return array_values(array_filter($labels, static fn (string $label): bool => str_starts_with($label, $prefix)));
     }
 
     private function pullRequestIndex(): string
